@@ -63,7 +63,7 @@ def diff(a, b):
     """局部差异：把两张图的差分成 32×18 块，取差得最多的那一块（整张平均会把小改动抹掉）。"""
     from PIL import Image, ImageChops
     A = Image.open(a).convert('L').resize((960, 540)); B = Image.open(b).convert('L').resize((960, 540))
-    return max(ImageChops.difference(A, B).resize((32, 18), Image.BOX).getdata())
+    return max(ImageChops.difference(A, B).resize((32, 18), Image.BOX).tobytes())
 
 def cmd_gallery():
     """每个条目渲染几张定格，和基线逐张比；差得多的列出来，人看过图再决定 --accept。"""

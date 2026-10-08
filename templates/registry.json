@@ -6,7 +6,10 @@
    "styles": [
     "space",
     "sky",
-    "lab"
+    "lab",
+    "glow",
+    "morph",
+    "whiteboard"
    ],
    "chrome": "question",
    "components": [
@@ -14,13 +17,19 @@
     "callout",
     "bigNumber",
     "compare2"
+   ],
+   "packs_optional": [
+    "glow",
+    "morph",
+    "whiteboard"
    ]
   },
   "历史事件": {
    "styles": [
     "archive",
     "ink",
-    "songink"
+    "songink",
+    "collage"
    ],
    "chrome": "date",
    "components": [
@@ -31,6 +40,9 @@
     "clip",
     "sourceTag",
     "highlight"
+   ],
+   "packs_optional": [
+    "collage"
    ]
   },
   "人物传记": {
@@ -38,7 +50,8 @@
     "archive",
     "space",
     "ink",
-    "songink"
+    "songink",
+    "collage"
    ],
    "chrome": "date",
    "components": [
@@ -47,13 +60,21 @@
     "quoteCard",
     "lowerThird",
     "dateStamp"
+   ],
+   "packs_optional": [
+    "collage"
    ]
   },
   "AI与科技": {
    "styles": [
     "keynote",
     "lab",
-    "space"
+    "space",
+    "morph",
+    "whiteboard",
+    "kinetic",
+    "holo",
+    "ui"
    ],
    "chrome": "label",
    "components": [
@@ -64,6 +85,13 @@
     "bigNumber",
     "specTable",
     "flowSteps"
+   ],
+   "packs_optional": [
+    "morph",
+    "whiteboard",
+    "kinetic",
+    "holo",
+    "ui"
    ]
   },
   "小说与文学": {
@@ -82,7 +110,9 @@
   },
   "工业零部件": {
    "styles": [
-    "blueprint"
+    "blueprint",
+    "iso",
+    "holo"
    ],
    "chrome": "question",
    "components": [
@@ -92,12 +122,20 @@
     "bigNumber",
     "flowSteps",
     "clip"
+   ],
+   "packs_optional": [
+    "iso",
+    "holo"
    ]
   },
   "企业介绍": {
    "styles": [
     "swiss",
-    "keynote"
+    "keynote",
+    "whiteboard",
+    "kinetic",
+    "iso",
+    "ui"
    ],
    "chrome": "label",
    "components": [
@@ -108,12 +146,19 @@
     "specTable",
     "quoteCard",
     "barChart"
+   ],
+   "packs_optional": [
+    "whiteboard",
+    "kinetic",
+    "iso",
+    "ui"
    ]
   },
   "生产流程": {
    "styles": [
     "blueprint",
-    "swiss"
+    "swiss",
+    "iso"
    ],
    "chrome": "step",
    "components": [
@@ -123,11 +168,15 @@
     "bigNumber",
     "compare2",
     "specTable"
+   ],
+   "packs_optional": [
+    "iso"
    ]
   },
   "数据解读": {
    "styles": [
-    "chart"
+    "chart",
+    "morph"
    ],
    "chrome": "label",
    "components": [
@@ -136,11 +185,16 @@
     "lineChart",
     "sourceTag",
     "compare2"
+   ],
+   "packs_optional": [
+    "morph"
    ]
   },
   "新闻解读": {
    "styles": [
-    "archive"
+    "archive",
+    "collage",
+    "kinetic"
    ],
    "chrome": "date",
    "components": [
@@ -151,6 +205,10 @@
     "sourceTag",
     "lowerThird",
     "stamp"
+   ],
+   "packs_optional": [
+    "collage",
+    "kinetic"
    ]
   },
   "人物行迹": {
@@ -231,14 +289,30 @@
   "chart",
   "songink",
   "litho",
-  "lacquer"
+  "lacquer",
+  "glow",
+  "morph",
+  "whiteboard",
+  "collage",
+  "kinetic",
+  "iso",
+  "holo",
+  "ui"
  ],
  "packs": [
   "ink",
   "figures",
   "map",
   "litho",
-  "lacquer"
+  "lacquer",
+  "glow",
+  "morph",
+  "whiteboard",
+  "collage",
+  "kinetic",
+  "iso",
+  "holo",
+  "ui"
  ],
  "films": [
   {
@@ -1389,6 +1463,236 @@
    "name": "漆屏风的墓志/碑刻组件放开文字参数",
    "status": "inbox",
    "from": "王钟儿",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "style.glow",
+   "kind": "style",
+   "name": "扁平发光世界",
+   "status": "candidate",
+   "pack": "glow",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "glow"
+  },
+  {
+   "id": "pack.glow",
+   "kind": "pack",
+   "name": "扁平发光世界",
+   "status": "candidate",
+   "pack": "glow",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "glow"
+  },
+  {
+   "id": "style.morph",
+   "kind": "style",
+   "name": "概念形变",
+   "status": "candidate",
+   "pack": "morph",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "morph"
+  },
+  {
+   "id": "pack.morph",
+   "kind": "pack",
+   "name": "概念形变",
+   "status": "candidate",
+   "pack": "morph",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "morph"
+  },
+  {
+   "id": "style.whiteboard",
+   "kind": "style",
+   "name": "白板手写",
+   "status": "candidate",
+   "pack": "whiteboard",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "whiteboard"
+  },
+  {
+   "id": "pack.whiteboard",
+   "kind": "pack",
+   "name": "白板手写",
+   "status": "candidate",
+   "pack": "whiteboard",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "whiteboard"
+  },
+  {
+   "id": "style.collage",
+   "kind": "style",
+   "name": "桌面拼贴",
+   "status": "candidate",
+   "pack": "collage",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "collage"
+  },
+  {
+   "id": "pack.collage",
+   "kind": "pack",
+   "name": "桌面拼贴",
+   "status": "candidate",
+   "pack": "collage",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "collage"
+  },
+  {
+   "id": "style.kinetic",
+   "kind": "style",
+   "name": "动态文字",
+   "status": "candidate",
+   "pack": "kinetic",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "kinetic"
+  },
+  {
+   "id": "pack.kinetic",
+   "kind": "pack",
+   "name": "动态文字",
+   "status": "candidate",
+   "pack": "kinetic",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "kinetic"
+  },
+  {
+   "id": "style.iso",
+   "kind": "style",
+   "name": "等距沙盘",
+   "status": "candidate",
+   "pack": "iso",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "iso"
+  },
+  {
+   "id": "pack.iso",
+   "kind": "pack",
+   "name": "等距沙盘",
+   "status": "candidate",
+   "pack": "iso",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "iso"
+  },
+  {
+   "id": "style.holo",
+   "kind": "style",
+   "name": "全息界面",
+   "status": "candidate",
+   "pack": "holo",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "holo"
+  },
+  {
+   "id": "pack.holo",
+   "kind": "pack",
+   "name": "全息界面",
+   "status": "candidate",
+   "pack": "holo",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "holo"
+  },
+  {
+   "id": "style.ui",
+   "kind": "style",
+   "name": "活体录屏",
+   "status": "candidate",
+   "pack": "ui",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "ui"
+  },
+  {
+   "id": "pack.ui",
+   "kind": "pack",
+   "name": "活体录屏",
+   "status": "candidate",
+   "pack": "ui",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "ui"
+  },
+  {
+   "id": "inbox-007",
+   "kind": "component",
+   "name": "封面和竖版跟随主题：封面用主题背景 bg、标题用主题字体（现在固定黑体加渐变）",
+   "status": "inbox",
+   "from": "新风格包报告",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "inbox-008",
+   "kind": "component",
+   "name": "txt() 可切换画笔，让带字的包组件也能画进封面",
+   "status": "inbox",
+   "from": "新风格包报告",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "inbox-009",
+   "kind": "check",
+   "name": "画面空档阈值对细线风格（概念形变、录屏只有指针在动）可能太粗，需要实测",
+   "status": "inbox",
+   "from": "新风格包报告",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "inbox-010",
+   "kind": "check",
+   "name": "阅读时长对跟着镜头进出画面的文字放宽，或提供不计时标记",
+   "status": "inbox",
+   "from": "新风格包报告",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "inbox-011",
+   "kind": "check",
+   "name": "检查加“文字压在图形上”（现在只查文字压文字）",
+   "status": "inbox",
+   "from": "新风格包报告",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "inbox-012",
+   "kind": "style",
+   "name": "简笔角色、讲解员、铜版画、木刻、案卷五套风格做成风格包",
+   "status": "inbox",
+   "from": "风格模板",
    "since": "2026-10-08",
    "used_in": []
   }

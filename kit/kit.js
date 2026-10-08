@@ -3,7 +3,7 @@
    这里提供：画布与缓动、文字与图形小件、主题背景、章节条与字幕、分场淡入淡出、照片卡、竖版合成、封面。 */
 const W=1920,H=1080,cv=document.getElementById('c'),g=cv.getContext('2d');
 const cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)),seg=(t,a,b)=>cl((t-a)/(b-a)),lerp=(a,b,k)=>a+(b-a)*k;
-const eo=x=>1-Math.pow(1-cl(x),3),eio=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2},expo=x=>{x=cl(x);return x>=1?1:1-Math.pow(2,-10*x)},back=x=>{x=cl(x);const c=1.70158;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)};
+const eo=x=>1-Math.pow(1-cl(x),3),eio=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2},expo=x=>{x=cl(x);return x>=1?1:1-Math.pow(2,-10*x)},back=x=>{x=cl(x);if(x<=0)return 0;if(x>=1)return 1;const c=1.70158;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)};
 function rnd(i){const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x)}
 let TL=[],IM={},FILM=null,TH=null;
 
@@ -103,7 +103,7 @@ function subs(t){const s=TL.find(s=>t>=s.t0&&t<s.t1);if(!s)return;const c=(s.chu
 function credits(t,t0,lines,y0=650){lines.forEach((l,i)=>rise(t,t0+i*.2,l,W/2,y0+i*50,32,TH.note,'H5','center'))}
 
 /* ---------- 渲染入口 ---------- */
-window.renderFrame=t=>{if(REC)REC.tx=[];g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.setLineDash([]);TH.bg(t);FILM.scenes(t);if(TH.post)TH.post(t);if(!window.CLEAN){chrome(t);subs(t)}
+window.renderFrame=t=>{if(REC)REC.tx=[];g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.setLineDash([]);TH.bg(t);FILM.scenes(t);g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.filter='none';if(TH.post)TH.post(t);if(!window.CLEAN){chrome(t);subs(t)}
   const f=1-eo(seg(t,0,.6))+seg(t,total()-.8,total());if(f>0){g.fillStyle=`rgba(0,0,0,${cl(f)})`;g.fillRect(0,0,W,H)}if(REC)LASTTX=REC.tx;return true};
 // 竖版：把横版画面放进 1080x1920，上面标题、下面大字幕
 window.vertFrame=(t,sub,prog)=>{window.CLEAN=1;window.renderFrame(t);window.CLEAN=0;let V=window.__V;if(!V){V=window.__V=document.createElement('canvas');V.width=1080;V.height=1920}const v=V.getContext('2d'),C=FILM.cover;
