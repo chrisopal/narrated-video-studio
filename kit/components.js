@@ -78,11 +78,47 @@ function chapterCard(t,t0,t1,num,title,sub){const a=fadeIO(t,t0,t1,.35);if(a<=0)
 // 片段先由 build.py clips 切好并拆成逐帧图片；这里按时间取帧，所以和其它画面一样是确定的、可任意跳帧
 let PENDING=[];const CLIPS={},FC=new Map();
 function clipImg(id,n){const key=id+'/'+n;let e=FC.get(key);if(e){FC.delete(key);FC.set(key,e);return e.ok?e.im:null}const im=new Image();e={im,ok:false};FC.set(key,e);PENDING.push(new Promise(r=>{im.onload=()=>{e.ok=true;r()};im.onerror=()=>{console.error('片段帧加载失败',key);r()}}));im.src=`/project/clips/${id}/f${String(n).padStart(5,'0')}.jpg`;if(FC.size>60)FC.delete(FC.keys().next().value);return null}
-// clip(素材id, t, 开始时刻, x,y,w,h, {from:从片段第几秒起, speed, sound:原声音量0–1, credit:false 不显示署名, r:圆角, frame:false 不画边框})
-// 片段放完后停在最后一帧。署名默认画在右下角，来自素材台账的 credit。
-function clip(id,t,t0,x,y,w,h,o={}){const c=CLIPS[id];if(!c){console.error('素材台账里没有这个片段，或还没运行 build.py clips：',id);return}if(t<t0)return;const n=cl(Math.floor(((t-t0)*(o.speed||1)+(o.from||0))*c.fps)+1,1,c.n),r=o.r??18;
-  if(REC){REC.used[id]=1;REC.ev['clip:'+id+'|'+(o.from||0)+'@'+t0.toFixed(2)]=o.sound||0}const im=clipImg(id,n);g.save();if(o.frame!==false){g.shadowColor='rgba(0,0,0,.5)';g.shadowBlur=36;g.shadowOffsetY=12}g.fillStyle='#000';rr(x,y,w,h,r);g.fill();g.restore();
-  if(im){g.save();rr(x,y,w,h,r);g.clip();const s=Math.max(w/im.width,h/im.height),dw=im.width*s,dh=im.height*s;g.drawImage(im,x+(w-dw)/2,y+(h-dh)/2,dw,dh);g.restore()}
-  if(o.frame!==false){g.strokeStyle=o.col||TH.a1;g.lineWidth=4;rr(x,y,w,h,r);g.stroke()}const a=ASSETS.find(a=>a.id===id);if(o.credit!==false&&a&&a.credit){const s='影像：'+a.credit,cw=tw(s,32,TH.f.s)+28;g.save();g.fillStyle='rgba(0,0,0,.55)';rr(x+w-cw-14,y+h-58,cw,44,8);g.fill();g.restore();txt(s,x+w-28,y+h-26,32,'#fff',TH.f.s,'right')}}
+// 原声登记给 build.py mix：'clip:id|from[|t1=..|fi=..|fo=..]@t0' → 增益。没有 t1/淡入淡出时和旧写法一字不差
+function clipKey(id,from,t0,s){let k='clip:'+id+'|'+from;if(s.t1!=null)k+='|t1='+(+s.t1).toFixed(2);if(s.fadeIn>0)k+='|fi='+(+s.fadeIn).toFixed(2);if(s.fadeOut>0)k+='|fo='+(+s.fadeOut).toFixed(2);return k+'@'+t0.toFixed(2)}
+// 片段在框里怎么放：mode cover 裁满 / contain 留边；z 放大倍数，(cx,cy) 取景中心（0–1）。放大后不露边
+function clipPlace(iw,ih,x,y,w,h,mode,z,cx,cy){const s=(mode==='cover'?Math.max(w/iw,h/ih):Math.min(w/iw,h/ih))*z,dw=iw*s,dh=ih*s;let dx=x+w/2-cx*dw,dy=y+h/2-cy*dh;dx=dw>=w?cl(dx,x+w-dw,x):x+(w-dw)/2;dy=dh>=h?cl(dy,y+h-dh,y):y+(h-dh)/2;return [dx,dy,dw,dh]}
+// 模糊垫底：同一帧缩到几十像素的离屏小画布上，小半径模糊一次，再放大铺满（不在大画面上做大半径 filter）
+let BLUR=null;
+function clipBlurBg(im,x,y,w,h){if(!BLUR)BLUR=[document.createElement('canvas'),document.createElement('canvas')];const [A,B]=BLUR,bw=64,bh=Math.max(8,Math.round(64*h/w));
+  if(A.width!==bw+8||A.height!==bh+8){A.width=bw+8;A.height=bh+8}if(B.width!==bw||B.height!==bh){B.width=bw;B.height=bh}const a=A.getContext('2d'),b=B.getContext('2d'),s=Math.max(A.width/im.width,A.height/im.height);
+  a.imageSmoothingQuality='high';a.drawImage(im,(A.width-im.width*s)/2,(A.height-im.height*s)/2,im.width*s,im.height*s);b.clearRect(0,0,bw,bh);b.filter='blur(2.5px)';b.drawImage(A,-4,-4);b.filter='none';
+  g.save();g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';g.drawImage(B,x,y,w,h);g.fillStyle='rgba(0,0,0,.3)';g.fillRect(x,y,w,h);g.restore()}
+// clip(素材id, t, 开始时刻, x,y,w,h, o)
+//   o.from 从片段第几秒起；o.speed 变速（原声不变速）；o.r 圆角；o.frame:false 不画边框阴影；o.col 边框色；o.credit:false 不显示署名
+//   o.fit 'cover' 裁满（缺省）/ 'contain' 留黑边 / 'blur' 同一帧模糊放大垫底、原画居中（竖拍放进横框、横拍放进竖框）
+//   o.kb={z0,z1,x0,y0,x1,y1} 推拉摇：在片段播放时间内（t0 到 t1，没写 t1 就到片段放完）从取景 (z0,x0,y0) 平滑到 (z1,x1,y1)；x,y 是取景中心 0–1
+//   o.t1 片段在全片里的结束时刻：到点就不画（没写就放完停在最后一帧）；o.fade=[入,出] 秒数，出要配 t1（没写 t1 就在片段放完时淡完）
+//   o.sound 原声：数字是音量 0–1，截止和淡入淡出跟画面（t1、fade）走；也可写 {gain,t1,fadeIn,fadeOut} 单独定
+// 署名默认画在右下角，来自素材台账的 credit；o.creditLift 往上挪的像素（全屏时避开字幕带）。
+function clip(id,t,t0,x,y,w,h,o={}){const c=CLIPS[id];if(!c){console.error('素材台账里没有这个片段，或还没运行 build.py clips：',id);return}if(t<t0)return;const from=o.from||0,sp=o.speed||1,fd=o.fade||[0,0],te=o.t1!=null?o.t1:fd[1]>0?t0+(c.dur-from)/sp:null;
+  if(REC){REC.used[id]=1;const so=o.sound,ob=so!==null&&typeof so==='object';REC.ev[clipKey(id,from,t0,ob?{t1:so.t1??te,fadeIn:so.fadeIn??fd[0],fadeOut:so.fadeOut??fd[1]}:{t1:te,fadeIn:fd[0],fadeOut:fd[1]})]=ob?(so.gain??1):(so||0)}
+  if(te!=null&&t>=te)return;const al=(fd[0]>0?eio(seg(t,t0,t0+fd[0])):1)*(te!=null&&fd[1]>0?1-eio(seg(t,te-fd[1],te)):1);if(al<=0)return;
+  const n=cl(Math.floor(((t-t0)*sp+from)*c.fps)+1,1,c.n),r=o.r??18,fit=o.fit||'cover';const im=clipImg(id,n),ga=g.globalAlpha;g.save();g.globalAlpha*=al;
+  g.save();if(o.frame!==false){g.shadowColor='rgba(0,0,0,.5)';g.shadowBlur=36;g.shadowOffsetY=12}g.fillStyle='#000';rr(x,y,w,h,r);g.fill();g.restore();
+  if(im){g.save();rr(x,y,w,h,r);g.clip();if(fit==='cover'&&!o.kb){const s=Math.max(w/im.width,h/im.height),dw=im.width*s,dh=im.height*s;g.drawImage(im,x+(w-dw)/2,y+(h-dh)/2,dw,dh)}
+   else{if(fit==='blur')clipBlurBg(im,x,y,w,h);const kb=o.kb||{},k=eio(seg(t,t0,te!=null?te:t0+(c.dur-from)/sp)),z0=kb.z0??1,x0=kb.x0??.5,y0=kb.y0??.5;
+    g.drawImage(im,...clipPlace(im.width,im.height,x,y,w,h,fit==='cover'?'cover':'contain',lerp(z0,kb.z1??z0,k),lerp(x0,kb.x1??x0,k),lerp(y0,kb.y1??y0,k)))}g.restore()}g.restore();
+  if(o.frame!==false){g.globalAlpha=ga*al;g.strokeStyle=o.col||TH.a1;g.lineWidth=4;rr(x,y,w,h,r);g.stroke();g.globalAlpha=ga}const a=ASSETS.find(a=>a.id===id);if(o.credit!==false&&a&&a.credit){const s='影像：'+a.credit,cw=tw(s,32,TH.f.s)+28,yl=o.creditLift||0;g.save();g.globalAlpha*=al;g.save();g.fillStyle='rgba(0,0,0,.55)';rr(x+w-cw-14,y+h-58-yl,cw,44,8);g.fill();g.restore();txt(s,x+w-28,y+h-26-yl,32,'#fff',TH.f.s,'right');g.restore()}}
+// 全屏片段：铺满画面、无边框、无圆角；署名抬到字幕带上方。t1 可以写 null（放完停在最后一帧）
+function clipFull(id,t,t0,t1,o={}){clip(id,t,t0,0,0,W,H,{frame:false,r:0,creditLift:100,...o,t1:t1??o.t1})}
+// 只登记原声、不画画面：原声比画面先进（J-cut）或画面切走后原声还在（L-cut）。o={from,gain,t1,fadeIn,fadeOut}
+function clipSound(id,t,t0,o={}){if(!CLIPS[id]){console.error('素材台账里没有这个片段，或还没运行 build.py clips：',id);return}if(!REC)return;REC.used[id]=1;REC.ev[clipKey(id,o.from||0,t0,o)]=o.gain??1}
+
+/* ---------- 转场 ---------- */
+// drawA/drawB 是两个画法函数（参数是转场进度 0–1）。tCut 是剪辑点，转场占 tCut-d/2 到 tCut+d/2；之前只画 A，之后只画 B。都是 t 的确定函数，可任意跳帧
+// 写在 scn() 里面，不要把 scn() 写进 drawA/drawB（scn 会重设透明度）。
+// 交叉溶解：B 渐显盖在 A 上；A 画满全屏（片段、背景）时就是标准叠化，A 只是局部元素时最后四分之一 A 也淡掉，不会突然消失
+function xfade(t,tCut,d,drawA,drawB){const a=tCut-d/2,b=tCut+d/2;if(t<a){drawA(0);return}if(t>=b){drawB(1);return}const k=eio(seg(t,a,b));g.save();g.globalAlpha*=cl((1-k)*4);drawA(k);g.restore();g.save();g.globalAlpha*=k;drawB(k);g.restore()}
+// 经过一种颜色转场（黑场、白闪、主题色）：A 渐隐到 col，再从 col 渐显出 B。rect=[x,y,w,h] 只在一块区域里做，缺省全屏
+function dipTo(t,tCut,d,col,drawA,drawB,rect){const a=tCut-d/2,b=tCut+d/2,pre=t<tCut;pre?drawA(seg(t,a,tCut)):drawB(seg(t,tCut,b));const k=pre?eio(seg(t,a,tCut)):1-eio(seg(t,tCut,b));if(k<=0)return;const [rx,ry,rw,rh]=rect||[0,0,W,H];g.save();g.globalAlpha*=k;g.fillStyle=col||'#000';g.fillRect(rx,ry,rw,rh);g.restore()}
+// 擦切：一条直边扫过，边后面是 B。dir 是边移动的方向：'right'（缺省，从左往右擦）'left' 'down' 'up'。rect 同上
+function wipe(t,tCut,d,dir,drawA,drawB,rect){const a=tCut-d/2,b=tCut+d/2;if(t<a){drawA(0);return}if(t>=b){drawB(1);return}const k=eio(seg(t,a,b)),[rx,ry,rw,rh]=rect||[0,0,W,H];let B;
+  if(dir==='left')B=[rx+rw*(1-k),ry,rw*k,rh];else if(dir==='down')B=[rx,ry,rw,rh*k];else if(dir==='up')B=[rx,ry+rh*(1-k),rw,rh*k];else B=[rx,ry,rw*k,rh];
+  g.save();g.beginPath();g.rect(rx,ry,rw,rh);g.rect(...B);g.clip('evenodd');drawA(k);g.restore();g.save();g.beginPath();g.rect(...B);g.clip();drawB(k);g.restore()}
 // 片尾署名：从素材台账自动列出需要署名的素材
 function creditLines(){const seen=new Set(),out=[];ASSETS.forEach(a=>{if(!a.credit)return;const s=(a.type==='video'?'影像：':'图片：')+a.credit+(a.license_name?'（'+a.license_name+'）':'');if(!seen.has(s)){seen.add(s);out.push(s)}});return out}

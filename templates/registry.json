@@ -275,6 +275,35 @@
     "veil"
    ],
    "narration": "必须有旁白（一切动作按句子定时）"
+  },
+  "制造业隐形冠军": {
+   "styles": [
+    "industry",
+    "holo",
+    "iso",
+    "blueprint",
+    "host"
+   ],
+   "chrome": "label",
+   "components": [
+    "chainMap",
+    "robotBody",
+    "exploded",
+    "shareRing",
+    "vsLocal",
+    "iconWall",
+    "specTable",
+    "barChart",
+    "clipFull",
+    "lowerThird",
+    "sourceTag"
+   ],
+   "packs_optional": [
+    "industry",
+    "holo",
+    "iso",
+    "host"
+   ]
   }
  },
  "themes": [
@@ -297,7 +326,13 @@
   "kinetic",
   "iso",
   "holo",
-  "ui"
+  "ui",
+  "stick",
+  "host",
+  "engrave",
+  "woodcut",
+  "dossier",
+  "industry"
  ],
  "packs": [
   "ink",
@@ -312,7 +347,13 @@
   "kinetic",
   "iso",
   "holo",
-  "ui"
+  "ui",
+  "stick",
+  "host",
+  "engrave",
+  "woodcut",
+  "dossier",
+  "industry"
  ],
  "films": [
   {
@@ -1416,19 +1457,23 @@
    "id": "inbox-001",
    "kind": "component",
    "name": "交叉淡化和 J/L 剪接（声音先进、画面后到）",
-   "status": "inbox",
+   "status": "retired",
    "from": "上一轮分析留下的未做项",
    "since": "2026-10-08",
-   "used_in": []
+   "used_in": [],
+   "changed": "2026-10-08",
+   "note": "已完成：做成 clipFull/xfade/dipTo/wipe/clipSound"
   },
   {
    "id": "inbox-002",
    "kind": "flow",
    "name": "按逐字稿选素材入出点（先转写，再按句子挑片段）",
-   "status": "inbox",
+   "status": "retired",
    "from": "上一轮分析留下的未做项",
    "since": "2026-10-08",
-   "used_in": []
+   "used_in": [],
+   "changed": "2026-10-08",
+   "note": "已完成：做成 transcribe + pick"
   },
   {
    "id": "inbox-003",
@@ -1691,8 +1736,247 @@
    "id": "inbox-012",
    "kind": "style",
    "name": "简笔角色、讲解员、铜版画、木刻、案卷五套风格做成风格包",
-   "status": "inbox",
+   "status": "retired",
    "from": "风格模板",
+   "since": "2026-10-08",
+   "used_in": [],
+   "changed": "2026-10-08",
+   "note": "已完成：五套都做成了风格包（stick host engrave woodcut dossier）"
+  },
+  {
+   "id": "style.stick",
+   "kind": "style",
+   "name": "简笔角色故事",
+   "pack": "stick",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "demo": "stick",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "pack.stick",
+   "kind": "pack",
+   "name": "简笔角色故事",
+   "pack": "stick",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "demo": "stick",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "style.host",
+   "kind": "style",
+   "name": "讲解员串场",
+   "pack": "host",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "demo": "host",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "pack.host",
+   "kind": "pack",
+   "name": "讲解员串场",
+   "pack": "host",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "demo": "host",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "style.engrave",
+   "kind": "style",
+   "name": "铜版画",
+   "pack": "engrave",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "demo": "engrave",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "pack.engrave",
+   "kind": "pack",
+   "name": "铜版画",
+   "pack": "engrave",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "demo": "engrave",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "style.woodcut",
+   "kind": "style",
+   "name": "木刻版画",
+   "pack": "woodcut",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "demo": "woodcut",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "pack.woodcut",
+   "kind": "pack",
+   "name": "木刻版画",
+   "pack": "woodcut",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "demo": "woodcut",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "style.dossier",
+   "kind": "style",
+   "name": "案卷",
+   "pack": "dossier",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "demo": "dossier",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "pack.dossier",
+   "kind": "pack",
+   "name": "案卷",
+   "pack": "dossier",
+   "from": "自己实现（参考其他 skill 的风格规则）",
+   "demo": "dossier",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "style.industry",
+   "kind": "style",
+   "name": "产业图谱",
+   "pack": "industry",
+   "from": "自己实现（为制造业隐形冠军题材新做）",
+   "demo": "industry",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "pack.industry",
+   "kind": "pack",
+   "name": "产业图谱",
+   "pack": "industry",
+   "from": "自己实现（为制造业隐形冠军题材新做）",
+   "demo": "industry",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "genre.制造业隐形冠军",
+   "kind": "genre",
+   "name": "制造业隐形冠军",
+   "from": "题材模板第 14 张卡",
+   "used_in": [],
+   "status": "candidate",
+   "since": "2026-10-08"
+  },
+  {
+   "id": "comp.clipFull",
+   "kind": "component",
+   "name": "clipFull 满屏片段（铺满/留边、慢推、淡入淡出、入出点）",
+   "symbols": [
+    "clipFull"
+   ],
+   "from": "剪辑能力（收件箱 001）",
+   "demo": "recut",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "comp.clipSound",
+   "kind": "component",
+   "name": "clipSound 原声单独一轨（J/L 剪接，旁白时自动压低）",
+   "symbols": [
+    "clipSound"
+   ],
+   "from": "剪辑能力（收件箱 001）",
+   "demo": "recut",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "comp.xfade",
+   "kind": "component",
+   "name": "xfade / dipTo / wipe 片段之间的转场",
+   "symbols": [
+    "xfade",
+    "dipTo",
+    "wipe"
+   ],
+   "from": "剪辑能力（收件箱 001）",
+   "demo": "recut",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "flow.transcribe",
+   "kind": "flow",
+   "name": "transcribe 素材转写 + pick 挑镜头（按句子定入出点）",
+   "from": "剪辑能力（收件箱 002）",
+   "demo": "recut",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "check.tier",
+   "kind": "check",
+   "name": "断言来源层级（政府名单/公司披露/公司自述/第三方报告/媒体）",
+   "from": "制造业隐形冠军题材",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "check.must_show",
+   "kind": "check",
+   "name": "必须出现的声明（brief 的 must_show，如“不构成投资建议”）",
+   "from": "制造业隐形冠军题材",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "check.proof",
+   "kind": "check",
+   "name": "licensed 素材必须有授权凭证 proof_file",
+   "from": "剪辑能力",
+   "status": "candidate",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "inbox-013",
+   "kind": "component",
+   "name": "timeline() 朝下的条目：年份字压到上面一条的标签（y+126 对 y+186），要错开",
+   "status": "inbox",
+   "from": "讲解员风格包样片",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "inbox-014",
+   "kind": "flow",
+   "name": "用一家真实企业（选题库里的）做一条完整的制造业隐形冠军成片，让题材卡和产业图谱包过一次实战",
+   "status": "inbox",
+   "from": "制造业隐形冠军题材",
    "since": "2026-10-08",
    "used_in": []
   }

@@ -1,0 +1,30 @@
+[
+ {
+  "id": "p0",
+  "ch": "三种铺法",
+  "vo": "",
+  "silent": true,
+  "dur": 9
+ },
+ {
+  "id": "p1",
+  "ch": "推拉摇与转场",
+  "vo": "",
+  "silent": true,
+  "dur": 10
+ },
+ {
+  "id": "p2",
+  "ch": "声音先进",
+  "vo": "",
+  "silent": true,
+  "dur": 7.5
+ },
+ {
+  "id": "e0",
+  "ch": "署名",
+  "vo": "",
+  "silent": true,
+  "dur": 6
+ }
+]

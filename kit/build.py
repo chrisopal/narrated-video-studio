@@ -5,6 +5,8 @@
 命令（按制作顺序）：
   study 参考片.mp4 [阈值]   拉片：切点、镜头时长、节奏数据、联系表 → study/<名字>/（只学结构，不进成片）
   probe                    看素材：footage/ 里每条视频的时长/尺寸/切点/静音段 + 带时间码的联系表 → footage/_index.json
+  transcribe 文件名或素材id  把素材里的讲话转成带时间的句子 → footage/<名字>.transcript.json；assets.json 的 in/out 可写 "@s3"/"@s5"
+  pick 文件名 [个数]        挑镜头：按清晰度、亮度、运动量、时长给镜头打分，列出候选入出点 + 联系表 footage/_sheets/<名字>_pick.jpg（只建议，不改台账）
   clips                    按 assets.json 里的入出点切片、统一成 30 帧、拆帧 → clips/<id>/
   facts                    检查断言台账 facts.json
   lines                    写出 lines.txt（id|朗读文本），交给配音脚本
@@ -13,13 +15,15 @@
   sheet [间隔秒]           整片总览图（每 5 秒一帧，9 帧一张）→ sheets/
   check                    交付前总检查：断言、素材授权、回听、阅读时长、出画、字幕带、重叠、小字、空档 → check_report.json
   render [out.mp4]         横版无声视频
-  mix                      配乐 + 音效 + 素材原声 + 配音 → mix.wav（响度 -14 LUFS）
+  mix                      配乐 + 音效 + 素材原声（有旁白处自动压低）+ 配音 → mix.wav（响度 -14 LUFS）
   final 名字 [--force]     封面 2 秒 + 正片 + 音轨 → <名字>.mp4、<名字>.srt、素材来源与授权.txt
   cover                    封面_横版.png / 封面_竖版.png
   short stills|render 名字 竖版短片（short.json：[{id,vo,src:[[句id,比例],[句id,比例]]}]）
 配音回听是单独的脚本：python3 ../kit/asr.py
 模板台账、回归样张、复盘是工坊级的脚本：python3 ../kit/workshop.py
-brief.json 里和构建有关的字段：packs 风格包列表；music 配乐（pad 缺省 / guqin 五声拨弦 / 文件路径）；sfx:false 不加音效；read_cps、read_pad 阅读速度
+brief.json 里和构建有关的字段：packs 风格包列表；music 配乐（pad 缺省 / guqin 五声拨弦 / 文件路径）；sfx:false 不加音效；read_cps、read_pad 阅读速度；
+          duck 旁白下素材原声压低的分贝数（缺省 12；false 不压低，原声和音效同轨，即旧做法）
+          tiers_required:true 断言台账每条都要填 tier（来源层级）；must_show:[…] 画面上必须清楚出现 ≥2 秒的声明
 script.json 里一句可以写 "silent":true,"dur":秒数 表示无旁白段落（只有画面和配乐）
 """
 import json, re, sys, base64, subprocess, threading, http.server, socketserver, hashlib, shutil
@@ -35,6 +39,7 @@ SUPERLATIVE = re.compile(r'最[大小高低强快早好先多新]|第一|唯一|
 # 允许进成片的素材依据。授权不明的素材只能进参考片单（study），不能进 assets.json
 BASIS = {'own': '自有素材', 'licensed': '已获授权', 'public-domain': '公有领域', 'cc0': 'CC0', 'cc-by': 'CC BY', 'cc-by-sa': 'CC BY-SA', 'stock-free': '免费图库许可'}
 NEED_CREDIT = {'cc-by', 'cc-by-sa', 'licensed'}
+TIERS = ('政府名单', '公司披露', '公司自述', '第三方报告', '媒体')
 CJK = re.compile(r'[一-鿿]'); NUMISH = re.compile(r'\d|[一二两三四五六七八九十百千万亿]+(年|倍|万|亿|公里|千米|米|度|吨|岁|天|小时|分钟|秒|种|颗|层)')
 
 # ---------- 时间轴 ----------
@@ -150,15 +155,45 @@ def sfx_track(events, total, name='sfx.wav', clips=()):
         x = synth(e['type']) * GAIN.get(e['type'], .5) * e.get('gain', 1); i = int(e['t'] * SR); buf[i:i + len(x)] += x; last[e['type']] = e['t']; n += 1
     sf.write(P / name, buf[:int(total * SR)], SR); return n
 
+def clip_event(e):
+    """scenes.js 里 clip()/clipSound() 登记的原声：'clip:id|from[|t1=..|fi=..|fo=..]' → {id, from, t, gain, t1, fi, fo}"""
+    p = e['type'][5:].split('|'); d = {'id': p[0], 'from': float(p[1]), 't': e['t'], 'gain': e['gain'], 't1': None, 'fi': 0.0, 'fo': 0.0}
+    for kv in p[2:]: k, v = kv.split('='); d[k] = float(v)
+    return d
+def duck_env(tl, n, db=12, ramp=.3):
+    """旁白包络：每句 t0+lead 到 t0+voiced 压低 db 分贝，进出各 ramp 秒（在分贝上线性过渡）。返回 n 个采样的增益。"""
+    rate = 1000; m = int(n / SR * rate) + 2; tt = np.arange(m) / rate; d = np.zeros(m)
+    for s in tl or []:
+        if silent(s): continue
+        a, b = s['t0'] + s['lead'], s['t0'] + s['voiced']; d = np.maximum(d, np.clip(np.minimum((tt - (a - ramp)) / ramp, (b + ramp - tt) / ramp), 0, 1))
+    return np.interp(np.arange(n) / SR, tt, 10 ** (-db * d / 20)).astype('float32'), float((d > .999).sum() / rate)
+def orig_track(clips, total, tl=None, name='orig.wav', duck=12):
+    """素材原声单独一条轨：按 clip()/clipSound() 登记的起点、from、t1、淡入淡出叠进去；有旁白的地方压低 duck 分贝。"""
+    buf = np.zeros(int(total * SR) + SR, dtype='float32'); meta = jload('clips/meta.json', {}) or {}; n = 0
+    for e in clips:
+        c = clip_event(e); m = meta.get(c['id'], {})
+        if c['gain'] <= 0 or not m.get('audio'): continue
+        x, sr = sf.read(P / m['audio'], dtype='float32'); x = x if x.ndim == 1 else x.mean(1); x = x[int(c['from'] * sr):]
+        if c['t1'] is not None: x = x[:max(0, int((c['t1'] - c['t']) * sr))]
+        x = x * c['gain'] * 2.2; L = len(x)
+        if c['fi'] > 0 and L: k = min(L, int(c['fi'] * sr)); x[:k] *= np.linspace(0, 1, k, endpoint=False, dtype='float32')
+        if c['fo'] > 0 and L: k = min(L, int(c['fo'] * sr)); x[L - k:] *= np.linspace(1, 0, k, dtype='float32')
+        i = int(c['t'] * SR); x = x[:max(0, len(buf) - i)]; buf[i:i + len(x)] += x; n += 1
+    sec = 0.0
+    if duck and n: env, sec = duck_env(tl, len(buf), float(duck)); buf *= env
+    sf.write(P / name, buf[:int(total * SR)], SR, subtype='FLOAT'); return n, sec
+
 def loudness(path):
     r = subprocess.run(['ffmpeg', '-hide_banner', '-i', str(path), '-af', f'loudnorm=I={LUFS}:TP=-1.5:LRA=11:print_format=json', '-f', 'null', '-'], capture_output=True, text=True)
     return json.loads(r.stderr[r.stderr.rindex('{'):r.stderr.rindex('}') + 1])
 
-def mixdown(vo, mu, out, sfx=None, mu_db=-21):
-    """配音压缩后和配乐、音效相加，再两遍响度归一到 -14 LUFS。"""
-    ins = ['-i', vo, '-i', mu] + (['-i', sfx] if sfx else [])
+def mixdown(vo, mu, out, sfx=None, mu_db=-21, orig=None):
+    """配音压缩后和配乐、音效（、素材原声轨）相加，再两遍响度归一到 -14 LUFS，限幅保证真峰值不过 -1.5 dBTP。"""
+    ins = ['-i', vo, '-i', mu] + (['-i', sfx] if sfx else []) + (['-i', orig] if orig else [])
     fc = "[0]aresample=44100,highpass=f=70,acompressor=threshold=-18dB:ratio=2.5:attack=5:release=120,volume=4dB,pan=stereo|c0=c0|c1=c0[v];[1]volume=" + str(mu_db) + "dB[m];" + \
          ("[2]aresample=44100,volume=-9dB,pan=stereo|c0=c0|c1=c0[s];[v][m][s]amix=inputs=3:normalize=0[a]" if sfx else "[v][m]amix=inputs=2:normalize=0[a]")
+    if orig:   # 原声轨和音效同样 -9 dB（旧做法里原声就混在音效轨里），单独一路才能按旁白压低
+        oi = 3 if sfx else 2; fc = fc.rsplit(';', 1)[0] + f";[{oi}]aresample=44100,volume=-9dB,pan=stereo|c0=c0|c1=c0[o];[v][m]" + ("[s]" if sfx else "") + f"[o]amix=inputs={oi + 1}:normalize=0[a]"
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', *ins, '-filter_complex', fc, '-map', '[a]', '_pre.wav'], check=True)
     m = loudness('_pre.wav')
     af = f"loudnorm=I={LUFS}:TP=-1.5:LRA=11:measured_I={m['input_i']}:measured_TP={m['input_tp']}:measured_LRA={m['input_lra']}:measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true,aresample=44100,alimiter=limit=0.68:level=false:attack=2:release=60"
@@ -182,6 +217,13 @@ def facts_check(tl):
         if x.get('status') == 'opinion' and not x.get('note'): warns.append(tag + ' 是观点，note 里写清是谁的观点，稿子里不能说成事实')
         if x.get('status') == 'verified' and not str(x.get('source', '')).startswith('http'): fails.append(tag + ' 标了已核实，但 source 不是网址')
         if x.get('status') == 'inferred' and not x.get('note'): warns.append(tag + ' 是推断，请在 note 里写依据，稿子里用“大约/可能”这类说法')
+        # 来源层级（企业类题材必填）：政府名单 / 公司披露 / 公司自述 / 第三方报告 / 媒体
+        tier = x.get('tier')
+        if tier is not None and tier not in TIERS: fails.append(tag + ' 的 tier 要填 ' + ' / '.join(TIERS))
+        if tier == '公司自述' and x.get('status') == 'verified': fails.append(tag + ' 是公司自述，不能标成已核实：status 写 opinion，稿子里写“公司称”')
+        if tier == '第三方报告' and not x.get('note'): fails.append(tag + ' 是第三方报告：note 里写清是哪家机构、谁委托、按什么口径统计')
+        if tier == '媒体' and x.get('status') == 'verified': warns.append(tag + ' 只有媒体报道：关键事实要找到政府名单或公司公告原件再标已核实')
+        if BRIEF.get('tiers_required') and tier is None: fails.append(tag + ' 没有填 tier（来源层级）：这个题材要求每条都填')
         covered |= set(x.get('where', []))
     ids = {s['id'] for s in tl} | ({l['id'] for l in json.load(open(P / 'short.json'))} if (P / 'short.json').exists() else set())
     for w in covered - ids: fails.append(f'台账引用了不存在的句子 {w}')
@@ -239,16 +281,43 @@ def cmd_probe():
         n = min(24, max(8, int(m['duration'] // 2))); contact_sheet(f, [m['duration'] * (i + .5) / n for i in range(n)], src / '_sheets' / (f.stem + '.jpg'))
         print(f"{f.name}: {m['duration']}s {m['width']}x{m['height']} {m['fps']}fps {m['orientation']} 声音{'有' if m['has_audio'] else '无'} 切点{len(m['cuts'])}个 → footage/_sheets/{f.stem}.jpg")
     json.dump(out, open(src / '_index.json', 'w'), ensure_ascii=False, indent=1)
+SENT_PAD = 0.12; PAUSE = 0.35   # "@s3" 写法：句子边界外留的余量（秒）；转写时多长的停顿算断句
+def transcript_of(src):
+    for f in (P / 'footage' / (src.stem + '.transcript.json'), src.parent / (src.stem + '.transcript.json')):
+        if f.exists(): return f, json.load(open(f, encoding='utf-8'))
+    return None, None
+def in_out(a, src, m, hs=None):
+    """入出点：数字是秒；"@s3" 是 transcribe 出来的第 3 句（in 取句首、out 取句尾，各往外留 0.12 秒，不越过相邻句子的中点）。"""
+    def one(v, edge):
+        if v is None: return 0.0 if edge == 'in' else m['duration']
+        if not (isinstance(v, str) and re.fullmatch(r'@s\d+', v.strip())): return float(v)
+        f, T = transcript_of(src)
+        if not T: print(f"✗ {a['id']} 的 {edge} 写了 {v}，但还没有转写：python3 ../kit/build.py transcribe {a['id']}"); sys.exit(1)
+        if hs and T.get('sha256') and T['sha256'] != hs: print(f"✗ {f.name} 是旧素材的转写（文件改过），重新运行 transcribe {a['id']}"); sys.exit(1)
+        S = T['sentences']; k = int(v.strip()[2:])
+        if not 1 <= k <= len(S): print(f"✗ {a['id']} 的 {edge} 写了 {v}，转写只有 {len(S)} 句"); sys.exit(1)
+        x = S[k - 1]
+        if edge == 'in': t = x['start'] - SENT_PAD; t = max(t, (S[k - 2]['end'] + x['start']) / 2) if k > 1 else t; return round(max(0.0, t), 3)
+        t = x['end'] + SENT_PAD; t = min(t, (x['end'] + S[k]['start']) / 2) if k < len(S) else t; return round(min(m['duration'], t), 3)
+    return one(a.get('in'), 'in'), one(a.get('out'), 'out')
+def footage_file(arg):
+    """命令行参数：素材 id（assets.json）或文件名（项目目录或 footage/ 里）。"""
+    a = next((a for a in (jload('assets.json', []) or []) if a.get('id') == arg), None)
+    for c in ([P / a['file']] if a else []) + [P / arg, P / 'footage' / arg]:
+        if c.is_file(): return c
+    print('✗ 找不到素材：', arg, '（写 assets.json 里的 id，或 footage/ 里的文件名）'); sys.exit(1)
 def cmd_clips():
     """按台账切片。帧精确（重编码 + trim），统一到 30 帧；fit: cover 裁满 / contain 留边 / blur 模糊垫底。"""
-    A = jload('assets.json', []) or []; cd = P / 'clips'; cd.mkdir(exist_ok=True); meta = jload('clips/meta.json', {}) or {}
-    for a in A:
+    A = jload('assets.json', []) or []; cd = P / 'clips'; cd.mkdir(exist_ok=True); meta = jload('clips/meta.json', {}) or {}; plan = []
+    for a in A:   # 先把所有入出点算出来、查一遍，有错就一条都不切
         if a.get('type') != 'video': continue
         src = P / a['file']; m = ffprobe(src)
         if not m: print('✗ 找不到或读不了', a['file']); sys.exit(1)
-        t0, t1 = float(a.get('in', 0)), float(a.get('out', m['duration']))
+        hs = sha(src); t0, t1 = in_out(a, src, m, hs)
         if not (0 <= t0 < t1 <= m['duration'] + .05): print(f"✗ {a['id']} 入出点 {t0}–{t1} 超出素材时长 {m['duration']}"); sys.exit(1)
-        w, h = (a.get('size') or [1280, 720]); fit = a.get('fit', 'cover'); sig = [sha(src), t0, t1, w, h, fit]
+        plan.append((a, src, m, hs, t0, t1))
+    for a, src, m, hs, t0, t1 in plan:
+        w, h = (a.get('size') or [1280, 720]); fit = a.get('fit', 'cover'); sig = [hs, t0, t1, w, h, fit]
         if meta.get(a['id'], {}).get('sig') == sig and (cd / a['id']).exists(): print('· 已切好', a['id']); continue
         vf = {'cover': f'scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}', 'contain': f'scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2',
               'blur': f'split[a][b];[a]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},boxblur=24:2[bg];[b]scale={w}:{h}:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2'}[fit]
@@ -257,8 +326,131 @@ def cmd_clips():
         n = len(list(fd.glob('f*.jpg'))); wav = None
         if m['has_audio']:
             wav = f"clips/{a['id']}.wav"; subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', str(src), '-vn', '-af', f'atrim=start={t0}:end={t1},asetpts=PTS-STARTPTS,afade=t=in:d=0.06,afade=t=out:st={max(0, t1 - t0 - .08)}:d=0.08', '-ar', '44100', '-ac', '1', str(P / wav)], check=True)
-        meta[a['id']] = {'n': n, 'fps': FPS, 'w': w, 'h': h, 'dur': round(n / FPS, 3), 'audio': wav, 'sig': sig}; print(f"✓ {a['id']}: {t0}–{t1}s → {n} 帧（{n / FPS:.2f}s）{'带原声' if wav else '无声'}")
+        meta[a['id']] = {'n': n, 'fps': FPS, 'w': w, 'h': h, 'dur': round(n / FPS, 3), 'audio': wav, 'sig': sig}; print(f"✓ {a['id']}: {t0}–{t1}s → {n} 帧（{n / FPS:.2f}s）{'带原声' if wav else '无声'}" + (f"（{a.get('in', '')}–{a.get('out', '')}）" if isinstance(a.get('in'), str) or isinstance(a.get('out'), str) else ''))
     json.dump(meta, open(cd / 'meta.json', 'w'), ensure_ascii=False, indent=1)
+# ---------- 转写：按讲话内容选入出点 ----------
+ASR_MODEL = KIT / 'models' / 'sherpa-onnx-paraformer-zh-2023-09-14'   # 和 asr.py 同一个识别模型
+def tc(x): return f"{int(x // 60):02d}:{x % 60:05.2f}"
+def load_pcm(path, sr=16000):
+    r = subprocess.run(['ffmpeg', '-v', 'error', '-i', str(path), '-vn', '-ac', '1', '-ar', str(sr), '-f', 'f32le', '-'], capture_output=True)
+    return np.frombuffer(r.stdout, dtype='float32').copy()
+def cmd_transcribe(arg):
+    """离线识别素材里的讲话，按停顿（和标点，模型给的话）切成句子：footage/<名字>.transcript.json，并打印“编号 起–止 文字”。"""
+    src = footage_file(arg)
+    try:
+        import sherpa_onnx
+        if not (ASR_MODEL / 'model.int8.onnx').exists(): raise FileNotFoundError(f'缺少识别模型 {ASR_MODEL}')
+    except Exception as e:
+        print('转写没法运行：', e); print('需要 pip install sherpa-onnx（云端加 --break-system-packages）和识别模型，下载命令见 SKILL.md「工坊在哪」一节，模型解压到 kit/models/。'); sys.exit(2)
+    m = ffprobe(src)
+    if not m or not m['has_audio']: print('✗ 这条素材没有声音：', src.name); sys.exit(1)
+    SRA = 16000; x = load_pcm(src, SRA); hop = int(.02 * SRA); nf = len(x) // hop
+    if nf < 5: print('✗ 声音太短'); sys.exit(1)
+    db = 10 * np.log10(np.mean(x[:nf * hop].reshape(nf, hop) ** 2, 1) + 1e-10); thr = max(np.percentile(db, 95) - 30, -55); quiet = db < thr
+    def pause(a, b, need=PAUSE):   # a–b 之间有没有一段至少 need 秒的静音
+        run = 0
+        for q in quiet[max(0, int(a / .02)):min(nf, int(b / .02))]:
+            run = run + 1 if q else 0
+            if run * .02 >= need: return True
+        return False
+    # 分段识别：在静音处切开，每段不超过 20 秒
+    cuts = [0]; i = 0; best = None
+    while i < nf:
+        if quiet[i]:
+            j = i
+            while j < nf and quiet[j]: j += 1
+            if (j - i) * .02 >= .3: best = (i + j) // 2
+            i = j
+        else: i += 1
+        if (i - cuts[-1]) * .02 > 20:
+            c = best if best and best > cuts[-1] + 50 else cuts[-1] + int(np.argmin(db[cuts[-1] + 250:cuts[-1] + 1000])) + 250; cuts.append(c); best = None; i = max(i, c)
+    cuts.append(nf)
+    rec = sherpa_onnx.OfflineRecognizer.from_paraformer(paraformer=str(ASR_MODEL / 'model.int8.onnx'), tokens=str(ASR_MODEL / 'tokens.txt'), num_threads=4)
+    toks = []; pad = np.zeros(SRA // 2, dtype='float32')
+    for a, b in zip(cuts, cuts[1:]):
+        seg_ = x[a * hop:b * hop]
+        if quiet[a:b].all(): continue
+        st = rec.create_stream(); st.accept_waveform(SRA, np.concatenate([pad, seg_, pad])); rec.decode_stream(st)
+        toks += [(tk, round(a * .02 + ts - .5, 3)) for tk, ts in zip(st.result.tokens, st.result.timestamps) if tk.strip()]
+    if not toks: print('没有识别出讲话'); sys.exit(1)
+    PUNCT = '，。！？；、,.!?;'; sents = []; cur = []
+    for k, (tk, t) in enumerate(toks):
+        if tk in PUNCT:
+            if cur: cur[-1] = (cur[-1][0], cur[-1][1], True)
+            continue
+        if cur and (cur[-1][2] or t - cur[-1][1] > .8 or pause(cur[-1][1] + .08, t)): sents.append(cur); cur = []
+        cur.append((tk, t, False))
+    sents.append(cur); sents = [c for c in sents if c]
+    out = []   # 太长的句子在最大的停顿处再切一刀
+    while sents:
+        c = sents.pop(0)
+        if len(c) > 30:
+            gaps = [c[i + 1][1] - c[i][1] for i in range(8, len(c) - 8)]; i = 8 + int(np.argmax(gaps)) + 1; sents[:0] = [c[:i], c[i:]]; continue
+        out.append(c)
+    def text(c):
+        s = ''
+        for tk, _, _ in c:
+            w = tk.replace('@@', '')
+            if s and re.match(r'[A-Za-z0-9]', w) and re.search(r'[A-Za-z0-9]$', s) and not prev.endswith('@@'): s += ' '
+            s += w; prev = tk
+        return s
+    S = []
+    for k, c in enumerate(out):
+        a = c[0][1]; b = c[-1][1]; nxt = out[k + 1][0][1] if k + 1 < len(out) else len(x) / SRA; prv = S[-1]['end'] if S else 0
+        i = int(a / .02)
+        while i > 0 and not quiet[i - 1] and a - (i - 1) * .02 < .3 and (i - 1) * .02 > prv: i -= 1   # 句首往前找到声音真正起来的地方
+        st = max(prv, min(a, i * .02)); j = int((b + .1) / .02)
+        while j < nf and not quiet[j] and (j + 1) * .02 < min(nxt, b + .8): j += 1   # 句尾往后找到声音落下去的地方
+        S.append({'n': k + 1, 'start': round(st, 2), 'end': round(max(b + .2, min(j * .02, nxt - .02)), 2), 'text': text(c)})
+    f = P / 'footage' / (src.stem + '.transcript.json'); f.parent.mkdir(exist_ok=True)
+    json.dump({'source': str(src.relative_to(P)) if src.is_relative_to(P) else str(src), 'sha256': sha(src), 'model': ASR_MODEL.name, 'duration': m['duration'], 'sentences': S}, open(f, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    for x_ in S: print(f"s{x_['n']:<3} {tc(x_['start'])}–{tc(x_['end'])}  {x_['text']}")
+    print(f'{len(S)} 句 → footage/{f.name}。assets.json 里写 "in":"@s3","out":"@s5" 就是第 3 句开头到第 5 句结尾（各留 {SENT_PAD} 秒余量）。识别会有错字，选点前对照联系表和原声核一下。')
+
+# ---------- 挑镜头 ----------
+def frame_stats(path, m, fps, w=320):
+    """抽样逐帧统计：清晰度（拉普拉斯方差）、平均亮度、过暗/过亮像素比例、和上一帧的平均差。"""
+    h = max(2, round(w * m['height'] / m['width'] / 2) * 2); n = w * h; out = []; prev = None
+    pr = subprocess.Popen(['ffmpeg', '-v', 'error', '-i', str(path), '-an', '-vf', f'fps={fps},scale={w}:{h},format=gray', '-f', 'rawvideo', '-'], stdout=subprocess.PIPE)
+    k = 0
+    while True:
+        b = pr.stdout.read(n)
+        if len(b) < n: break
+        f = np.frombuffer(b, dtype=np.uint8).reshape(h, w).astype('float32'); lap = 4 * f[1:-1, 1:-1] - f[:-2, 1:-1] - f[2:, 1:-1] - f[1:-1, :-2] - f[1:-1, 2:]
+        out.append((k / fps, float(lap.var()), float(f.mean()), float(((f < 10) | (f > 245)).mean()), float(np.abs(f - prev).mean()) if prev is not None else 0.0)); prev = f; k += 1
+    pr.wait(); return np.array(out) if out else np.zeros((0, 5))
+def cmd_pick(arg, top=8):
+    """挑镜头：切点把素材分成镜头（长于 6 秒的镜头按约 4 秒分段），每段按清晰度、亮度、运动量、时长打分，列出前 top 个，出一张带时间码的联系表。只是建议。"""
+    src = footage_file(arg); m = ffprobe(src)
+    if not m: print('✗ 读不了', src); sys.exit(1)
+    dur = m['duration']; sfps = 5 if dur <= 600 else 2; st = frame_stats(src, m, sfps); vfps = m['fps'] or 30; mg = 4 / vfps
+    cuts = [c for c in scene_cuts(src) if .2 < c < dur - .2]; shots = []
+    for i, (a, b) in enumerate(zip([0.0] + cuts, cuts + [dur])):
+        a2, b2 = a + (mg if i else 0), b - (mg if b < dur else 0); k = max(1, round((b2 - a2) / 4)) if b2 - a2 > 6 else 1
+        for j in range(k): shots.append((f'S{i + 1:02d}' + (f'.{j + 1}' if k > 1 else ''), a2 + (b2 - a2) * j / k, a2 + (b2 - a2) * (j + 1) / k))
+    rows = []
+    for sid, a, b in shots:
+        sel = st[(st[:, 0] >= a) & (st[:, 0] <= b)] if len(st) else st
+        if len(sel) == 0: continue
+        sharp = float(np.median(sel[:, 1])); lum = float(np.median(sel[:, 2])); clip_ = float(np.median(sel[:, 3])); mot = sel[1:, 4] if len(sel) > 1 else sel[:, 4]; mv = float(np.median(mot)) if len(mot) else 0.0; spike = float(mot.max()) if len(mot) else 0.0
+        s_sharp = float(np.clip((np.log10(sharp + 1) - 1.3) / 1.4, 0, 1))   # 绝对清晰度：方差 20 以下算糊，500 以上算清楚（320 像素宽）；后面再和同一条素材里的排名平均
+        s_lum = float(np.clip(min((lum - 15) / 35, (240 - lum) / 40, 1), 0, 1)) * (1 - float(np.clip((clip_ - .3) / .4, 0, 1)))
+        s_mot = (.4 + .6 * mv / 1.5 if mv < 1.5 else 1.0 if mv <= 12 else float(np.clip(1 - (mv - 12) / 28, 0, 1))) * (.7 if spike > 60 else 1)   # 几乎不动给一半分（可以推拉）；晃得厉害、中间闪一下要扣分
+        d = b - a; s_dur = min(1.0, d / 2); sc = (.35 * s_sharp + .25 * s_lum + .25 * s_mot + .15 * s_dur) * (1 if d >= 2 else .5)
+        rows.append({'shot': sid, 'in': round(a, 2), 'out': round(b, 2), 'seconds': round(d, 2), 'score': round(sc, 3), 'sharp': round(s_sharp, 2), 'light': round(s_lum, 2), 'motion': round(s_mot, 2), 'length': round(s_dur, 2), 'raw': {'laplacian_var': round(sharp, 1), 'luma': round(lum, 1), 'clipped': round(clip_, 3), 'diff': round(mv, 2)}})
+    if len(rows) > 1:   # 清晰度一半看绝对值、一半看在这条素材里的排名，同一种画质的素材之间也能分出先后
+        order = np.argsort(np.argsort([r['raw']['laplacian_var'] for r in rows])) / (len(rows) - 1)
+        for r, q in zip(rows, order): ns = .6 * r['sharp'] + .4 * float(q); r['score'] = round(r['score'] + .35 * (ns - r['sharp']) * (1 if r['seconds'] >= 2 else .5), 3); r['sharp'] = round(ns, 2)
+    rows.sort(key=lambda r: -r['score']); best = rows[:top]; od = P / 'footage' / '_sheets'; od.mkdir(parents=True, exist_ok=True)
+    print(f'{src.name}：{dur}s，切点 {len(cuts)} 个，分成 {len(shots)} 段，列出前 {len(best)} 个候选（分数：清晰 .35 + 亮度 .25 + 运动 .25 + 时长 .15；不足 2 秒减半）')
+    for k, r in enumerate(best, 1): print(f"#{k:<2} {r['shot']:7} {tc(r['in'])}–{tc(r['out'])}  {r['seconds']:5.1f}s  分 {r['score']:.2f}（清晰 {r['sharp']:.2f} 亮度 {r['light']:.2f} 运动 {r['motion']:.2f} 时长 {r['length']:.2f}）  \"in\":{r['in']},\"out\":{r['out']}")
+    times = []; labels = []
+    for k, r in enumerate(best, 1):
+        for lab, t in (('in', r['in'] + .1), ('mid', (r['in'] + r['out']) / 2), ('out', r['out'] - .1)): times.append(t); labels.append(f'#{k} {lab}')
+    contact_sheet(src, times, od / f'{src.stem}_pick.jpg', cols=3, w=400, labels=labels)
+    json.dump({'source': src.name, 'candidates': best}, open(od / f'{src.stem}_pick.json', 'w'), ensure_ascii=False, indent=1)
+    print(f'联系表 footage/_sheets/{src.stem}_pick.jpg（每行一个候选：入点、中间、出点）。这是机器打分，选哪段还要看内容；台账没有改动。')
+
 def assets_check(used):
     """素材授权：每条素材要有依据、来源、作者；需要署名的要有 credit；用到的视频要已切片；画面里用了台账外的图片也算不通过。"""
     A = assets(); fails = []; warns = []; ids = set()
@@ -271,6 +463,8 @@ def assets_check(used):
         if not a.get('creator'): fails.append(tag + ' 没写 creator（作者或机构）')
         if a.get('usage_basis') in NEED_CREDIT and not a.get('credit'): fails.append(tag + ' 需要署名，但没写 credit（画面上显示的署名文字）')
         if a.get('usage_basis') == 'licensed' and not a.get('proof'): fails.append(tag + ' 标了已获授权，proof 里要写授权凭据（谁、何时、什么范围）')
+        if a.get('usage_basis') == 'licensed' and a.get('proof_file') and not (P / a['proof_file']).is_file(): fails.append(tag + ' 的授权凭证文件不存在：' + a['proof_file'])
+        if a.get('usage_basis') == 'licensed' and not a.get('proof_file'): warns.append(tag + ' 是授权素材：把书面授权（邮件、授权书扫描件）放进项目，proof_file 写它的路径')
         if a.get('usage_basis') == 'cc-by-sa': warns.append(tag + ' 是 CC BY-SA：成片里用到它的部分要以相同方式共享')
         if a.get('type') == 'video' and 'clip' not in a: fails.append(tag + ' 还没切片：python3 ../kit/build.py clips')
         if a.get('type') == 'video' and a['id'] not in used: warns.append(tag + ' 在台账里但成片没用到')
@@ -281,7 +475,7 @@ def credits_file(name):
     A = assets()
     if not A: return
     L = ['素材来源与授权（由 assets.json 生成）', '成片：' + name, '']
-    for a in A: L += [f"[{a['id']}] {'视频' if a['type'] == 'video' else '图片'}  {a.get('title', '')}", f"  文件：{a['file']}" + (f"  用到的片段：{a.get('in', 0)}–{a.get('out', '')} 秒" if a['type'] == 'video' else ''), f"  作者：{a.get('creator', '')}", f"  来源：{a.get('source', '')}", f"  依据：{BASIS.get(a.get('usage_basis'), a.get('usage_basis'))}" + (f"（{a['proof']}）" if a.get('proof') else ''), f"  署名：{a.get('credit', '不需要')}", '']
+    for a in A: L += [f"[{a['id']}] {'视频' if a['type'] == 'video' else '图片'}  {a.get('title', '')}", f"  文件：{a['file']}" + (f"  用到的片段：{a['clip']['sig'][1] if 'clip' in a and isinstance(a.get('in'), str) else a.get('in', 0)}–{a['clip']['sig'][2] if 'clip' in a and isinstance(a.get('out'), str) else a.get('out', '')} 秒" if a['type'] == 'video' else ''), f"  作者：{a.get('creator', '')}", f"  来源：{a.get('source', '')}", f"  依据：{BASIS.get(a.get('usage_basis'), a.get('usage_basis'))}" + (f"（{a['proof']}）" if a.get('proof') else ''), f"  署名：{a.get('credit', '不需要')}", '']
     (P / '素材来源与授权.txt').write_text('\n'.join(L), encoding='utf-8')
 def cmd_study(path, th=0.3):
     """拉片：机器量切点和时长，输出镜头表骨架和联系表。只用来学结构和节奏，原片不进成片。"""
@@ -414,6 +608,8 @@ if __name__ == '__main__':
     cmd = sys.argv[1]
     if cmd == 'probe': cmd_probe(); sys.exit()
     if cmd == 'clips': cmd_clips(); sys.exit()
+    if cmd == 'transcribe': cmd_transcribe(sys.argv[2]); sys.exit()
+    if cmd == 'pick': cmd_pick(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 8); sys.exit()
     if cmd == 'study': cmd_study(sys.argv[2], float(sys.argv[3]) if len(sys.argv) > 3 else 0.3); sys.exit()
     if cmd == 'lines':
         L = [l for l in json.load(open(P / 'script.json')) + (json.load(open(P / 'short.json')) if (P / 'short.json').exists() else []) if not silent(l)]
@@ -427,6 +623,12 @@ if __name__ == '__main__':
         if (P / 'assets.json').exists(): rep['素材授权'] = assets_check(set(sc.get('used', {})))
         rep['阅读时长'] = (F['read'], []); rep['文字出画'] = (F['frame'], []); rep['字幕带'] = ([], Wn['subzone']); rep['文字重叠'] = ([], Wn['overlap']); rep['画面空档'] = ([], Wn['dead']); rep['开场'] = ([], Wn['hook']); rep['小字'] = ([], Wn['small'])
         miss = {}; [miss.setdefault(m.split('|')[0], []).append(m.split('|')[1]) for m in sc.get('miss', [])]
+        need = BRIEF.get('must_show', []); shown = {}
+        for fr in sc['frames']:
+            for r in fr['tx']:
+                for m in need:
+                    if m in r[0] and r[5] >= .8: shown[m] = shown.get(m, 0) + 1
+        rep['必须出现的声明'] = ([f'画面上没有出现「{m}」，或停留不到 2 秒（brief.json 的 must_show 要求）' for m in need if shown.get(m, 0) * (sc['frames'][1]['t'] - sc['frames'][0]['t']) < 2], [])
         rep['字体缺字'] = ([], [f"{'毛笔体' if k == 'Brush' else '草书'}没有这些字，会回落成楷体：{''.join(sorted(v))}（换字、换成宋体，或装全字库）" for k, v in miss.items()])
         for k, (f, w) in rep.items(): show(k, f, w)
         nf = sum(len(f) for f, _ in rep.values()); nw = sum(len(w) for _, w in rep.values())
@@ -440,7 +642,12 @@ if __name__ == '__main__':
             if s['ch'] not in seen and seen: ev.append({'type': 'whoosh', 't': s['t0'] - .25})
             seen.add(s['ch'])
         clipev = [e for e in ev if e['type'].startswith('clip:')]; ev = [e for e in ev if not e['type'].startswith('clip:')] if BRIEF.get('sfx', True) else []   # brief.json 写 "sfx":false 就不加音效（水墨一类安静的片子）
-        n = sfx_track(ev, total, clips=clipev); print('音效', n, '个', f'素材原声 {sum(1 for e in clipev if e["gain"] > 0)} 段' if clipev else ''); music(total, tl=tl); mixdown('vo.wav', 'music.wav', 'mix.wav', 'sfx.wav', mu_db=-21 + 15 * sum(s['dur'] for s in tl if silent(s)) / max(1, sum(s['dur'] for s in tl))); sys.exit()
+        duck = BRIEF.get('duck', 12); orig = None
+        if duck is False or not clipev: n = sfx_track(ev, total, clips=clipev); print('音效', n, '个', f'素材原声 {sum(1 for e in clipev if e["gain"] > 0)} 段' if clipev else '')   # 没有原声或 duck:false：和旧做法一样，原声混在音效轨里
+        else:
+            n = sfx_track(ev, total); no, sec = orig_track(clipev, total, tl, duck=duck); print('音效', n, '个', f'素材原声 {no} 段（单独一轨，旁白下压低 {duck} dB，共 {sec:.1f} 秒）')
+            if no: orig = 'orig.wav'
+        music(total, tl=tl); mixdown('vo.wav', 'music.wav', 'mix.wav', 'sfx.wav', mu_db=-21 + 15 * sum(s['dur'] for s in tl if silent(s)) / max(1, sum(s['dur'] for s in tl)), orig=orig); sys.exit()
     if cmd == 'final':
         name = sys.argv[2]; r = P / 'check_report.json'
         ok = r.exists() and json.load(open(r))['fails'] == 0 and r.stat().st_mtime >= (P / 'scenes.js').stat().st_mtime

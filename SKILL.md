@@ -12,8 +12,8 @@ description: 做讲解类和叙事类视频：科普、历史事件、人物传�
 | 题材模板 | 这类内容怎么讲：节拍、占比、常见错 | `templates/题材模板.md` |
 | 风格模板 | 画面长什么样：配色、字体、背景、画面语法 | `templates/风格模板.md`，预设在 `kit/kit.js` 的 `THEMES` |
 | 组件 | 时间轴、人名条、引文、大数字、图表、流程、对比、标注、视频片段 | `kit/components.js` |
-| 风格包 | 一整套画法：水墨引擎、固定人物、行迹地图、石印画报、漆屏风 | `kit/packs/*.js`，用法在 `templates/风格包.md` |
-| 素材 | 照片和视频片段，带授权台账 | 项目的 `assets.json`、`footage/` |
+| 风格包 | 一整套画法：从旧片收的五套（水墨、固定人物、行迹地图、石印画报、漆屏风），自己实现的十四套（发光、形变、白板、拼贴、动态文字、等距、全息、录屏、简笔角色、讲解员、铜版画、木刻、案卷、产业图谱） | `kit/packs/*.js`，用法在 `templates/风格包.md` |
+| 素材 | 照片和视频片段，带授权台账；收集来的视频可以转写、挑镜头、重新剪辑 | 项目的 `assets.json`、`footage/` |
 
 模板库是活的：每一项都在台账 `templates/registry.json` 里，有状态（收件箱 → 候选 → 稳定 → 退役）、出处、用在过哪些片子。开工先看台账，收工做复盘，把这条片里好用的东西沉淀回去（第 14 步）。
 
@@ -78,12 +78,17 @@ mkdir -p ../kit/models && cd ../kit/models && curl -sL -o m.tar.bz2 https://gith
 | 人物行迹（一张地图讲一个人的一生） | songink + 包 ink figures map | none | makeMap layer chapter vtext sealStamp scholar |
 | 行旅日记（跟着一本日记走一条路） | litho + 包 ink figures map litho | none | page plate counter narr poem makeMap official |
 | 双线叙事（小人物与大时代） | lacquer + 包 ink lacquer | none | screen side from/vis/upto wom emp tag |
+| 制造业隐形冠军（减速器、新材料、人形机器人零部件） | industry + 包 industry（讲构造加 holo，讲厂区加 iso，要人串场加 host） | label / none | chainMap robotBody exploded shareRing vsLocal iconWall specTable clipFull lowerThird sourceTag |
+| 第一人称经历、带笑点的讲述 | stick + 包 stick | none | beats stick say emote prop hold |
+| 器物、工艺、零件构造的图版 | engrave + 包 engrave | label | plate etch hatch callNo loupe tint |
+| 厚重的历史与文学 | woodcut + 包 woodcut | none | print carve gouge spot title rain |
+| 谣言核查、“几条说法哪条是真的” | dossier + 包 dossier | none | folder card verdict tally halftone redact |
 
 ```json
 {"title":"…","genre":"工业零部件","style":"blueprint","audience":"…","target_sec":60,"pattern":"里面是什么 + 怎么运作","read_cps":4.5,"read_pad":1.5}
 ```
 
-可选字段：`"packs":["ink","figures","map"]` 要加载的风格包；`"music":"guqin"` 五声拨弦配乐、每章换调（缺省是合成铺底；写成文件路径就用那条音乐，文件要进素材台账）；`"sfx":false` 不加音效（水墨一类安静的片子）。
+可选字段：`"packs":["ink","figures","map"]` 要加载的风格包；`"music":"guqin"` 五声拨弦配乐、每章换调（缺省是合成铺底；写成文件路径就用那条音乐，文件要进素材台账）；`"sfx":false` 不加音效（水墨一类安静的片子）；`"duck":12` 旁白时素材原声压低多少分贝（缺省 12，`false` 不压低）；`"tiers_required":true` 断言台账每条都要填来源层级 `tier`（企业、产业类必开）；`"must_show":["不构成投资建议"]` 片中必须出现的声明（检查要求整句至少清楚显示 2 秒）。
 
 `read_cps` 是屏幕文字的阅读速度：给孩子看 4.5 字/秒，成年观众可到 6。
 
@@ -111,13 +116,18 @@ mkdir -p ../kit/models && cd ../kit/models && curl -sL -o m.tar.bz2 https://gith
 
 优先一手来源。自己算出来的数在 `note` 里写算法和适用条件。常见的说过头：把一组条件下的数字说成普遍数字；把“最早提出”说成“彻底弄清”；把次要原因和主要原因并列；拿最差的对照组做对比；一个定义把同类的另一种东西排除在外（说“轴承就是滚动的”，可滑动轴承也是轴承）。企业片里的“最、第一、领先、唯一”必须有已核实的事实支撑，否则检查会提醒。
 
+讲企业、产业的片子，每条断言再填来源层级 `tier`：`政府名单`（工信部单项冠军、专精特新“小巨人”名单等）、`公司披露`（招股书、年报、交易所公告）、`公司自述`（官网、宣传册、采访里公司自己说的）、`第三方报告`（研究机构、券商的统计）、`媒体`。检查会拦：公司自述标成 verified（要写 opinion，稿子里说“公司称”）；第三方报告的 `note` 没写是哪家机构、谁委托、按什么口径；媒体报道标成 verified 会提醒。份额、排名、“打破垄断”这类话最容易说过头，同一个数要写清年份和口径，以最新一份招股书或年报的说法为准。选题和找企业的路子见 `templates/选题库_制造业隐形冠军.md`。
+
 ### 4. 收集素材 → `assets.json`
 
 按 `templates/素材与剪辑.md` 做。要点：
 
 - 能进成片的只有七种依据：`own` 自有、`licensed` 已获授权、`public-domain`、`cc0`、`cc-by`、`cc-by-sa`、`stock-free`。电视台、平台、电影、别人账号的视频授权不明，不进成片，只能拉片。
+- “收集到的视频”要重新剪，先分清是谁的：用户自己拍的（展会、工厂参观，`own`，出镜的人要同意）、企业书面授权的（请求函模板 `templates/素材授权请求函.md`）、图库按许可可用的（Pexels、Pixabay、Wikimedia 各按自己的条款）。
+- 企业宣传片、发布会视频、媒体报道、平台上别人的视频，版权在对方：拿到书面授权（`licensed`，台账写授权人、范围、日期，`proof_file` 放凭证，要写什么见 `templates/来源与许可.md`「企业素材授权」）才能剪；没有授权只拉片。不写、不用任何从视频网站下载视频的功能。
 - 下载任何文件之前，把文件名、来源、大小告诉用户并得到同意。用户自己的素材从他电脑上的文件夹取。
 - 原始视频放 `footage/`，`build.py probe` 出时间码联系表、切点、静音段；看图选入出点，写进台账；`build.py clips` 切片。
+- 素材多时 `build.py pick 文件名 [个数]` 按清晰度、亮度、运动量、时长列出候选镜头和联系表（只建议）；有人讲话的素材 `build.py transcribe 文件名或素材id` 转成带时间的句子，台账 `in`/`out` 写 `"@s3"`/`"@s5"` 按句子切。
 - 先写这一拍“观众要看到什么”，再找画面。用一条素材里最好的几秒；动作和一句话保持完整；入出点避开切点。
 - 默认画面全部用代码画。照片和视频是给“必须看到真东西”的那几拍用的：真人、真设备、真现场、真界面、真档案。
 
@@ -188,7 +198,7 @@ window.FILM={theme:'blueprint', chrome:'question',   // 章节条：question | l
 | 图章 | `stamp(t,t0,'已核实',x,y)` | 定论、合格 |
 | 章节卡 | `chapterCard(t,t0,t1,序号,'标题','一句话')` | 长片分章 |
 | 三张卡 | `threeCards(t,id,'标题',[{tag,title,sub,at,subAt,titleAt,icon}])` | 收尾总结，先原因后结论 |
-| 视频片段 | `clip('素材id',t,t0,x,y,w,h,{from,speed,sound,credit})` | 真设备、真现场、真界面 |
+| 视频片段 | `clip('素材id',t,t0,x,y,w,h,{from,speed,sound,credit,fit,kb,fade,t1})` `clipFull(id,t,t0,t1,{…})` `clipSound(id,t,t0,{from,gain,t1,fadeIn,fadeOut})`；转场 `xfade(t,tCut,d,画A,画B)` `dipTo(t,tCut,d,色,画A,画B)` `wipe(t,tCut,d,方向,画A,画B)`（详见 `templates/素材与剪辑.md`） | 真设备、真现场、真界面；fit 铺法 cover/contain/blur，kb 推拉摇，clipSound 做 J/L-cut，原声在旁白下自动压低 |
 | 片尾 | `credits(t,t0,[…])` `creditLines()` | 依据、素材署名 |
 | 声音 | `sfx('ding',时刻)`：`pop tick whoosh ding rise thud` | 结论落地用 ding，展开用 rise |
 
@@ -220,6 +230,8 @@ window.FILM={theme:'blueprint', chrome:'question',   // 章节条：question | l
 | 画面空档 | 4 秒以上几乎不动 | 加一个和旁白对应的动作 |
 | 开场 | 2 秒内有内容出现 | 把第一个画面提前 |
 | 字体缺字 | 毛笔体、草书里没有的字（会变成楷体） | 换字、换成宋体，或征得同意后装全字库 |
+| 来源层级 | `tier` 合法；公司自述没被标成已核实；第三方报告写了机构和口径；`tiers_required` 时每条都填 | 改台账，稿子里改成“公司称”“据某机构统计” |
+| 必须出现的声明 | `must_show` 里每一句都在画面上清楚停留 ≥2 秒 | 在片头或片尾加上 |
 
 检查只认识文字框，看不出文字被图形盖住、图画错了、画面和旁白对不上、片段选得好不好。所以还要 `python3 ../kit/build.py sheet` 生成总览图，自己逐张看一遍。
 
@@ -288,7 +300,8 @@ python3 ../kit/build.py short render 名字_竖版短片
 ## 已知的限制和坑
 
 - 云端 shell 访问不了多数网站，也不支持 WebSocket；查资料用搜索和网页读取工具。
-- 片段之间的叠化、J-cut/L-cut 没有做成组件；没有按转写自动选入出点（都在收件箱里）。
+- 剪辑组件（`clipFull`、转场、`clipSound`、`transcribe`、`pick`）是用自己拍的样片验证的，还没剪过一条真实的长素材；`pick` 只按清晰度、亮度、运动量打分，看不懂内容，入出点要人看图定。
+- 制造业隐形冠军题材卡和产业图谱包只用虚构企业做过样片；选题库里的企业资料按检索日期记录，用之前要重新核对最新的年报和公告。
 - 行迹地图的海岸线、江河、山是旧片带来的数据，只覆盖中国及周边；地名表里没有的地方要在 `places` 里补经纬度，古今地名和位置要查证后进断言台账。
 - 毛笔体和草书只带了旧片用过的一千一百多个字，缺的字会回落成楷体，`check` 的“字体缺字”会列出来：换字、换成宋体，或征得用户同意后装全字库。
 - 风格包的片子目前没有专门的竖版版式；竖版短片用通用版式套上去，做之前先出一帧看。
@@ -296,7 +309,8 @@ python3 ../kit/build.py short render 名字_竖版短片
 - 五声拨弦配乐是程序合成的，够做底，不是真乐器；用户有授权的配乐就用他的。
 - 视频片段的流程用自制片段验证过切片、取帧、署名、授权检查和原声混入；还没有用真实拍摄素材做过整片。
 - 固定人物只有宋人文士和清末官员两个，没有女性、孩童、僧道、武人；主角不是这两类时要新画，不要硬套。
-- 风格模板里“只有规范”的那些还没有配色预设，第一次用要自己在 scenes.js 里实现并验证。
+- 新做的风格包（简笔、讲解员、铜版画、木刻、案卷、产业图谱）都只是候选：各有一条样片和回归样张，还没在成片里用过。
+- 通用 `timeline()` 朝下的条目，年份会压到上一条的标签上（收件箱里记着），条目多时把间距放大或改用 `chainMap`。
 - 第 6 步审稿不能跳。跳过它直接配音，审片时发现的稿子问题就得整句重配。
 - 往用户电脑传文件（如 `lines.txt`）时，刚写完马上传可能传的是旧版本：写完等几秒，传过去后在电脑那一侧核对一下内容（行数、关键字）。回听也能兜底：配音和稿子对不上会报不通过。
 - 工坊有两处克隆（云端一份、用户电脑一份）时，开工先 `git pull`，收工必须 `git push`，否则下一次开工拿到的是旧模板。

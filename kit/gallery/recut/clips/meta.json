@@ -1,0 +1,66 @@
+{
+ "tall": {
+  "n": 90,
+  "fps": 30,
+  "w": 270,
+  "h": 480,
+  "dur": 3.0,
+  "audio": "clips/tall.wav",
+  "sig": [
+   "66d9fc94e4f5593287eb6cd2b04a2314e75f4d331b0021452d5f6b3bb1ee4a0c",
+   97.0,
+   100.0,
+   270,
+   480,
+   "cover"
+  ]
+ },
+ "sunset": {
+  "n": 90,
+  "fps": 30,
+  "w": 768,
+  "h": 432,
+  "dur": 3.0,
+  "audio": "clips/sunset.wav",
+  "sig": [
+   "66d9fc94e4f5593287eb6cd2b04a2314e75f4d331b0021452d5f6b3bb1ee4a0c",
+   116.5,
+   119.5,
+   768,
+   432,
+   "cover"
+  ]
+ },
+ "prism": {
+  "n": 75,
+  "fps": 30,
+  "w": 768,
+  "h": 432,
+  "dur": 2.5,
+  "audio": "clips/prism.wav",
+  "sig": [
+   "66d9fc94e4f5593287eb6cd2b04a2314e75f4d331b0021452d5f6b3bb1ee4a0c",
+   24.0,
+   26.5,
+   768,
+   432,
+   "cover"
+  ]
+ },
+ "talk": {
+  "n": 173,
+  "fps": 30,
+  "w": 400,
+  "h": 225,
+  "dur": 5.767,
+  "audio": "clips/talk.wav",
+  "sig": [
+   "fc89f1e3e96483dd2b5503109a2676ad61e3ca7f12da45f0894a3b795fdef7c0",
+   10.02,
+   15.78,
+   400,
+   225,
+   "cover"
+  ]
+ }
+}
