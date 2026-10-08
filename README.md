@@ -1,38 +1,145 @@
-# 讲解视频工坊（narrated-video-studio）
+# 讲解视频工坊 · narrated-video-studio
 
-一个给 Claude 用的 skill 和它配套的工具箱：用代码画面 + 旁白（或无旁白 + 配乐）做讲解类、叙事类视频，出横版成片、竖版短片、封面和字幕。按题材选模板、按风格选画面，每条片子做完把好用的东西沉淀回模板库。
+一个给 Claude 用的 skill，加上它配套的工具箱：**你说要讲什么，Claude 查资料、写稿、配音、用代码画画面、检查、出片。** 适合讲解类和叙事类视频——科普、历史、人物、AI 与科技、小说、工业零部件、企业介绍、生产流程、数据、新闻。
+
+画面全部由代码逐帧画出来（HTML canvas → 截帧 → ffmpeg），所以每一帧都可以复现、可以检查、可以改一个字再渲一遍。照片和视频片段只在“必须看到真东西”的那几拍剪进来，并且要过授权台账。
+
+## 做出来是什么样
+
+**科普原理 · 《天为什么是蓝的》**（3 分 17 秒，有旁白）
+
+![天为什么是蓝的](docs/images/film_sky.jpg)
+
+**工业零部件 · 《轴承为什么能让轮子转得这么轻》**（1 分 37 秒，蓝图风格）
+
+![轴承为什么省力](docs/images/film_bearing.jpg)
+
+**宋式水墨 + 行迹地图**：一张地图讲一个古人的一生（可以无旁白，只有画面和配乐）
+
+![水墨与行迹地图](docs/images/pack_ink_map.jpg)
+
+**石印画报、漆屏风**：跟着一本日记走一条路；小人物与大时代上下两栏并行
+
+![石印画报与漆屏风](docs/images/pack_litho_lacquer.jpg)
+
+**通用组件换一套风格就是另一种片子**：年代戳、时间轴、引文、大数字、柱图、参数表、标注……
+
+![同一批组件在不同风格下](docs/images/themes_components.jpg)
+
+每条片子交付：横版成片（1920×1080，带 2 秒封面）、竖版短片（重写旁白，不是硬裁）、横竖封面、`.srt` 字幕、断言台账、素材来源与授权清单。
+
+## 安装
+
+### 在 Claude Code 里用（推荐，功能最全）
+
+把仓库克隆成个人 skill，目录名要和 skill 名一致：
+
+```sh
+git clone https://github.com/chrisopal/narrated-video-studio ~/.claude/skills/narrated-video-studio
+```
+
+只想在某一个项目里用，就克隆到那个项目的 `.claude/skills/narrated-video-studio`。装好后在 Claude Code 里输入 `/narrated-video-studio`，或者直接说“帮我做一条讲清楚某某的视频”，Claude 会自己加载它。更新就是在这个目录里 `git pull`。
+
+装依赖（macOS 示例，Linux 换成对应的包管理器）：
+
+```sh
+brew install ffmpeg
+pip install playwright numpy soundfile pillow
+playwright install chromium
+# 可选：配音回听（把配音转回文字和稿子比对）
+pip install sherpa-onnx pypinyin
+# 可选：水墨、石印、漆屏风这几套风格用的宋体
+brew install --cask font-noto-serif-cjk-sc
+```
+
+配音二选一：
+
+- 有 [OpenRouter](https://openrouter.ai) 的密钥：存成仓库根目录的 `openrouter_key.txt`（只放一行；这个文件已在 `.gitignore` 里，不会被提交），或设环境变量 `OPENROUTER_API_KEY`。
+- 没有密钥：用 `kit/tts.sh`，它走免费的 edge-tts（`pip install edge-tts`）。
+
+### 在 Claude 应用里用（网页版、桌面版）
+
+1. 下载 [`dist/narrated-video-studio.zip`](dist/narrated-video-studio.zip)（里面只有一份 `SKILL.md`）。
+2. 在 Claude 里打开 **Customize → Skills**，点 **+** → **Create skill** → **Upload a skill**，上传这个 zip。需要先在设置里打开“代码执行和文件创建”。
+3. 对 Claude 说“做一条视频”。它会按 skill 里写的，先把这个仓库克隆到自己的工作区再开工。
+
+应用里 Claude 的工作区是临时的，所以它每次都要重新克隆和装依赖；配音要联网调接口，工作区出不去时需要在你自己的电脑上跑那一步。想让它把复盘后的模板改动推回仓库，它得有这个仓库的写权限——用自己的 fork 最省事。
+
+## 怎么用
+
+装好以后，用自然语言说就行。几种典型的说法：
+
+| 你说 | Claude 会 |
+|---|---|
+| “做一条视频，给小学生讲清楚月亮为什么会变形状” | 选“科普原理”题材卡和一套风格，查证、写稿、审稿、配音、分场、检查、出片 |
+| “介绍一下我们公司的这个轴承产品，素材在这个文件夹里” | 用“工业零部件”或“企业介绍”卡；看你的视频素材、挑片段、登记授权，再剪进成片 |
+| “像东坡那条那样，做一条李清照的” | 在台账里找到那条片用的题材、风格和风格包，照着起步 |
+| “按这个参考片的节奏做一条” | 先拉片（切点、镜头时长、结构），只学骨架，不搬画面 |
+
+一条片子从头到尾走十四步：
+
+```
+立项 → 拉片 → 查证建断言台账 → 收集素材 → 写稿 → 独立审稿 → 配音 → 回听
+     → 分场（写画面）→ 检查 → 独立审片 → 出片 → 交付 → 复盘和沉淀
+```
+
+两条硬规矩贯穿始终：**断言不靠记忆**（数字、年份、人名、引语都要查到来源，进 `facts.json`）；**不凭感觉交付**（`check` 有不通过项就不出片）。
+
+`check` 会自动查：断言有没有来源、素材授权、配音和稿子是否一致、屏幕文字停留够不够读完、文字有没有出画或互相重叠、小于 32 像素的字、4 秒以上不动的画面、开场 2 秒内有没有内容、毛笔字体缺字。
+
+想自己动手也可以。项目不放进仓库，在任意工作目录里给引擎做个链接：
+
+```sh
+mkdir -p ~/video-work && cd ~/video-work
+ln -sfn ~/.claude/skills/narrated-video-studio/kit kit
+python3 kit/build.py                 # 不带参数：列出全部命令
+python3 kit/workshop.py status       # 模板台账：哪些稳定、哪些候选、收件箱里有什么
+```
+
+一个最小的项目是四个文件：`brief.json`（题材、风格）、`script.json`（一句一句的稿子）、`facts.json`（断言台账）、`scenes.js`（画面）。项目目录和 `kit` 链接放在同一层，命令在项目目录里运行。可以直接照着 `kit/gallery/` 里的小样片改——`ink`、`map`、`litho`、`lacquer` 各是一条能跑的样片：
+
+```sh
+cp -r kit/gallery/map demo-map && cd demo-map
+python3 ../kit/build.py stills 6.5,16,24     # 抽三帧看看，图在 stills/
+python3 ../kit/build.py check                # 全部检查
+python3 ../kit/build.py cover && python3 ../kit/build.py render && python3 ../kit/build.py mix
+python3 ../kit/build.py final 样片            # 出 样片.mp4
+```
+
+## 模板库是活的
+
+每张题材卡、每套风格、每个组件、每项检查都在台账 `templates/registry.json` 里，带着出处和“用在过哪些片子”。状态分四级：
+
+**收件箱**（一个点子，或别处看到的做法）→ **候选**（写成了代码、有样张、在一条片里试过）→ **稳定**（两条成片用过，且回归样张里有它）→ **退役**
+
+每条片子做完要复盘：新写的函数逐个决定“沉淀成通用组件 / 留在本片 / 并入已有的”；检查没拦住的问题记进 `templates/经验库.md`，同一类问题第二次出现就必须变成一项自动检查或一个模板默认值。改了引擎之后跑 `python3 kit/workshop.py gallery`，71 张样张会重渲并和基线逐张比，防止改一处坏一片。
 
 ## 目录
 
 | 路径 | 是什么 |
 |---|---|
-| `SKILL.md` | skill 正文：十四步流程、组件速查、规矩和已知的坑 |
-| `kit/` | 引擎：`build.py`（每条片子的构建和检查）、`workshop.py`（模板台账、回归样张、复盘）、`kit.js` `components.js`（画面）、`asr.py`（配音回听）、配音脚本、字体 |
-| `kit/packs/` | 风格包：水墨引擎、固定人物、行迹地图、石印画报、漆屏风（由 `legacy/tools/mkpacks.py` 生成，不要手改） |
-| `kit/gallery/` | 回归样张：每个组件在每套风格下、每个风格包的样片定格和基线图 |
-| `templates/` | 模板库：题材模板、风格模板、风格包用法、素材与剪辑、拉片、台账 `registry.json`、经验库、更新记录 |
-| `legacy/` | 收编的三条旧片源码（《东坡》《河海昆仑录》《王钟儿》）和生成风格包的脚本 |
+| `SKILL.md` | skill 正文：流程、组件速查、规矩、已知的坑 |
+| `kit/` | 引擎：`build.py`（构建和检查）、`workshop.py`（台账、回归样张、复盘）、`kit.js` `components.js`（画面）、`asr.py`（回听）、配音脚本、字体 |
+| `kit/packs/` | 风格包：水墨引擎、固定人物、行迹地图、石印画报、漆屏风 |
+| `kit/gallery/` | 回归样张和基线图；也是最好的入门例子 |
+| `templates/` | 题材模板（十三张卡）、风格模板、风格包用法、素材与剪辑、拉片、台账、经验库、更新记录 |
+| `legacy/` | 三条旧片的源码和把它们收编成风格包的脚本 |
+| `docs/images/` | 本页用的效果图 |
 
-## 怎么用
+## 已知的限制
 
-把仓库放到 `~/Movies/视频工坊/`（或任何位置，`kit/`、`templates/`、`legacy/` 保持同级），项目建在 `kit/` 的同级目录里，在项目目录运行：
+- 画面是程序画的图形和文字，不是实拍，也不生成 AI 图像或 AI 视频。
+- 旁白是语音合成；语气要人来听，回听只能查读错、漏读、多读。
+- 行迹地图只覆盖中国及周边，地名表以宋、清两条旧片用到的为主，别的地名要自己补经纬度。
+- 毛笔体和草书只带了一千一百多个字，缺的字会回落成楷体（检查会报）。
+- 固定人物只有宋人文士和清末官员两个。
+- 竖版短片对几个风格包还没有专门的版式。
+- 文档、注释和模板都是中文；主要在 macOS 和 Linux 上用过，Windows 没有试过。
 
-```sh
-python3 ../kit/build.py            # 不带参数看全部命令
-python3 ../kit/workshop.py status  # 模板台账总览
-python3 ../kit/workshop.py gallery # 改了 kit 之后跑回归样张
-```
+更完整的清单在 `SKILL.md` 末尾。
 
-依赖：Python 3、playwright（Chromium）、ffmpeg、numpy、soundfile、Pillow；配音回听另需 sherpa-onnx、pypinyin 和识别模型（见 `SKILL.md`）。
+## 许可
 
-配音密钥放在工坊根目录的 `openrouter_key.txt`（一行），已在 `.gitignore` 里，不要提交。
+本仓库自己写的代码、模板和文档按 [MIT 许可](LICENSE)。字体和海岸线数据来自第三方，各按自己的许可，见 [THIRD_PARTY.md](THIRD_PARTY.md)。
 
-## 版本
-
-见 `kit/VERSION` 和 `templates/更新记录.md`。
-
-## 第三方内容
-
-- 字体：`kit/fonts/` 里的思源黑体（Noto Sans SC）、霞鹜文楷（LXGW WenKai）、Roboto Condensed，以及 `kit/fonts/legacy/` 里旧片内嵌的毛笔体、草书子集，版权归各自作者，按各自的开源字体许可使用。
-- `kit/packs/map.js` 里的海岸线、江河、山的坐标是旧片带来的数据，原始来源尚未核对；公开发布前需要先查清。
-- 其余代码、模板和文档是本项目自己写的。仓库目前没有附许可证。
+你用它做出来的视频归你；片子里引用的事实、原文、照片和视频素材的来源与授权由做片子的人负责，工具只负责帮你把台账记清楚。

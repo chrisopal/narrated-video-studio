@@ -1,6 +1,6 @@
 import re,sys,json,hashlib
 def split(path):
-    L=open(path,encoding='utf8').read().split('\n')
+    L=[l for l in open(path,encoding='utf8').read().split('\n') if len(l)<=3000]   # 去掉内嵌字体和海岸线这类超长行
     # only the first <script> with engine: find range
     out=[];cur=None
     for i,l in enumerate(L):
@@ -13,7 +13,7 @@ def split(path):
         elif cur is not None: cur['lines'].append(l)
     return out
 if __name__=='__main__':
-    D={f:split(f+'.short.txt') for f in ['dongpo','hehai','wz']}
+    D={f:split(f+'.html') for f in ['dongpo','hehai','wz']}
     names={}
     for f,ds in D.items():
         for d in ds:

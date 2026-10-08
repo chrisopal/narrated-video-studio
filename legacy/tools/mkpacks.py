@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """把三条旧片（东坡 / 河海昆仑录 / 王钟儿）的画法收进工坊，生成 kit/packs/*.js。
 旧片源码原样取用（verbatim），只在外面包一层命名空间；手写的接合代码在 tools/glue/*.js。
-重新生成：python3 tools/mkpacks.py"""
+重新生成（在仓库根目录）：python3 legacy/tools/mkpacks.py
+旧片源码在 legacy/*.html；切分时自动跳过内嵌字体和海岸线这类超长行"""
 import re,json,sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).parent))
 from split import split
-L=Path(__file__).parent.parent; KIT=Path('/home/claude/kit'); GLUE=Path(__file__).parent/'glue'
+L=Path(__file__).resolve().parent.parent; KIT=L.parent/'kit'; GLUE=Path(__file__).resolve().parent/'glue'
 (KIT/'packs').mkdir(exist_ok=True)
-D={f:split(str(L/(f+'.short.txt'))) for f in ['dongpo','hehai','wz']}
+D={f:split(str(L/(f+'.html'))) for f in ['dongpo','hehai','wz']}
 def idx(f,name): return next(i for i,d in enumerate(D[f]) if d['name']==name)
 def block(f,first,last,drop=()):
     a,b=idx(f,first),idx(f,last); out=[]

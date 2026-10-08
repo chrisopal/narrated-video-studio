@@ -24,19 +24,32 @@ description: 做讲解类和叙事类视频：科普、历史事件、人物传�
 
 每期交付：横版成片（封面 2 秒 + 正片）、竖版短片（重写旁白，不是硬裁；用户不要可以不做）、横竖封面、`.srt` 字幕、断言台账、`素材来源与授权.txt`。
 
-## 工具箱在哪
+## 工坊在哪
 
-用户电脑的 `~/Movies/视频工坊/`：`kit/`（引擎、风格包 `packs/`、回归样张 `gallery/`）、`templates/`（模板库和台账）、`legacy/`（收编的旧片源码和生成风格包的脚本）、`示例_*/`（做过的项目）、`样片/`、`openrouter_key.txt`（配音密钥，不要读出来、不要写进任何地方）。
+**唯一的源头是 Git 仓库** `https://github.com/chrisopal/narrated-video-studio`（下文叫“工坊”）。这个 skill 的目录就是工坊：`SKILL.md`、`kit/`（引擎、风格包 `packs/`、回归样张 `gallery/`）、`templates/`（模板库和台账）、`legacy/`（收编的旧片源码和生成风格包的脚本）。不要在别处另存一份 `kit/` 或 `templates/`；任何改动都提交回仓库。
 
-云端工作区每次是新的。开工先把 `kit/` 和 `templates/` 取到工作区（如 `/home/claude/kit`、`/home/claude/templates`），项目建在同级（`/home/claude/<项目>/`），命令都在项目目录里运行：`python3 ../kit/build.py <命令>`。
+开工先拿到工坊：
 
-依赖：系统 Python 的 playwright（浏览器已在 `/opt/pw-browsers`，不要再装）、ffmpeg、numpy、soundfile、Pillow。回听另需 `pip install --break-system-packages sherpa-onnx pypinyin` 和识别模型（约 240 MB）：
+- **本机（Claude Code）**：工坊就是 skill 所在目录 `${CLAUDE_SKILL_DIR}`（通常是 `~/.claude/skills/narrated-video-studio`），先 `git -C <工坊> pull`。
+- **云端工作区**（每次是新的）：`git clone https://github.com/chrisopal/narrated-video-studio`；仓库不公开时先把它接入会话再克隆。要把改动推回去，需要有这个仓库的写权限。
+- 只有一份上传的 `SKILL.md`、身边没有 `kit/`：按上一条克隆。
+
+项目不放进仓库。找一个工作目录，在里面给引擎做个链接，项目建在同级，下文所有命令都在项目目录里运行：
+
+```sh
+mkdir -p ~/video-work && cd ~/video-work && ln -sfn <工坊>/kit kit    # 云端：/home/claude/work
+mkdir 我的项目 && cd 我的项目 && python3 ../kit/build.py              # 不带参数看全部命令
+```
+
+依赖：Python 3 的 playwright（要有 Chromium；云端浏览器已在 `/opt/pw-browsers`，不要再装）、ffmpeg、numpy、soundfile、Pillow。水墨等风格的宋体用本机的思源宋体（Noto Serif CJK SC）。回听另需 `pip install sherpa-onnx pypinyin`（云端加 `--break-system-packages`）和识别模型（约 240 MB，不在仓库里）：
 
 ```sh
 mkdir -p ../kit/models && cd ../kit/models && curl -sL -o m.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-paraformer-zh-2023-09-14.tar.bz2 && tar xjf m.tar.bz2 && rm m.tar.bz2
 ```
 
-分工：查资料、画面、渲染、回听、切片在云端；配音在用户电脑一侧运行（要联网调接口）；用户的原始视频在他电脑上，取到云端项目的 `footage/` 再处理。成片和项目文件最后存回 `~/Movies/<项目名>/`。
+配音密钥：OpenRouter 的密钥存成工坊根目录的 `openrouter_key.txt`（一行，已在 `.gitignore` 里），或环境变量 `OPENROUTER_API_KEY`。不要读出来、不要写进任何别的地方、不要提交。没有密钥就用 `kit/tts.sh`（edge-tts，免费）。
+
+云端和用户电脑怎么分工：查资料、画面、渲染、回听、切片可以在云端；配音要联网调接口，云端出不去时在用户电脑上的那份工坊里跑（先找 `~/Development/narrated-video-studio`、`~/.claude/skills/narrated-video-studio`，找不到就问用户克隆在哪）；用户的原始视频在他电脑上，取到项目的 `footage/` 再处理。成片和项目文件最后存到用户指定的位置（没说就是 `~/Movies/<项目名>/`）。
 
 ## 流程
 
@@ -131,10 +144,10 @@ mkdir -p ../kit/models && cd ../kit/models && curl -sL -o m.tar.bz2 https://gith
 `python3 ../kit/build.py lines` 写出 `lines.txt`，放到用户电脑的项目文件夹，在那一侧运行：
 
 ```sh
-python3 <工坊>/kit/tts_openrouter.py run lines.txt google/gemini-3.8-flash-tts Charon
+python3 <工坊>/kit/tts_openrouter.py run lines.txt google/gemini-3.8-flash-tts Charon   # 模型和声音可换；先用 voices 模式试音
 ```
 
-默认声音是用户选定的 Gemini Charon。没有密钥用 `tts.sh`（edge-tts）。音频取回后转成 `audio/<id>.wav`（`ffmpeg -i x.mp3 -ar 44100 -ac 1`）。只改了几句就只重配那几句。新闻、企业这类题材如果用户想换声音，先用 `voices` 模式试音。
+默认声音是 Gemini Charon（用户另有选定就用他的）。没有密钥用 `tts.sh`（edge-tts）。音频取回后转成 `audio/<id>.wav`（`ffmpeg -i x.mp3 -ar 44100 -ac 1`）。只改了几句就只重配那几句。新闻、企业这类题材如果用户想换声音，先用 `voices` 模式试音。
 
 ### 8. 回听 `python3 ../kit/asr.py`
 
@@ -258,7 +271,7 @@ python3 ../kit/build.py short render 名字_竖版短片
 4. 从参考片（`study`）或别的 skill 看到想试的做法：`workshop.py inbox "做法" --source 出处`。用自己的话写，在 `来源与许可.md` 记来源和许可；AGPL、非商用、保留所有权利的项目只借思路，不搬代码和文字。
 5. 只要动过 `kit/` 或风格包，运行 `python3 kit/workshop.py gallery`。它把所有样张重渲一遍和基线比，哪张变了会列出来。**先看图**：是想要的变化才 `--accept`；不是，说明这次改动弄坏了别的模板，回去修。
 6. 该晋级的晋级：`workshop.py promote 编号`（条件不够会拒绝）。`kit/VERSION` 加一，更新记录写一行。
-7. 把改过的 `kit/`、`templates/`、`legacy/` 同步回用户电脑的工坊，并在电脑上核对 `VERSION`。文件多时打成几个 15 MB 以内的 tar 包传过去，在电脑一侧用 `tar xzf 包 --overwrite` 解开（那边默认不能删文件），再比一下几个关键文件的校验和。
+7. 把改动提交回仓库：在工坊里 `git add -A && git commit`（提交说明写清因为哪条片改了什么）`&& git push`。没有写权限就把补丁（`git format-patch`）交给用户。推完告诉用户在他电脑上的那份工坊里 `git pull`。仓库是唯一的源头：不要用拷文件的办法在两处各改各的。
 
 给用户的交付说明里加一段“这条片给工坊留下了什么”：新增或晋级了哪些模板、新增了哪项检查、收件箱里记了什么。
 
@@ -285,7 +298,8 @@ python3 ../kit/build.py short render 名字_竖版短片
 - 固定人物只有宋人文士和清末官员两个，没有女性、孩童、僧道、武人；主角不是这两类时要新画，不要硬套。
 - 风格模板里“只有规范”的那些还没有配色预设，第一次用要自己在 scenes.js 里实现并验证。
 - 第 6 步审稿不能跳。跳过它直接配音，审片时发现的稿子问题就得整句重配。
-- 把文件写到工作区再同步到用户电脑时，刚写完马上同步可能传的是旧版本：写完等几秒，传过去后在电脑那一侧核对一下内容（行数、关键字）。回听也能兜底：配音和稿子对不上会报不通过。
+- 往用户电脑传文件（如 `lines.txt`）时，刚写完马上传可能传的是旧版本：写完等几秒，传过去后在电脑那一侧核对一下内容（行数、关键字）。回听也能兜底：配音和稿子对不上会报不通过。
+- 工坊有两处克隆（云端一份、用户电脑一份）时，开工先 `git pull`，收工必须 `git push`，否则下一次开工拿到的是旧模板。
 - edge-tts 偶尔对个别短语返回空音频，换个说法即可。
 - 封面 `tagline` 不会自动缩字，控制在 16 字内。
 - 改了 `hold` 或句子顺序后，`short.json` 的 `src` 窗口要重看。

@@ -1,7 +1,7 @@
 # 从三条旧片的放映页里取出内嵌的毛笔体/草书子集，写成字体文件和一份 css；统计覆盖的字
 import re,base64,hashlib,json
 from pathlib import Path
-OUT=Path('/home/claude/kit/fonts/legacy');OUT.mkdir(parents=True,exist_ok=True)
+ROOT=Path(__file__).resolve().parent.parent;OUT=ROOT.parent/'kit'/'fonts'/'legacy';OUT.mkdir(parents=True,exist_ok=True)
 css=[];cover={'Brush':set(),'Cao':set()};seen=set()
 def chars(rng):
     s=set()
@@ -13,7 +13,7 @@ def chars(rng):
         else:s.add(int(part,16))
     return s
 for f in ['dongpo','hehai','wz']:
-    s=open(f+'.html',encoding='utf8').read()
+    s=open(ROOT/(f+'.html'),encoding='utf8').read()
     for fam,b64,rest in re.findall(r"@font-face\{font-family:'(\w+)';src:url\(data:font/woff2;base64,([A-Za-z0-9+/=]+)\)([^}]*)\}",s):
         if fam not in cover:continue
         data=base64.b64decode(b64);h=hashlib.md5(data).hexdigest()[:10]
