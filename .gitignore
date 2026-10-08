@@ -1,0 +1,12 @@
+# 密钥和本机文件不进仓库
+openrouter_key.txt
+*.key
+.env
+.DS_Store
+__pycache__/
+# 识别模型（约 240 MB，按 SKILL.md 里的命令另行下载）
+kit/models/
+# 回归样张的临时输出
+kit/gallery/_out/
+kit/gallery/_run/
+*.bak*

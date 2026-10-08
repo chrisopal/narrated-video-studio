@@ -1,0 +1,1396 @@
+{
+ "version": 2,
+ "说明": "模板台账。状态：inbox 收件箱 → candidate 候选 → stable 稳定 → retired 退役。晋级稳定的条件：两条成片用过 + 回归样张在。用 kit/workshop.py 改，不要手改状态。",
+ "genres": {
+  "科普原理": {
+   "styles": [
+    "space",
+    "sky",
+    "lab"
+   ],
+   "chrome": "question",
+   "components": [
+    "threeCards",
+    "callout",
+    "bigNumber",
+    "compare2"
+   ]
+  },
+  "历史事件": {
+   "styles": [
+    "archive",
+    "ink",
+    "songink"
+   ],
+   "chrome": "date",
+   "components": [
+    "dateStamp",
+    "timeline",
+    "lowerThird",
+    "quoteCard",
+    "clip",
+    "sourceTag",
+    "highlight"
+   ]
+  },
+  "人物传记": {
+   "styles": [
+    "archive",
+    "space",
+    "ink",
+    "songink"
+   ],
+   "chrome": "date",
+   "components": [
+    "timeline",
+    "photoCircle",
+    "quoteCard",
+    "lowerThird",
+    "dateStamp"
+   ]
+  },
+  "AI与科技": {
+   "styles": [
+    "keynote",
+    "lab",
+    "space"
+   ],
+   "chrome": "label",
+   "components": [
+    "clip",
+    "callout",
+    "highlight",
+    "compare2",
+    "bigNumber",
+    "specTable",
+    "flowSteps"
+   ]
+  },
+  "小说与文学": {
+   "styles": [
+    "ink",
+    "songink",
+    "lacquer"
+   ],
+   "chrome": "label",
+   "components": [
+    "quoteCard",
+    "chapterCard",
+    "timeline",
+    "compare2"
+   ]
+  },
+  "工业零部件": {
+   "styles": [
+    "blueprint"
+   ],
+   "chrome": "question",
+   "components": [
+    "callout",
+    "specTable",
+    "compare2",
+    "bigNumber",
+    "flowSteps",
+    "clip"
+   ]
+  },
+  "企业介绍": {
+   "styles": [
+    "swiss",
+    "keynote"
+   ],
+   "chrome": "label",
+   "components": [
+    "bigNumber",
+    "timeline",
+    "clip",
+    "lowerThird",
+    "specTable",
+    "quoteCard",
+    "barChart"
+   ]
+  },
+  "生产流程": {
+   "styles": [
+    "blueprint",
+    "swiss"
+   ],
+   "chrome": "step",
+   "components": [
+    "flowSteps",
+    "clip",
+    "callout",
+    "bigNumber",
+    "compare2",
+    "specTable"
+   ]
+  },
+  "数据解读": {
+   "styles": [
+    "chart"
+   ],
+   "chrome": "label",
+   "components": [
+    "bigNumber",
+    "barChart",
+    "lineChart",
+    "sourceTag",
+    "compare2"
+   ]
+  },
+  "新闻解读": {
+   "styles": [
+    "archive"
+   ],
+   "chrome": "date",
+   "components": [
+    "dateStamp",
+    "timeline",
+    "quoteCard",
+    "highlight",
+    "sourceTag",
+    "lowerThird",
+    "stamp"
+   ]
+  },
+  "人物行迹": {
+   "styles": [
+    "songink"
+   ],
+   "packs": [
+    "ink",
+    "figures",
+    "map"
+   ],
+   "chrome": "none",
+   "components": [
+    "map.draw",
+    "layer",
+    "chapter",
+    "vtext",
+    "sealStamp",
+    "scholar",
+    "mountain"
+   ],
+   "narration": "可无旁白（字在画上，配乐带着走），也可有旁白"
+  },
+  "行旅日记": {
+   "styles": [
+    "litho"
+   ],
+   "packs": [
+    "ink",
+    "figures",
+    "map",
+    "litho"
+   ],
+   "chrome": "none",
+   "components": [
+    "page",
+    "plate",
+    "counter",
+    "narr",
+    "poem",
+    "map.draw",
+    "official",
+    "drawCart"
+   ],
+   "narration": "可无旁白"
+  },
+  "双线叙事": {
+   "styles": [
+    "lacquer"
+   ],
+   "packs": [
+    "ink",
+    "lacquer"
+   ],
+   "chrome": "none",
+   "components": [
+    "screen",
+    "side",
+    "from",
+    "vis",
+    "wom",
+    "emp",
+    "tag",
+    "veil"
+   ],
+   "narration": "必须有旁白（一切动作按句子定时）"
+  }
+ },
+ "themes": [
+  "space",
+  "sky",
+  "lab",
+  "blueprint",
+  "archive",
+  "keynote",
+  "swiss",
+  "ink",
+  "chart",
+  "songink",
+  "litho",
+  "lacquer"
+ ],
+ "packs": [
+  "ink",
+  "figures",
+  "map",
+  "litho",
+  "lacquer"
+ ],
+ "films": [
+  {
+   "title": "东坡",
+   "date": "旧片",
+   "genre": "人物行迹",
+   "style": "songink",
+   "packs": [
+    "ink",
+    "figures",
+    "map"
+   ]
+  },
+  {
+   "title": "河海昆仑录",
+   "date": "旧片",
+   "genre": "行旅日记",
+   "style": "litho",
+   "packs": [
+    "ink",
+    "figures",
+    "map",
+    "litho"
+   ]
+  },
+  {
+   "title": "王钟儿",
+   "date": "旧片",
+   "genre": "双线叙事",
+   "style": "lacquer",
+   "packs": [
+    "ink",
+    "lacquer"
+   ]
+  },
+  {
+   "title": "天为什么是蓝的",
+   "date": "2026-10-08",
+   "genre": "科普原理",
+   "style": "sky",
+   "packs": []
+  },
+  {
+   "title": "轴承为什么省力",
+   "date": "2026-10-08",
+   "genre": "工业零部件",
+   "style": "blueprint",
+   "packs": []
+  }
+ ],
+ "items": [
+  {
+   "id": "genre.科普原理",
+   "kind": "genre",
+   "name": "科普原理",
+   "status": "candidate",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的"
+   ]
+  },
+  {
+   "id": "genre.历史事件",
+   "kind": "genre",
+   "name": "历史事件",
+   "status": "candidate",
+   "from": "参考其他 skill 的题材模板整理",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "genre.人物传记",
+   "kind": "genre",
+   "name": "人物传记",
+   "status": "candidate",
+   "from": "参考其他 skill 的题材模板整理",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "genre.AI与科技",
+   "kind": "genre",
+   "name": "AI与科技",
+   "status": "candidate",
+   "from": "参考其他 skill 的题材模板整理",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "genre.小说与文学",
+   "kind": "genre",
+   "name": "小说与文学",
+   "status": "candidate",
+   "from": "参考其他 skill 的题材模板整理",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "genre.工业零部件",
+   "kind": "genre",
+   "name": "工业零部件",
+   "status": "candidate",
+   "from": "轴承为什么省力",
+   "since": "2026-10-08",
+   "used_in": [
+    "轴承为什么省力"
+   ]
+  },
+  {
+   "id": "genre.企业介绍",
+   "kind": "genre",
+   "name": "企业介绍",
+   "status": "candidate",
+   "from": "参考其他 skill 的题材模板整理",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "genre.生产流程",
+   "kind": "genre",
+   "name": "生产流程",
+   "status": "candidate",
+   "from": "参考其他 skill 的题材模板整理",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "genre.数据解读",
+   "kind": "genre",
+   "name": "数据解读",
+   "status": "candidate",
+   "from": "参考其他 skill 的题材模板整理",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "genre.新闻解读",
+   "kind": "genre",
+   "name": "新闻解读",
+   "status": "candidate",
+   "from": "参考其他 skill 的题材模板整理",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "genre.人物行迹",
+   "kind": "genre",
+   "name": "人物行迹",
+   "status": "candidate",
+   "from": "东坡",
+   "since": "2026-10-08",
+   "used_in": [
+    "东坡"
+   ]
+  },
+  {
+   "id": "genre.行旅日记",
+   "kind": "genre",
+   "name": "行旅日记",
+   "status": "candidate",
+   "from": "河海昆仑录",
+   "since": "2026-10-08",
+   "used_in": [
+    "河海昆仑录"
+   ]
+  },
+  {
+   "id": "genre.双线叙事",
+   "kind": "genre",
+   "name": "双线叙事",
+   "status": "candidate",
+   "from": "王钟儿",
+   "since": "2026-10-08",
+   "used_in": [
+    "王钟儿"
+   ]
+  },
+  {
+   "id": "style.space",
+   "kind": "style",
+   "name": "科普·宇宙",
+   "status": "candidate",
+   "from": "风格预设整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "components_space"
+  },
+  {
+   "id": "style.sky",
+   "kind": "style",
+   "name": "科普·天空",
+   "status": "candidate",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的"
+   ],
+   "demo": "components_sky"
+  },
+  {
+   "id": "style.lab",
+   "kind": "style",
+   "name": "科普·实验室",
+   "status": "candidate",
+   "from": "风格预设整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "components_lab"
+  },
+  {
+   "id": "style.blueprint",
+   "kind": "style",
+   "name": "工业·蓝图",
+   "status": "candidate",
+   "from": "轴承为什么省力",
+   "since": "2026-10-08",
+   "used_in": [
+    "轴承为什么省力"
+   ],
+   "demo": "components_blueprint"
+  },
+  {
+   "id": "style.archive",
+   "kind": "style",
+   "name": "历史·档案桌",
+   "status": "candidate",
+   "from": "风格预设整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "components_archive"
+  },
+  {
+   "id": "style.keynote",
+   "kind": "style",
+   "name": "科技·发布会",
+   "status": "candidate",
+   "from": "风格预设整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "components_keynote"
+  },
+  {
+   "id": "style.swiss",
+   "kind": "style",
+   "name": "企业·瑞士网格",
+   "status": "candidate",
+   "from": "风格预设整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "components_swiss"
+  },
+  {
+   "id": "style.ink",
+   "kind": "style",
+   "name": "文学·淡墨",
+   "status": "candidate",
+   "from": "风格预设整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "components_ink"
+  },
+  {
+   "id": "style.chart",
+   "kind": "style",
+   "name": "数据·图表",
+   "status": "candidate",
+   "from": "风格预设整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "demo": "components_chart"
+  },
+  {
+   "id": "style.songink",
+   "kind": "style",
+   "name": "宋式水墨",
+   "status": "candidate",
+   "pack": "ink",
+   "from": "东坡",
+   "since": "2026-10-08",
+   "used_in": [
+    "东坡"
+   ],
+   "demo": "ink",
+   "note": "引擎三条旧片共用，但作为整片风格只有《东坡》一条"
+  },
+  {
+   "id": "style.litho",
+   "kind": "style",
+   "name": "石印画报",
+   "status": "candidate",
+   "pack": "litho",
+   "from": "河海昆仑录",
+   "since": "2026-10-08",
+   "used_in": [
+    "河海昆仑录"
+   ],
+   "demo": "litho"
+  },
+  {
+   "id": "style.lacquer",
+   "kind": "style",
+   "name": "漆屏风",
+   "status": "candidate",
+   "pack": "lacquer",
+   "from": "王钟儿",
+   "since": "2026-10-08",
+   "used_in": [
+    "王钟儿"
+   ],
+   "demo": "lacquer"
+  },
+  {
+   "id": "pack.ink",
+   "kind": "pack",
+   "name": "水墨引擎（纸、山、雾、竖排字、印、点景）",
+   "status": "stable",
+   "from": "东坡",
+   "since": "2026-10-08",
+   "used_in": [
+    "东坡",
+    "河海昆仑录",
+    "王钟儿"
+   ],
+   "demo": "ink"
+  },
+  {
+   "id": "pack.figures",
+   "kind": "pack",
+   "name": "固定人物（宋人文士、清末官员）",
+   "status": "candidate",
+   "from": "东坡",
+   "since": "2026-10-08",
+   "used_in": [
+    "东坡",
+    "河海昆仑录"
+   ],
+   "demo": "ink",
+   "note": "两个人物各只在一条片里用过"
+  },
+  {
+   "id": "pack.map",
+   "kind": "pack",
+   "name": "行迹地图",
+   "status": "stable",
+   "from": "东坡",
+   "since": "2026-10-08",
+   "used_in": [
+    "东坡",
+    "河海昆仑录"
+   ],
+   "demo": "map"
+  },
+  {
+   "id": "pack.litho",
+   "kind": "pack",
+   "name": "石印画报（刻版、题签、版框、行程计数）",
+   "status": "candidate",
+   "from": "河海昆仑录",
+   "since": "2026-10-08",
+   "used_in": [
+    "河海昆仑录"
+   ],
+   "demo": "litho"
+  },
+  {
+   "id": "pack.lacquer",
+   "kind": "pack",
+   "name": "漆屏风（人物、道具、两栏、翻扇）",
+   "status": "candidate",
+   "from": "王钟儿",
+   "since": "2026-10-08",
+   "used_in": [
+    "王钟儿"
+   ],
+   "demo": "lacquer"
+  },
+  {
+   "id": "comp.lowerThird",
+   "kind": "component",
+   "name": "lowerThird",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "lowerThird"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.dateStamp",
+   "kind": "component",
+   "name": "dateStamp",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "dateStamp"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.sourceTag",
+   "kind": "component",
+   "name": "sourceTag",
+   "status": "candidate",
+   "from": "轴承为什么省力",
+   "since": "2026-10-08",
+   "used_in": [
+    "轴承为什么省力"
+   ],
+   "symbols": [
+    "sourceTag"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.stamp",
+   "kind": "component",
+   "name": "stamp",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "stamp"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.highlight",
+   "kind": "component",
+   "name": "highlight",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "highlight"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.timeline",
+   "kind": "component",
+   "name": "timeline",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "timeline"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.flowSteps",
+   "kind": "component",
+   "name": "flowSteps",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "flowSteps"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.bigNumber",
+   "kind": "component",
+   "name": "bigNumber",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "bigNumber"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.barChart",
+   "kind": "component",
+   "name": "barChart",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "barChart"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.lineChart",
+   "kind": "component",
+   "name": "lineChart",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "lineChart"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.specTable",
+   "kind": "component",
+   "name": "specTable",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "specTable"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.compare2",
+   "kind": "component",
+   "name": "compare2",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "compare2"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.callout",
+   "kind": "component",
+   "name": "callout",
+   "status": "candidate",
+   "from": "轴承为什么省力",
+   "since": "2026-10-08",
+   "used_in": [
+    "轴承为什么省力"
+   ],
+   "symbols": [
+    "callout"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.quoteCard",
+   "kind": "component",
+   "name": "quoteCard",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "quoteCard"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.chapterCard",
+   "kind": "component",
+   "name": "chapterCard",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "chapterCard"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.clip",
+   "kind": "component",
+   "name": "clip",
+   "status": "candidate",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的"
+   ],
+   "symbols": [
+    "clip"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.threeCards",
+   "kind": "component",
+   "name": "threeCards",
+   "status": "candidate",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的"
+   ],
+   "symbols": [
+    "threeCards"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.photo",
+   "kind": "component",
+   "name": "photo",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "photo"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.photoCircle",
+   "kind": "component",
+   "name": "photoCircle",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "photoCircle"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.credits",
+   "kind": "component",
+   "name": "credits",
+   "status": "stable",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的",
+    "轴承为什么省力"
+   ],
+   "symbols": [
+    "credits"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.creditLines",
+   "kind": "component",
+   "name": "creditLines",
+   "status": "candidate",
+   "from": "参考其他 skill 的常用版式整理",
+   "since": "2026-10-08",
+   "used_in": [],
+   "symbols": [
+    "creditLines"
+   ],
+   "demo": "components_archive"
+  },
+  {
+   "id": "comp.layer",
+   "kind": "component",
+   "name": "分场叠绢",
+   "status": "stable",
+   "pack": "ink",
+   "from": "东坡",
+   "since": "2026-10-08",
+   "used_in": [
+    "东坡",
+    "河海昆仑录",
+    "王钟儿"
+   ],
+   "symbols": [
+    "layer"
+   ],
+   "demo": "ink"
+  },
+  {
+   "id": "comp.vtext",
+   "kind": "component",
+   "name": "竖排逐字显影",
+   "status": "stable",
+   "pack": "ink",
+   "from": "东坡",
+   "since": "2026-10-08",
+   "used_in": [
+    "东坡",
+    "河海昆仑录",
+    "王钟儿"
+   ],
+   "symbols": [
+    "vtext"
+   ],
+   "demo": "ink"
+  },
+  {
+   "id": "comp.seal",
+   "kind": "component",
+   "name": "印章",
+   "status": "stable",
+   "pack": "ink",
+   "from": "东坡",
+   "since": "2026-10-08",
+   "used_in": [
+    "东坡",
+    "河海昆仑录",
+    "王钟儿"
+   ],
+   "symbols": [
+    "makeSeal",
+    "sealStamp"
+   ],
+   "demo": "ink"
+  },
+  {
+   "id": "comp.mountain",
+   "kind": "component",
+   "name": "水墨山",
+   "status": "stable",
+   "pack": "ink",
+   "from": "东坡",
+   "since": "2026-10-08",
+   "used_in": [
+    "东坡",
+    "河海昆仑录",
+    "王钟儿"
+   ],
+   "symbols": [
+    "mountain",
+    "revealDraw",
+    "mist"
+   ],
+   "demo": "ink"
+  },
+  {
+   "id": "comp.chapter",
+   "kind": "component",
+   "name": "章题",
+   "status": "stable",
+   "pack": "ink",
+   "from": "东坡",
+   "since": "2026-10-08",
+   "used_in": [
+    "东坡",
+    "河海昆仑录"
+   ],
+   "symbols": [
+    "chapter",
+    "dateHead"
+   ],
+   "demo": "ink"
+  },
+  {
+   "id": "comp.scholar",
+   "kind": "component",
+   "name": "宋人文士",
+   "status": "candidate",
+   "pack": "figures",
+   "from": "东坡",
+   "since": "2026-10-08",
+   "used_in": [
+    "东坡"
+   ],
+   "symbols": [
+    "scholar",
+    "suDraw"
+   ],
+   "demo": "ink"
+  },
+  {
+   "id": "comp.official",
+   "kind": "component",
+   "name": "清末官员",
+   "status": "candidate",
+   "pack": "figures",
+   "from": "河海昆仑录",
+   "since": "2026-10-08",
+   "used_in": [
+    "河海昆仑录"
+   ],
+   "symbols": [
+    "official",
+    "peiDraw"
+   ],
+   "demo": "litho"
+  },
+  {
+   "id": "comp.routemap",
+   "kind": "component",
+   "name": "行迹地图",
+   "status": "stable",
+   "pack": "map",
+   "from": "东坡",
+   "since": "2026-10-08",
+   "used_in": [
+    "东坡",
+    "河海昆仑录"
+   ],
+   "symbols": [
+    "makeMap"
+   ],
+   "demo": "map"
+  },
+  {
+   "id": "comp.page",
+   "kind": "component",
+   "name": "刻版翻页",
+   "status": "candidate",
+   "pack": "litho",
+   "from": "河海昆仑录",
+   "since": "2026-10-08",
+   "used_in": [
+    "河海昆仑录"
+   ],
+   "symbols": [
+    "page"
+   ],
+   "demo": "litho"
+  },
+  {
+   "id": "comp.plate",
+   "kind": "component",
+   "name": "版框题签栏",
+   "status": "candidate",
+   "pack": "litho",
+   "from": "河海昆仑录",
+   "since": "2026-10-08",
+   "used_in": [
+    "河海昆仑录"
+   ],
+   "symbols": [
+    "plate"
+   ],
+   "demo": "litho"
+  },
+  {
+   "id": "comp.counter",
+   "kind": "component",
+   "name": "日数里数计数",
+   "status": "candidate",
+   "pack": "litho",
+   "from": "河海昆仑录",
+   "since": "2026-10-08",
+   "used_in": [
+    "河海昆仑录"
+   ],
+   "symbols": [
+    "counter"
+   ],
+   "demo": "litho"
+  },
+  {
+   "id": "comp.slip",
+   "kind": "component",
+   "name": "题签纸条",
+   "status": "candidate",
+   "pack": "litho",
+   "from": "河海昆仑录",
+   "since": "2026-10-08",
+   "used_in": [
+    "河海昆仑录"
+   ],
+   "symbols": [
+    "say",
+    "narr",
+    "poem"
+   ],
+   "demo": "litho"
+  },
+  {
+   "id": "comp.screen",
+   "kind": "component",
+   "name": "双栏屏风与翻扇",
+   "status": "candidate",
+   "pack": "lacquer",
+   "from": "王钟儿",
+   "since": "2026-10-08",
+   "used_in": [
+    "王钟儿"
+   ],
+   "symbols": [
+    "screen"
+   ],
+   "demo": "lacquer"
+  },
+  {
+   "id": "comp.beats",
+   "kind": "component",
+   "name": "按句定时",
+   "status": "candidate",
+   "pack": "lacquer",
+   "from": "王钟儿",
+   "since": "2026-10-08",
+   "used_in": [
+    "王钟儿"
+   ],
+   "symbols": [
+    "from",
+    "upto",
+    "vis",
+    "pr"
+   ],
+   "demo": "lacquer"
+  },
+  {
+   "id": "comp.lqfigures",
+   "kind": "component",
+   "name": "漆画人物",
+   "status": "candidate",
+   "pack": "lacquer",
+   "from": "王钟儿",
+   "since": "2026-10-08",
+   "used_in": [
+    "王钟儿"
+   ],
+   "symbols": [
+    "wom",
+    "emp",
+    "kid"
+   ],
+   "demo": "lacquer"
+  },
+  {
+   "id": "comp.lqtag",
+   "kind": "component",
+   "name": "漆画标签",
+   "status": "candidate",
+   "pack": "lacquer",
+   "from": "王钟儿",
+   "since": "2026-10-08",
+   "used_in": [
+    "王钟儿"
+   ],
+   "symbols": [
+    "tag"
+   ],
+   "demo": "lacquer"
+  },
+  {
+   "id": "check.facts",
+   "kind": "check",
+   "name": "断言台账",
+   "status": "stable",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的",
+    "轴承为什么省力"
+   ]
+  },
+  {
+   "id": "check.assets",
+   "kind": "check",
+   "name": "素材授权",
+   "status": "stable",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的",
+    "轴承为什么省力"
+   ]
+  },
+  {
+   "id": "check.asr",
+   "kind": "check",
+   "name": "配音回听",
+   "status": "stable",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的",
+    "轴承为什么省力"
+   ]
+  },
+  {
+   "id": "check.read",
+   "kind": "check",
+   "name": "阅读时长",
+   "status": "stable",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的",
+    "轴承为什么省力"
+   ]
+  },
+  {
+   "id": "check.frame",
+   "kind": "check",
+   "name": "文字出画",
+   "status": "stable",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的",
+    "轴承为什么省力"
+   ]
+  },
+  {
+   "id": "check.subzone",
+   "kind": "check",
+   "name": "字幕带",
+   "status": "stable",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的",
+    "轴承为什么省力"
+   ]
+  },
+  {
+   "id": "check.overlap",
+   "kind": "check",
+   "name": "文字重叠",
+   "status": "stable",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的",
+    "轴承为什么省力"
+   ]
+  },
+  {
+   "id": "check.small",
+   "kind": "check",
+   "name": "小字",
+   "status": "stable",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的",
+    "轴承为什么省力"
+   ]
+  },
+  {
+   "id": "check.dead",
+   "kind": "check",
+   "name": "画面空档",
+   "status": "stable",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的",
+    "轴承为什么省力"
+   ]
+  },
+  {
+   "id": "check.hook",
+   "kind": "check",
+   "name": "开场",
+   "status": "stable",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的",
+    "轴承为什么省力"
+   ]
+  },
+  {
+   "id": "check.glyph",
+   "kind": "check",
+   "name": "字体缺字",
+   "status": "candidate",
+   "from": "收编旧片",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "flow.silent",
+   "kind": "flow",
+   "name": "无旁白段落（silent + dur）",
+   "status": "candidate",
+   "from": "东坡",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "flow.guqin",
+   "kind": "flow",
+   "name": "五声拨弦配乐，分章换调",
+   "status": "candidate",
+   "from": "收编旧片",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "flow.review",
+   "kind": "flow",
+   "name": "独立审稿审片",
+   "status": "stable",
+   "from": "天为什么是蓝的",
+   "since": "2026-10-08",
+   "used_in": [
+    "天为什么是蓝的",
+    "轴承为什么省力"
+   ]
+  },
+  {
+   "id": "inbox-001",
+   "kind": "component",
+   "name": "交叉淡化和 J/L 剪接（声音先进、画面后到）",
+   "status": "inbox",
+   "from": "上一轮分析留下的未做项",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "inbox-002",
+   "kind": "flow",
+   "name": "按逐字稿选素材入出点（先转写，再按句子挑片段）",
+   "status": "inbox",
+   "from": "上一轮分析留下的未做项",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "inbox-003",
+   "kind": "component",
+   "name": "风格包的竖版短片版式（现在竖版只有通用版式）",
+   "status": "inbox",
+   "from": "收编旧片时发现",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "inbox-004",
+   "kind": "component",
+   "name": "地图换成可授权的底图瓦片或更细的海岸线",
+   "status": "inbox",
+   "from": "收编旧片时发现",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "inbox-005",
+   "kind": "style",
+   "name": "全字库毛笔体和草书（现在只有旧片用过的一千多字）",
+   "status": "inbox",
+   "from": "收编旧片时发现",
+   "since": "2026-10-08",
+   "used_in": []
+  },
+  {
+   "id": "inbox-006",
+   "kind": "component",
+   "name": "漆屏风的墓志/碑刻组件放开文字参数",
+   "status": "inbox",
+   "from": "王钟儿",
+   "since": "2026-10-08",
+   "used_in": []
+  }
+ ]
+}

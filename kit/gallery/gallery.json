@@ -1,0 +1,69 @@
+{
+ "说明": "回归样张：每个条目是一个小项目，渲染 shots 里的时刻，和 baseline/ 里的图逐张比。改了 kit 或风格包之后必须跑：python3 kit/workshop.py gallery",
+ "entries": [
+  {
+   "name": "components",
+   "themes": [
+    "space",
+    "sky",
+    "lab",
+    "blueprint",
+    "archive",
+    "keynote",
+    "swiss",
+    "ink",
+    "chart",
+    "songink"
+   ],
+   "chrome": "date",
+   "shots": [
+    8,
+    16.6,
+    25.2,
+    32,
+    38
+   ]
+  },
+  {
+   "name": "ink",
+   "shots": [
+    9,
+    12.5,
+    17,
+    28
+   ]
+  },
+  {
+   "name": "map",
+   "shots": [
+    6.5,
+    13,
+    16,
+    24,
+    26.5,
+    33
+   ]
+  },
+  {
+   "name": "litho",
+   "shots": [
+    5,
+    11,
+    14.3,
+    19,
+    27,
+    33
+   ]
+  },
+  {
+   "name": "lacquer",
+   "shots": [
+    4,
+    9,
+    10.7,
+    15,
+    21
+   ]
+  }
+ ]
+}

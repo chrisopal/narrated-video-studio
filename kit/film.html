@@ -1,0 +1,18 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:H5;src:url(/kit/fonts/NotoSansSC-500.woff)}
+@font-face{font-family:H7;src:url(/kit/fonts/NotoSansSC-700.woff)}
+@font-face{font-family:H9;src:url(/kit/fonts/NotoSansSC-900.woff)}
+@font-face{font-family:KT;src:url(/kit/fonts/LXGWWenKai-500.woff)}
+@font-face{font-family:RC;src:url(/kit/fonts/RobotoCondensed-var.woff);font-weight:100 900}
+/* 宋体用本机的思源宋体；没有就回落到系统宋体 */
+@font-face{font-family:Song;src:local("Noto Serif CJK SC"),local("NotoSerifCJKsc-Regular"),local("Noto Serif SC"),local("Songti SC"),local("STSong")}
+@font-face{font-family:SongB;src:local("Noto Serif CJK SC SemiBold"),local("NotoSerifCJKsc-SemiBold"),local("Noto Serif CJK SC Bold"),local("Noto Serif SC Bold"),local("Songti SC Bold"),local("STSong")}
+html,body{margin:0;background:#000}canvas{display:block}
+</style>
+<link rel="stylesheet" href="/kit/fonts/legacy/legacy.css">
+</head><body><canvas id="c" width="1920" height="1080"></canvas>
+<script src="/kit/kit.js"></script><script src="/kit/components.js"></script>
+<script>/* 风格包：brief.json 里写 "packs":["ink","figures","map"]，构建脚本通过 ?packs= 传进来 */
+(new URLSearchParams(location.search).get('packs')||'').split(',').filter(Boolean).forEach(p=>document.write('<script src="/kit/packs/'+p+'.js"><\/script>'));</script>
+<script src="/project/scenes.js"></script></body></html>
