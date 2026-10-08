@@ -37,8 +37,10 @@ BRIEF = jload('brief.json', {}) or {}
 READ_CPS = BRIEF.get('read_cps', 4.5); READ_PAD = BRIEF.get('read_pad', 1.5)   # 阅读速度：给孩子看用 4.5 字/秒；成年观众可以调到 6
 SUPERLATIVE = re.compile(r'最[大小高低强快早好先多新]|第一|唯一|领先|顶级|顶尖|首[个家创]|独家|全球[首最]|国内[首最]|100%|百分之百|绝对|完美')
 # 允许进成片的素材依据。授权不明的素材只能进参考片单（study），不能进 assets.json
-BASIS = {'own': '自有素材', 'licensed': '已获授权', 'public-domain': '公有领域', 'cc0': 'CC0', 'cc-by': 'CC BY', 'cc-by-sa': 'CC BY-SA', 'stock-free': '免费图库许可'}
-NEED_CREDIT = {'cc-by', 'cc-by-sa', 'licensed'}
+BASIS = {'own': '自有素材', 'licensed': '已获授权', 'public-domain': '公有领域', 'cc0': 'CC0', 'cc-by': 'CC BY', 'cc-by-sa': 'CC BY-SA', 'stock-free': '免费图库许可', 'excerpt': '引用片段（注明来源）'}
+NEED_CREDIT = {'cc-by', 'cc-by-sa', 'licensed', 'excerpt'}
+# excerpt：网上下载的企业宣传片、发布会、报道里的片段，为介绍和评论而引用。只用短片段、画面上标来源；注明来源不等于获得授权，用户自己决定承担这个风险
+EXCERPT_MAX = BRIEF.get('excerpt_max', 15); EXCERPT_SHARE = BRIEF.get('excerpt_share', .3)
 TIERS = ('政府名单', '公司披露', '公司自述', '第三方报告', '媒体')
 CJK = re.compile(r'[一-鿿]'); NUMISH = re.compile(r'\d|[一二两三四五六七八九十百千万亿]+(年|倍|万|亿|公里|千米|米|度|吨|岁|天|小时|分钟|秒|种|颗|层)')
 
@@ -453,7 +455,7 @@ def cmd_pick(arg, top=8):
 
 def assets_check(used):
     """素材授权：每条素材要有依据、来源、作者；需要署名的要有 credit；用到的视频要已切片；画面里用了台账外的图片也算不通过。"""
-    A = assets(); fails = []; warns = []; ids = set()
+    A = assets(); fails = []; warns = []; ids = set(); ex_total = [0.0]
     for a in A:
         tag = f"素材 {a.get('id', '?')}"; ids.add(a.get('id'))
         if a.get('type') not in ('video', 'image'): fails.append(tag + ' 的 type 要填 video 或 image')
@@ -466,10 +468,18 @@ def assets_check(used):
         if a.get('usage_basis') == 'licensed' and a.get('proof_file') and not (P / a['proof_file']).is_file(): fails.append(tag + ' 的授权凭证文件不存在：' + a['proof_file'])
         if a.get('usage_basis') == 'licensed' and not a.get('proof_file'): warns.append(tag + ' 是授权素材：把书面授权（邮件、授权书扫描件）放进项目，proof_file 写它的路径')
         if a.get('usage_basis') == 'cc-by-sa': warns.append(tag + ' 是 CC BY-SA：成片里用到它的部分要以相同方式共享')
+        if a.get('usage_basis') == 'excerpt':
+            if not str(a.get('source', '')).startswith('http'): fails.append(tag + ' 是引用片段：source 要写下载它的网页地址')
+            if not a.get('owner') and not a.get('creator'): fails.append(tag + ' 是引用片段：owner 写版权方（哪家公司、哪个媒体）')
+            if 'clip' in a:
+                d = a['clip'].get('dur', 0); ex_total[0] += d
+                if d > EXCERPT_MAX: fails.append(tag + f' 是引用片段，切了 {d:.1f} 秒，超过 {EXCERPT_MAX} 秒：只取最能说明问题的一段（brief 的 excerpt_max 可调）')
         if a.get('type') == 'video' and 'clip' not in a: fails.append(tag + ' 还没切片：python3 ../kit/build.py clips')
         if a.get('type') == 'video' and a['id'] not in used: warns.append(tag + ' 在台账里但成片没用到')
     for u in used:
         if u not in ids: fails.append(f'画面用了台账里没有的片段 {u}')
+    tl = jload('timeline.json', []) or []; total = max([x.get('t1', 0) + x.get('hold', 0) for x in tl] + [0])
+    if ex_total[0] and total and ex_total[0] > EXCERPT_SHARE * total: warns.append(f'引用片段合计 {ex_total[0]:.0f} 秒，超过全片的 {EXCERPT_SHARE:.0%}：引用要为讲解服务，不能变成搬运')
     return fails, warns
 def credits_file(name):
     A = assets()

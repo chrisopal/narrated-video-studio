@@ -1966,10 +1966,12 @@
    "id": "inbox-013",
    "kind": "component",
    "name": "timeline() 朝下的条目：年份字压到上面一条的标签（y+126 对 y+186），要错开",
-   "status": "inbox",
+   "status": "retired",
    "from": "讲解员风格包样片",
    "since": "2026-10-08",
-   "used_in": []
+   "used_in": [],
+   "changed": "2026-10-08",
+   "note": "已修复：朝下条目的年份移到说明字下方（y+212），讲解员样片去掉了绕开它的写法"
   },
   {
    "id": "inbox-014",
@@ -1979,6 +1981,17 @@
    "from": "制造业隐形冠军题材",
    "since": "2026-10-08",
    "used_in": []
+  },
+  {
+   "id": "check.excerpt",
+   "kind": "check",
+   "name": "引用片段：有下载网址和版权方、每段≤15秒、合计≤30%",
+   "status": "candidate",
+   "from": "用户要求",
+   "since": "2026-10-08",
+   "used_in": [
+    "用户要求"
+   ]
   }
  ]
 }

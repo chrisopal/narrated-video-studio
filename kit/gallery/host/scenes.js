@@ -24,8 +24,6 @@ function barGeo(data, i, x, y, w, h) {
 }
 const BARS = [{ label: '起步', value: 5 }, { label: '第3年', value: 16 }, { label: '第6年', value: 38 }, { label: '第10年', value: 90, hi: true }];
 const TLY = 500;
-// kit 的 timeline 把朝下那几项的说明字和年份叠在一起（大号年份压住说明），所以朝下的说明字在这里自己写到年份下面
-function tlNote(t, at, s, x, on) { txt(s, x, TLY + 248, on ? 40 : 34, TH.ink, TH.f.b, 'center', eo(seg(t, at, at + .4))); }
 
 window.FILM = { theme: 'host', chrome: 'none', chapters: ['开场', '产量', '历程', '结论'],
   cover: { pill: '样片', title: '讲解员串场', line1: '一家做小零件的厂', line2: '是怎么长大的', tagline: '风格包样片 · 虚构案例，数字均为示意',
@@ -69,8 +67,7 @@ window.FILM = { theme: 'host', chrome: 'none', chapters: ['开场', '产量', '�
         const at = [B + .5, B + 1.7, B + 2.9, B + 4.1], x0 = P2.x + 60, x1 = P2.x + P2.w - 60, X = i => lerp(x0 + 60, x1 - 60, i / 3);
         const items = [['起步', '一间小作坊'], ['第3年', '添了自动机床'], ['第6年', '只做一种零件'], ['第10年', '卖到很多地方']];
         const cur = at.filter(a => a <= t).length - 1;
-        timeline(t, B + .2, items.map(([tag, label], i) => ({ tag, label: i % 2 ? '' : label, at: at[i] })), { y: TLY, x0, x1 });
-        items.forEach(([, label], i) => { if (i % 2 && t >= at[i]) tlNote(t, at[i], label, X(i), i === cur); });
+        timeline(t, B + .2, items.map(([tag, label], i) => ({ tag, label, at: at[i] })), { y: TLY, x0, x1 });
         const pose = [[B, 'present']].concat(at.map((a, i) => [a, 'point', { at: [X(i), TLY] }]), [[B + 5.6, 'count', { n: 4 }], [B + 6.7, 'stand']]);
         const h = L.host({ pose, talk: [[B + .2, B + 7.0]] });
         at.forEach((a, i) => pointTo(t, a, h, [X(i), TLY], { t1: i < 3 ? at[i + 1] : B + 5.6, r: 34, line: false }));

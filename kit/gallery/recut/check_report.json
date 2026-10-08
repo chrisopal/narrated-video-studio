@@ -1,0 +1,59 @@
+{
+ "fails": 4,
+ "warns": 0,
+ "detail": {
+  "断言台账": {
+   "fails": [],
+   "warns": []
+  },
+  "配音回听": {
+   "fails": [],
+   "warns": []
+  },
+  "素材授权": {
+   "fails": [
+    "素材 tall 的文件不存在：footage/own_demo.mp4",
+    "素材 sunset 的文件不存在：footage/own_demo.mp4",
+    "素材 prism 的文件不存在：footage/own_demo.mp4",
+    "素材 talk 的文件不存在：footage/talk_test.mp4"
+   ],
+   "warns": []
+  },
+  "阅读时长": {
+   "fails": [],
+   "warns": []
+  },
+  "文字出画": {
+   "fails": [],
+   "warns": []
+  },
+  "字幕带": {
+   "fails": [],
+   "warns": []
+  },
+  "文字重叠": {
+   "fails": [],
+   "warns": []
+  },
+  "画面空档": {
+   "fails": [],
+   "warns": []
+  },
+  "开场": {
+   "fails": [],
+   "warns": []
+  },
+  "小字": {
+   "fails": [],
+   "warns": []
+  },
+  "必须出现的声明": {
+   "fails": [],
+   "warns": []
+  },
+  "字体缺字": {
+   "fails": [],
+   "warns": []
+  }
+ }
+}

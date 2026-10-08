@@ -1,0 +1,50 @@
+[
+ {
+  "id": "p0",
+  "ch": "三种铺法",
+  "vo": "",
+  "silent": true,
+  "dur": 9.0,
+  "t0": 0.9,
+  "lead": 0,
+  "voiced": 9.0,
+  "t1": 9.9,
+  "chunks": []
+ },
+ {
+  "id": "p1",
+  "ch": "推拉摇与转场",
+  "vo": "",
+  "silent": true,
+  "dur": 10.0,
+  "t0": 9.9,
+  "lead": 0,
+  "voiced": 10.0,
+  "t1": 19.9,
+  "chunks": []
+ },
+ {
+  "id": "p2",
+  "ch": "声音先进",
+  "vo": "",
+  "silent": true,
+  "dur": 7.5,
+  "t0": 19.9,
+  "lead": 0,
+  "voiced": 7.5,
+  "t1": 27.4,
+  "chunks": []
+ },
+ {
+  "id": "e0",
+  "ch": "署名",
+  "vo": "",
+  "silent": true,
+  "dur": 6.0,
+  "t0": 27.4,
+  "lead": 0,
+  "voiced": 6.0,
+  "t1": 33.4,
+  "chunks": []
+ }
+]

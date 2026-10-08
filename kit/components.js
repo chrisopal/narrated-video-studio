@@ -30,7 +30,7 @@ function highlight(t,t0,x,y,w,h=46,col){const k=eo(seg(t,t0,t0+.5));if(k<=0)retu
 function timeline(t,t0,items,o={}){const y=o.y||560,x0=o.x0||220,x1=o.x1||1700,k=eo(seg(t,t0,t0+.8));if(k<=0)return;g.save();g.strokeStyle=TH.dim;g.lineWidth=5;g.lineCap='round';g.beginPath();g.moveTo(x0,y);g.lineTo(lerp(x0,x1,k),y);g.stroke();
   const cur=items.filter(i=>i.at<=t).length-1;items.forEach((it,i)=>{const x=items.length>1?lerp(x0+60,x1-60,i/(items.length-1)):(x0+x1)/2,ki=seg(t,it.at,it.at+.4);if(ki<=0){g.fillStyle=TH.dim;g.globalAlpha=k*.5;g.beginPath();g.arc(x,y,8,0,7);g.fill();g.globalAlpha=1;return}
    sfx('pop',it.at);const on=i===cur,up=i%2===0,r=on?20:13;g.fillStyle=on?TH.a1:TH.ink;g.beginPath();g.arc(x,y,r*back(ki),0,7);g.fill();g.strokeStyle=on?TH.a1:TH.dim;g.lineWidth=3;g.beginPath();g.moveTo(x,y+(up?-r-8:r+8));g.lineTo(x,y+(up?-70:70));g.stroke();
-   numtxt(it.tag,x,y+(up?-150:150+36),on?72:56,on?TH.a1:TH.ink,'center',eo(ki));txt(it.label,x,y+(up?-92:92+34),on?40:34,TH.ink,TH.f.b,'center',eo(ki))});g.restore()}
+   numtxt(it.tag,x,y+(up?-150:212),on?72:56,on?TH.a1:TH.ink,'center',eo(ki));txt(it.label,x,y+(up?-92:92+34),on?40:34,TH.ink,TH.f.b,'center',eo(ki))});g.restore()}
 // 流程：steps=[{label,sub,at}]，一步一步点亮，当前步高亮
 function flowSteps(t,steps,x,y,w,o={}){const n=steps.length,gap=o.gap||56,bw=(w-gap*(n-1))/n,bh=o.h||170,cur=steps.filter(s=>s.at<=t).length-1;steps.forEach((s,i)=>{const bx=x+i*(bw+gap),k=seg(t,s.at,s.at+.45);g.save();
    if(k<=0){g.globalAlpha*=.35;g.strokeStyle=TH.dim;g.lineWidth=3;g.setLineDash([10,10]);rr(bx,y,bw,bh,18);g.stroke();g.restore();return}
