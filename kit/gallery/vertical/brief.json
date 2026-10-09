@@ -1,0 +1,3 @@
+{"title":"竖版样片·一封没寄出的信","genre":"测试","style":"kinetic","platform":"douyin","packs":["kinetic"],"sfx":true,"read_cps":6,"read_pad":1.0,
+ "direction":{"logline":"一封二十年没寄出的信，背面早有回信","structure":"悬念倒叙·一物一史","angle":"旁观者讲一个人的二十年","hook_type":"悬念物件","callback":"信","emotion":"好奇→压抑→意外→释然","motif":"信封","alternatives":["第一人称：他自己讲这封信","书信体：直接念信的三行字"]},
+ "voice":{"model":"google/gemini-3.8-flash-tts","voice":"Charon","style":"温和、平静，语速稍慢，像在讲一个朋友的故事","persona":"讲故事的人，不煽情"}}

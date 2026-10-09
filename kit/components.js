@@ -9,13 +9,13 @@ function wrap(s,maxW,sz,w){w=w||TH.f.b;const out=[];let cur='';for(const ch of S
   if(cur&&tw(cur+ch,sz,w)>maxW&&!'，。；：？！、）》”’…'.includes(ch)){out.push(cur);cur=ch}else cur+=ch}if(cur)out.push(cur);return out}
 function para(s,x,y,maxW,sz,col,w,lh=1.45,al='left',a=1){const L=wrap(s,maxW,sz,w);L.forEach((l,i)=>txt(l,x,y+i*sz*lh,sz,col,w||TH.f.b,al,a));return L.length*sz*lh}
 // 粗体数字（RobotoCondensed 800），同样登记给检查
-function numtxt(s,x,y,sz,col,al='left',a=1){if(a<=0)return 0;g.save();g.globalAlpha*=a;g.font=`800 ${sz}px ${TH.f.n}, H9`;g.fillStyle=col||TH.ink;g.textAlign=al;g.textBaseline='alphabetic';if(REC)recText(String(s),x,y,sz,al);g.fillText(s,x,y);const w=g.measureText(s).width;g.restore();return w}
-function numw(s,sz){g.save();g.font=`800 ${sz}px ${TH.f.n}, H9`;const w=g.measureText(s).width;g.restore();return w}
+function numtxt(s,x,y,sz,col,al='left',a=1){if(a<=0)return 0;sz=vsz(sz);g.save();g.globalAlpha*=a;g.font=`800 ${sz}px ${TH.f.n}, H9`;g.fillStyle=col||TH.ink;g.textAlign=al;g.textBaseline='alphabetic';if(REC)recText(String(s),x,y,sz,al);g.fillText(s,x,y);const w=g.measureText(s).width;g.restore();return w}
+function numw(s,sz){sz=vsz(sz);g.save();g.font=`800 ${sz}px ${TH.f.n}, H9`;const w=g.measureText(s).width;g.restore();return w}
 const fmt=(v,d=0)=>Number(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 
 /* ---------- 人名条、年代、来源 ---------- */
 // 人名条：谁在说话/这是哪里。t1 给了就在 t1 退场
-function lowerThird(t,t0,name,role,x=110,y=830,t1){const k=eo(seg(t,t0,t0+.45))*(t1?1-seg(t,t1-.3,t1):1);if(k<=0)return;sfx('whoosh',t0,.5);const hh=role?132:94,w=Math.max(tw(name,56,TH.f.t),role?tw(role,32,TH.f.b):0)+76;g.save();g.globalAlpha*=k;g.beginPath();g.rect(x,y-80,(w+12)*k,hh+20);g.clip();g.fillStyle=TH.card;rr(x,y-70,w,hh,8);g.fill();g.fillStyle=TH.a1;g.fillRect(x,y-70,10,hh);txt(name,x+36,y-6,56,TH.cardInk,TH.f.t);if(role)txt(role,x+36,y+40,32,TH.light?TH.dim:TH.a1,TH.f.b);g.restore()}
+function lowerThird(t,t0,name,role,x=VERT?SAFE.l+20:110,y=VERT?H-SAFE.b-300:830,t1){const k=eo(seg(t,t0,t0+.45))*(t1?1-seg(t,t1-.3,t1):1);if(k<=0)return;sfx('whoosh',t0,.5);const hh=role?132:94,w=Math.max(tw(name,56,TH.f.t),role?tw(role,32,TH.f.b):0)+76;g.save();g.globalAlpha*=k;g.beginPath();g.rect(x,y-80,(w+12)*k,hh+20);g.clip();g.fillStyle=TH.card;rr(x,y-70,w,hh,8);g.fill();g.fillStyle=TH.a1;g.fillRect(x,y-70,10,hh);txt(name,x+36,y-6,56,TH.cardInk,TH.f.t);if(role)txt(role,x+36,y+40,32,TH.light?TH.dim:TH.a1,TH.f.b);g.restore()}
 // 年代戳：大号年份 + 一行说明
 function dateStamp(t,t0,big,small,x=110,y=300,sz=170){const k=eo(seg(t,t0,t0+.5));if(k<=0)return;sfx('thud',t0,.6);g.save();g.globalAlpha*=k;numtxt(big,x,y+(1-k)*30,sz,TH.a1);if(small)txt(small,x+6,y+62,42,TH.ink,TH.f.t);g.restore()}
 // 来源角标：数字、截图、引文旁边写出处（放左下，字幕带上方）
@@ -31,7 +31,7 @@ function timeline(t,t0,items,o={}){const y=o.y||560,x0=o.x0||220,x1=o.x1||1700,k
   // 排版：同侧相邻两条相隔两个间距，标签按这个宽度缩字（不小于 32），还放不下就折成两行；年份和标签的位置按实际行数算，朝上朝下对称，互不压字
   const n=items.length,sp=n>1?(x1-x0-120)/(n-1):x1-x0,maxW=o.labelW||Math.max(160,(n>2?2*sp:sp*1.6)-48),stem=70,gl=22,gt=24;
   const cur=items.filter(i=>i.at<=t).length-1;items.forEach((it,i)=>{const x=n>1?lerp(x0+60,x1-60,i/(n-1)):(x0+x1)/2,ki=seg(t,it.at,it.at+.4);if(ki<=0){g.fillStyle=TH.dim;g.globalAlpha=k*.5;g.beginPath();g.arc(x,y,8,0,7);g.fill();g.globalAlpha=1;return}
-   sfx('pop',it.at);const on=i===cur,up=i%2===0,r=on?20:13,ts=on?72:56;let ls=on?40:34;while(ls>32&&tw(it.label,ls,TH.f.b)>maxW)ls-=2;const fw=tw(it.label,ls,TH.f.b),lines=fw>maxW?wrap(it.label,Math.min(maxW,fw/2+ls*1.5),ls).slice(0,2):[it.label],lh=ls*1.25,lw=Math.max(...lines.map(l=>tw(l,ls,TH.f.b))),lx=cl((x-60)/(W-120),.5*lw/(W-120),1-.5*lw/(W-120))*(W-120)+60;
+   sfx('pop',it.at);const on=i===cur,up=i%2===0,r=on?20:13,ts=on?72:56;let ls=on?40:34;while(ls>32&&tw(it.label,ls,TH.f.b)>maxW)ls-=2;const fw=tw(it.label,ls,TH.f.b),lines=fw>maxW?wrap(it.label,Math.min(maxW,fw/2+ls*1.5),ls).slice(0,2):[it.label],lh=ls*1.25,lw=Math.max(...lines.map(l=>tw(l,ls,TH.f.b))),L0=VERT?SAFE.l:60,LW=VERT?W-SAFE.l-SAFE.r:W-120,lx=cl((x-L0)/LW,.5*lw/LW,1-.5*lw/LW)*LW+L0;
    g.fillStyle=on?TH.a1:TH.ink;g.beginPath();g.arc(x,y,r*back(ki),0,7);g.fill();g.strokeStyle=on?TH.a1:TH.dim;g.lineWidth=3;g.beginPath();g.moveTo(x,y+(up?-r-8:r+8));g.lineTo(x,y+(up?-stem:stem));g.stroke();
    let b0,tagY;if(up){const last=y-stem-gl-ls*.16;b0=last-(lines.length-1)*lh;tagY=b0-ls*.86-gt}else{b0=y+stem+gl+ls*.86;const last=b0+(lines.length-1)*lh;tagY=last+ls*.16+gt+ts*.74}
    numtxt(it.tag,x,tagY,ts,on?TH.a1:TH.ink,'center',eo(ki));lines.forEach((l,j)=>txt(l,lx,b0+j*lh,ls,TH.ink,TH.f.b,'center',eo(ki)))});g.restore()}
@@ -67,7 +67,7 @@ function specTable(t,t0,rows,x,y,w,o={}){const rh=o.rowH||78,k=eo(seg(t,t0,t0+.4
 
 /* ---------- 对比、标注、引文、章节 ---------- */
 // 左右对比：L/R={title,lines:[…],col}；R 可以晚一点出（o.tR）
-function compare2(t,t0,L,R,o={}){const x=o.x||140,y=o.y||280,w=o.w||1640,h=o.h||560,gap=90,cw=(w-gap)/2;[[L,t0,x,TH.a3],[R,o.tR||t0+.5,x+cw+gap,TH.a1]].forEach(([c,tc,cx,dc],i)=>{pop(t,tc,q=>{g.translate(cx+cw/2,y+h/2);g.scale(q,q);const col=c.col||dc;card(-cw/2,-h/2,cw,h,col);g.fillStyle=col;rr(-cw/2,-h/2,cw,96,32);g.fill();g.fillRect(-cw/2,-h/2+50,cw,46);txt(c.title,0,-h/2+66,48,TH.light?'#fff':'#06101f','H9','center');
+function compare2(t,t0,L,R,o={}){const w=o.w||Math.min(1640,W-280),x=o.x||(W-w)/2,y=o.y||(VERT?SAFE.t+120:280),h=o.h||560,gap=90,cw=(w-gap)/2;[[L,t0,x,TH.a3],[R,o.tR||t0+.5,x+cw+gap,TH.a1]].forEach(([c,tc,cx,dc],i)=>{pop(t,tc,q=>{g.translate(cx+cw/2,y+h/2);g.scale(q,q);const col=c.col||dc;card(-cw/2,-h/2,cw,h,col);g.fillStyle=col;rr(-cw/2,-h/2,cw,96,32);g.fill();g.fillRect(-cw/2,-h/2+50,cw,46);txt(c.title,0,-h/2+66,48,TH.light?'#fff':'#06101f','H9','center');
     (c.lines||[]).forEach((l,j)=>{const tl=tc+.5+j*.35;txt('· '+l,-cw/2+44,-h/2+176+j*72,40,TH.cardInk,TH.f.b,'left',eo(seg(t,tl,tl+.35)))});if(c.draw){g.save();c.draw(cw,h);g.restore()}})});
   const kv=eo(seg(t,(o.tR||t0+.5),(o.tR||t0+.5)+.3));if(kv>0){g.save();g.globalAlpha*=kv;g.fillStyle=TH.light?TH.ink:'#fff';g.beginPath();g.arc(x+w/2,y+h/2,44,0,7);g.fill();numtxt('VS',x+w/2,y+h/2+15,40,TH.light?'#fff':'#06101f','center');g.restore()}}
 // 引线标注：从部件上的点 (px,py) 拉一条线到 (lx,ly)，写名称和一行说明

@@ -1,7 +1,10 @@
 /* 讲解视频工坊 · 通用层
    每期片子只写 scenes.js：window.FILM = {theme, chapters, questions, scenes(t), cover:{...}, short:{...}, credits:[...], images:{key:url}}
    这里提供：画布与缓动、文字与图形小件、主题背景、章节条与字幕、分场淡入淡出、照片卡、竖版合成、封面。 */
-const W=1920,H=1080,cv=document.getElementById('c'),g=cv.getContext('2d');
+const cv=document.getElementById('c'),W=cv.width,H=cv.height,g=cv.getContext('2d'),VERT=H>W,SAFE=(a=>({t:a[0],r:a[1],b:a[2],l:a[3]}))(window.SAFE_||[0,0,0,0]);
+// 竖版：safeBox() 给出平台按钮、标题、文案挡不住的那块区域（横版就是整个画面）；竖版画面上重要的东西都放进这里
+// 竖版的 safeBox 不含最下面 160 像素的字幕带（字幕画在安全区底边上）；横版返回整个画面（底部 120 像素字幕带照旧不放字）
+function safeBox(pad=0){const sb=VERT?160:0,h=H-SAFE.t-SAFE.b-sb-2*pad;return {x:SAFE.l+pad,y:SAFE.t+pad,w:W-SAFE.l-SAFE.r-2*pad,h,cx:(SAFE.l+W-SAFE.r)/2,cy:SAFE.t+pad+h/2}}
 const cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)),seg=(t,a,b)=>cl((t-a)/(b-a)),lerp=(a,b,k)=>a+(b-a)*k;
 const eo=x=>1-Math.pow(1-cl(x),3),eio=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2},expo=x=>{x=cl(x);return x>=1?1:1-Math.pow(2,-10*x)},back=x=>{x=cl(x);if(x<=0)return 0;if(x>=1)return 1;const c=1.70158;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)};
 function rnd(i){const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x)}
@@ -60,14 +63,16 @@ function at(id,kw,off=0){const s=S(id);const i=kw?s.vo.indexOf(kw):0;if(i<0)cons
 const total=()=>TL[TL.length-1].t1+3;
 
 /* ---------- 文字与图形小件 ---------- */
-function txt(s,x,y,sz,col,w='H7',al='left',a=1){if(a<=0)return;g.save();g.globalAlpha*=a;g.font=`${sz}px ${w}, H7`;if(REC)recText(String(s),x,y,sz,al);g.fillStyle=col||TH.ink;g.textAlign=al;g.textBaseline='alphabetic';g.fillText(s,x,y);g.restore()}
+// 竖版在手机上整屏看：24–39 像素的小字一律放到 40（tw 量宽也照这个算，版式不会对不上）
+const vsz=sz=>VERT&&sz>=24&&sz<40?40:sz;
+function txt(s,x,y,sz,col,w='H7',al='left',a=1){if(a<=0)return;sz=vsz(sz);g.save();g.globalAlpha*=a;g.font=`${sz}px ${w}, H7`;if(REC)recText(String(s),x,y,sz,al);g.fillStyle=col||TH.ink;g.textAlign=al;g.textBaseline='alphabetic';g.fillText(s,x,y);g.restore()}
 /* 检查模式：登记每帧出现的文字框和音效事件（build.py check / sfx 用） */
 let REC=null;
 function recText(s,x,y,sz,al){const m=g.getTransform(),wd=g.measureText(s).width,x0=al==='center'?x-wd/2:al==='right'?x-wd:x;const P=[[x0,y-sz*.86],[x0+wd,y-sz*.86],[x0,y+sz*.16],[x0+wd,y+sz*.16]].map(([a,b])=>[m.a*a+m.c*b+m.e,m.b*a+m.d*b+m.f]);
   REC.tx.push([s,Math.round(Math.min(...P.map(p=>p[0]))),Math.round(Math.min(...P.map(p=>p[1]))),Math.round(Math.max(...P.map(p=>p[0]))),Math.round(Math.max(...P.map(p=>p[1]))),+g.globalAlpha.toFixed(2)])}
 // 音效：在场景里写 sfx('ding', 时间)；pop() 自动带 'pop'。类型：pop tick whoosh ding rise thud
 function sfx(type,t0,gain=1){if(REC&&t0>=0)REC.ev[type+'@'+t0.toFixed(2)]=gain}
-function tw(s,sz,w='H7'){g.font=`${sz}px ${w}, H7`;return g.measureText(s).width}
+function tw(s,sz,w='H7'){sz=vsz(sz);g.font=`${sz}px ${w}, H7`;return g.measureText(s).width}
 function rr(x,y,w,h,r){g.beginPath();g.roundRect(x,y,w,h,r)}
 function pop(t,t0,fn,d=.45){sfx('pop',t0);const k=seg(t,t0,t0+d);if(k<=0)return;g.save();g.globalAlpha*=cl(k*2.5);fn(back(k));g.restore()}
 function rise(t,t0,s,x,y,sz,col,w,al){const k=eo(seg(t,t0,t0+.5));if(k<=0)return;txt(s,x,y+(1-k)*26,sz,col,w,al,k)}
@@ -96,10 +101,13 @@ function threeCards(t,id,title,cards){rise(t,T(id)+.2,title,W/2,220,84,TH.ink,'H
 // 章节条样式 FILM.chrome：'question'（问题+序号，默认）'label'（只有标题）'step'（第几步/共几步）'date'（年代大字+标题，章节写成 "1969｜登月"）'none'
 function chrome(t){const mode=FILM.chrome||'question';if(mode==='none')return;const CH=FILM.chapters;const cur=TL.filter(s=>s.t0-.2<=t).pop()||TL[0];const ci=CH.indexOf(cur.ch);const st=TL.find(s=>s.ch===cur.ch).t0;const k=eo(seg(t,st-.2,st+.35));g.save();
   if(mode==='date'){const [yr,ttl]=cur.ch.includes('｜')?cur.ch.split('｜'):['',cur.ch];g.globalAlpha=k;g.font='800 64px RC, H9';g.fillStyle=TH.a1;g.textAlign='left';g.textBaseline='alphabetic';g.fillText(yr,64,96);const yw=g.measureText(yr).width;txt(ttl,64+yw+(yr?22:0),92,36,TH.ink,TH.f.t);g.globalAlpha=1}
-  else{const q=mode==='step'?`第 ${ci+1} 步 / 共 ${CH.length} 步　${cur.ch}`:mode==='label'?cur.ch:(ci+1)+' · '+cur.ch+(ci<(FILM.questions??CH.length-1)?'？':'');const w=tw(q,34,'H9')+56;g.fillStyle=TH.chip;rr(64,44,w*k,62,31);g.fill();g.strokeStyle=TH.a1;g.globalAlpha=.8;g.lineWidth=2;rr(64,44,w*k,62,31);g.stroke();g.globalAlpha=1;
-   g.save();g.beginPath();g.rect(64,44,w*k,62);g.clip();txt(q,92,87,34,TH.light?TH.ink:TH.a1,'H9');g.restore()}
-  for(let i=0;i<CH.length;i++){g.globalAlpha=i<=ci?1:.3;g.fillStyle=i===ci?TH.a1:TH.ink;g.beginPath();g.arc(W-90-(CH.length-1-i)*34,75,i===ci?9:6,0,7);g.fill()}g.restore()}
-function subs(t){const s=TL.find(s=>t>=s.t0&&t<s.t1);if(!s)return;const c=(s.chunks||[]).find(c=>t>=c.t0&&t<c.t1);if(!c)return;g.save();const w=tw(c.text,42,TH.f.b);g.fillStyle=TH.sub;rr(W/2-w/2-30,H-112,w+60,68,34);g.fill();txt(c.text,W/2,H-64,42,TH.subInk,TH.f.b,'center');g.restore()}
+  else{const q=mode==='step'?`第 ${ci+1} 步 / 共 ${CH.length} 步　${cur.ch}`:mode==='label'?cur.ch:(ci+1)+' · '+cur.ch+(ci<(FILM.questions??CH.length-1)?'？':'');const w=tw(q,34,'H9')+56,X0=VERT?SAFE.l+16:64,Y0=VERT?SAFE.t+10:44;g.fillStyle=TH.chip;rr(X0,Y0,w*k,62,31);g.fill();g.strokeStyle=TH.a1;g.globalAlpha=.8;g.lineWidth=2;rr(X0,Y0,w*k,62,31);g.stroke();g.globalAlpha=1;
+   g.save();g.beginPath();g.rect(X0,Y0,w*k,62);g.clip();txt(q,X0+28,Y0+43,34,TH.light?TH.ink:TH.a1,'H9');g.restore()}
+  for(let i=0;i<CH.length;i++){g.globalAlpha=i<=ci?1:.3;g.fillStyle=i===ci?TH.a1:TH.ink;g.beginPath();g.arc(W-(VERT?SAFE.r+30:90)-(CH.length-1-i)*34,VERT?SAFE.t+41:75,i===ci?9:6,0,7);g.fill()}g.restore()}
+function subs(t){const s=TL.find(s=>t>=s.t0&&t<s.t1);if(!s)return;const c=(s.chunks||[]).find(c=>t>=c.t0&&t<c.t1);if(!c)return;g.save();
+  // 竖版：字更大、放在平台底部文案区上面；字幕在构建时已经按竖版切得更短
+  if(VERT){const sz=56,w=tw(c.text,sz,TH.f.b),y=H-SAFE.b-36;g.fillStyle=TH.sub;rr(W/2-w/2-32,y-sz-12,w+64,sz+40,30);g.fill();txt(c.text,W/2,y,sz,TH.subInk,TH.f.b,'center');g.restore();return}
+  const w=tw(c.text,42,TH.f.b);g.fillStyle=TH.sub;rr(W/2-w/2-30,H-112,w+60,68,34);g.fill();txt(c.text,W/2,H-64,42,TH.subInk,TH.f.b,'center');g.restore()}
 function credits(t,t0,lines,y0=650){lines.forEach((l,i)=>rise(t,t0+i*.2,l,W/2,y0+i*50,32,TH.note,'H5','center'))}
 
 /* ---------- 渲染入口 ---------- */
@@ -114,9 +122,10 @@ window.vertFrame=(t,sub,prog)=>{window.CLEAN=1;window.renderFrame(t);window.CLEA
   v.drawImage(cv,0,0,1920,1080,0,560,1080,608);v.fillStyle=TH.a1;v.fillRect(0,554,1080,6);v.fillRect(0,1168,1080,6);
   if(sub){const lines=[];let cur='';for(const ch of sub){cur+=ch;if(cur.length>=13){lines.push(cur);cur=''}}if(cur){if(cur.length<3&&lines.length)lines[lines.length-1]+=cur;else lines.push(cur)}lines.slice(0,3).forEach((l,i)=>X(l,540,1330+i*96,70,TH.ink))}
   X('完整版在主页',540,1740,40,TH.dim,'H7');v.fillStyle=TH.chip;v.fillRect(90,1800,900,8);v.fillStyle=TH.a1;v.fillRect(90,1800,900*prog,8);return V.toDataURL('image/jpeg',.93)};
-// 封面：v='wide' 1920x1080 或 'tall' 1080x1440；主体图由 FILM.cover.art(ctx,cx,cy,R) 画
-window.coverFrame=v=>{const tall=v==='tall',CW=tall?1080:1920,CH=tall?1440:1080;const K=document.createElement('canvas');K.width=CW;K.height=CH;const c=K.getContext('2d'),C=FILM.cover;
-  const bg=c.createLinearGradient(0,0,CW,CH);bg.addColorStop(0,TH.top);bg.addColorStop(1,TH.bot);c.fillStyle=bg;c.fillRect(0,0,CW,CH);
+// 封面：v='wide' 1920x1080、'tall' 1080x1440（3:4）或 'vert' 1080x1920（9:16，内容在正中 3:4 区域）；主体图由 FILM.cover.art(ctx,cx,cy,R) 画
+window.coverFrame=v=>{const vert=v==='vert',tall=v==='tall'||vert,CW=tall?1080:1920,CH=tall?1440:1080;const K=document.createElement('canvas');K.width=CW;K.height=vert?1920:CH;const c=K.getContext('2d'),C=FILM.cover;
+  const bg=c.createLinearGradient(0,0,CW,K.height);bg.addColorStop(0,TH.top);bg.addColorStop(1,TH.bot);c.fillStyle=bg;c.fillRect(0,0,CW,K.height);
+  if(vert)c.translate(0,240);   // 9:16 封面：版式和 3:4 一样，放在正中间（主页宫格按 3:4 裁中间）
   const X=(s,x,y,sz,col,w='H9',al='left')=>{c.font=`${sz}px ${w}, H7`;c.fillStyle=col;c.textAlign=al;c.textBaseline='alphabetic';c.fillText(s,x,y)};const M=(s,sz)=>{c.font=`${sz}px H9, H7`;return c.measureText(s).width};const F=(s,b,m)=>Math.floor(Math.min(b,b*m/M(s,b)));
   const cx=tall?CW/2:1510,cy=tall?430:500,R=tall?300:310;C.art(c,cx,cy,R,CW,CH);
   const P=(s,x,y,sz)=>{const w=M(s,sz)+sz*1.2;c.fillStyle=TH.light?TH.a1:TH.a2;c.beginPath();c.roundRect(x,y-sz*1.08,w,sz*1.66,sz*.83);c.fill();X(s,x+sz*.6,y+sz*.12,sz,TH.pillInk)};

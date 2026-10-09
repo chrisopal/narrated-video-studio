@@ -365,7 +365,11 @@
     "ink",
     "figures",
     "map"
-   ]
+   ],
+   "structure": "旅程·地图",
+   "angle": "后人回看一个人的一生",
+   "hook": "地图上的一条线",
+   "aspect": "16:9"
   },
   {
    "title": "河海昆仑录",
@@ -377,7 +381,11 @@
     "figures",
     "map",
     "litho"
-   ]
+   ],
+   "structure": "日记体旅程",
+   "angle": "跟着当事人的日记",
+   "hook": "日记里的一句原文",
+   "aspect": "16:9"
   },
   {
    "title": "王钟儿",
@@ -387,21 +395,33 @@
    "packs": [
     "ink",
     "lacquer"
-   ]
+   ],
+   "structure": "双线对照·小人物与大时代",
+   "angle": "旁观的讲述者",
+   "hook": "两条线并置",
+   "aspect": "16:9"
   },
   {
    "title": "天为什么是蓝的",
    "date": "2026-10-08",
    "genre": "科普原理",
    "style": "sky",
-   "packs": []
+   "packs": [],
+   "structure": "问题链",
+   "angle": "老师给孩子讲",
+   "hook": "人人见过却答不上的问题",
+   "aspect": "16:9"
   },
   {
    "title": "轴承为什么省力",
    "date": "2026-10-08",
    "genre": "工业零部件",
    "style": "blueprint",
-   "packs": []
+   "packs": [],
+   "structure": "拆解",
+   "angle": "老师讲原理",
+   "hook": "日常物件的反常",
+   "aspect": "16:9"
   },
   {
    "title": "一圈会弯的齿：绿的谐波和谐波减速器",
@@ -410,7 +430,12 @@
    "style": "industry",
    "packs": [
     "industry"
-   ]
+   ],
+   "structure": "一物一史·对质",
+   "angle": "旁观的讲解员",
+   "hook": "整机里看不见的零件",
+   "voice": "Charon",
+   "aspect": "16:9"
   }
  ],
  "items": [
@@ -1509,7 +1534,8 @@
    "status": "inbox",
    "from": "收编旧片时发现",
    "since": "2026-10-08",
-   "used_in": []
+   "used_in": [],
+   "note": "引擎已支持原生竖版（flow.竖版平台）；还差各风格包自己的竖版版式（讲解员 layout、漆屏风两栏、行迹地图、threeCards）"
   },
   {
    "id": "inbox-004",
@@ -2059,6 +2085,92 @@
    "name": "引语卡的引号“”和第一行文字被检查报重叠（误报），检查里排除引号或组件把引号放进文字框外",
    "status": "inbox",
    "from": "一圈会弯的齿",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "flow.创意立项",
+   "kind": "flow",
+   "name": "拆提示词 → 三个方向（五样至少三样不同）→ 选定写进 brief.direction → 导演阐述",
+   "from": "用户要求：讲故事不能千篇一律",
+   "status": "candidate",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "flow.叙事手法库",
+   "kind": "flow",
+   "name": "十四种叙事结构（一物一史、问题链、拆解、旅程、日记书信体、双线、悬念倒叙……）",
+   "from": "用户要求；从六条成片里总结",
+   "status": "candidate",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "check.叙事线",
+   "kind": "check",
+   "name": "叙事线：direction 写全、问了要答、中段有转折、结尾回扣、和最近六条不太像",
+   "from": "用户要求",
+   "status": "candidate",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "flow.配音语气",
+   "kind": "flow",
+   "name": "声音按方向定：brief.voice + 句子 tone，走 TTS instructions 字段（Gemini 实测有效，提示不会被读出）",
+   "from": "2026-10-09 实测",
+   "status": "candidate",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "flow.竖版平台",
+   "kind": "flow",
+   "name": "原生竖版：platform 预设（抖音、视频号 9:16，小红书 3:4）、安全区、竖版字幕、竖版封面",
+   "from": "用户要求：发抖音、小红书、视频号",
+   "demo": "vertical",
+   "status": "candidate",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "comp.safeBox",
+   "kind": "component",
+   "name": "safeBox() 平台安全区内可用区域（竖版不含字幕带）",
+   "symbols": [
+    "safeBox"
+   ],
+   "from": "竖版",
+   "demo": "vertical",
+   "status": "candidate",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "check.平台遮挡区",
+   "kind": "check",
+   "name": "竖版：字不能停在平台标题、文案、按钮会盖住的地方",
+   "from": "竖版",
+   "status": "candidate",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "inbox-019",
+   "kind": "check",
+   "name": "成片的平台遮挡在真机 App 里实测一次，校准安全区数字（现在是保守值）",
+   "status": "inbox",
+   "from": "竖版",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "inbox-020",
+   "kind": "flow",
+   "name": "试更多 Gemini 声音并记下每个声音的性格（现在只试过 Charon、Kore、Puck、Sulafat）",
+   "status": "inbox",
+   "from": "配音语气",
    "since": "2026-10-09",
    "used_in": []
   }

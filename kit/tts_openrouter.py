@@ -7,8 +7,11 @@
   python3 tts_openrouter.py audition "每一秒，都有六百五十亿个看不见的小粒子，穿过你的指甲盖。"
 指定模型试几个声音：
   python3 tts_openrouter.py voices google/gemini-3.8-flash-tts Charon,Kore "一句话"
-整期配音（lines.txt 每行 id|文字，输出 <id>.mp3 到当前目录）：
+整期配音（lines.txt 每行 id|文字[|语气提示]，输出 <id>.mp3 到当前目录；已经有 mp3 的句子跳过，加 --redo 全部重配）：
   python3 tts_openrouter.py run lines.txt microsoft/mai-voice-2.1 zh-CN-Wei:MAI-Voice-2.1 [语速]
+语气提示走接口的 instructions 字段（2026-10 用 Gemini Charon 实测：语气会变，提示本身不会被读出来）。
+不要把提示写进朗读文本前面，那样会被原样念出来。不支持 instructions 的模型会忽略它，回听照样能查出问题。
+试语气：python3 tts_openrouter.py voices google/gemini-3.8-flash-tts Charon,Kore "一句话" "用低沉、缓慢、带悬念的语气"
 """
 import json, os, sys, urllib.request, urllib.error
 from pathlib import Path
@@ -40,12 +43,13 @@ def _post(k, body):
         return None, '', f'HTTP {e.code} ' + e.read().decode('utf-8', 'ignore')[:200]
     except Exception as e:
         return None, '', str(e)[:200]
-def speak(k, model, voice, text, out, speed=None):
+def speak(k, model, voice, text, out, speed=None, style=None):
     """先要 mp3；模型只出 PCM 时（如 Gemini，24kHz 16 位单声道）自动转成 mp3。"""
     import subprocess
     body = {'model': model, 'input': text, 'response_format': 'mp3'}
     if voice: body['voice'] = voice
     if speed: body['speed'] = float(speed)
+    if style: body['instructions'] = style
     data, ctype, err = _post(k, body)
     if err or not data or len(data) < 2000:
         body['response_format'] = 'pcm'; data, ctype, err2 = _post(k, body)
@@ -64,12 +68,15 @@ if __name__ == '__main__':
             name = (model.split('/')[1] + '__' + (voice or 'default').split(':')[0]).replace('.', '_') + '.mp3'
             ok, msg = speak(k, model, voice, text, od / name); print(('成功 ' if ok else '失败 ') + name, '|', msg, f'| 约 {price} 美元/百万字符', flush=True)
     elif sys.argv[1] == 'voices':  # voices <模型> <声音1,声音2,...> "一句话"
-        model, vs, text = sys.argv[2], sys.argv[3].split(','), sys.argv[4]; od = Path('试音'); od.mkdir(exist_ok=True)
+        model, vs, text = sys.argv[2], sys.argv[3].split(','), sys.argv[4]; style = sys.argv[5] if len(sys.argv) > 5 else None; od = Path('试音'); od.mkdir(exist_ok=True)
         for v in vs:
-            name = (model.split('/')[1] + '__' + v).replace('.', '_') + '.mp3'; ok, msg = speak(k, model, v, text, od / name); print(('成功 ' if ok else '失败 ') + name, '|', msg, flush=True)
+            name = (model.split('/')[1] + '__' + v + ('__语气' if style else '')).replace('.', '_') + '.mp3'; ok, msg = speak(k, model, v, text, od / name, style=style); print(('成功 ' if ok else '失败 ') + name, '|', msg, flush=True)
     elif sys.argv[1] == 'run':
-        lines, model, voice = sys.argv[2], sys.argv[3], (sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] != '-' else None); speed = sys.argv[5] if len(sys.argv) > 5 else None; n = 0
+        args = [a for a in sys.argv if a != '--redo']; redo = '--redo' in sys.argv
+        lines, model, voice = args[2], args[3], (args[4] if len(args) > 4 and args[4] != '-' else None); speed = args[5] if len(args) > 5 and args[5] else None; n = 0
         for line in Path(lines).read_text().splitlines():
             if '|' not in line: continue
-            i, text = line.split('|', 1); ok, msg = speak(k, model, voice, text, i + '.mp3', speed); n += len(text); print(('成功 ' if ok else '失败 ') + i, '|', msg, flush=True)
+            i, text, *rest = line.split('|', 2); style = rest[0] if rest else None
+            if not redo and Path(i + '.mp3').exists() and Path(i + '.mp3').stat().st_size > 2000: print('跳过', i, '（已有）', flush=True); continue
+            ok, msg = speak(k, model, voice, text, i + '.mp3', speed, style); n += len(text); print(('成功 ' if ok else '失败 ') + i, '|', msg + ('　语气：' + style if style else ''), flush=True)
         print('合计字符数', n)

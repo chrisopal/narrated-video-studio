@@ -9,7 +9,7 @@
   pick 文件名 [个数]        挑镜头：按清晰度、亮度、运动量、时长给镜头打分，列出候选入出点 + 联系表 footage/_sheets/<名字>_pick.jpg（只建议，不改台账）
   clips                    按 assets.json 里的入出点切片、统一成 30 帧、拆帧 → clips/<id>/
   facts                    检查断言台账 facts.json
-  lines                    写出 lines.txt（id|朗读文本），交给配音脚本
+  lines                    写出 lines.txt（id|朗读文本[|语气提示]），交给配音脚本；语气来自句子的 tone 或 brief.voice.style
   timeline                 配音时长（有 audio/words.json 就用逐字时间）→ timeline.json + vo.wav
   stills 3,10,20 [目录]    抽帧检查
   sheet [间隔秒]           整片总览图（每 5 秒一帧，9 帧一张）→ sheets/
@@ -26,7 +26,7 @@ brief.json 里和构建有关的字段：packs 风格包列表；music 配乐（
           tiers_required:true 断言台账每条都要填 tier（来源层级）；must_show:[…] 画面上必须清楚出现 ≥2 秒的声明
 script.json 里一句可以写 "silent":true,"dur":秒数 表示无旁白段落（只有画面和配乐）
 """
-import json, re, sys, base64, subprocess, threading, http.server, socketserver, hashlib, shutil
+import json, re, sys, os, base64, subprocess, threading, http.server, socketserver, hashlib, shutil
 from pathlib import Path
 import numpy as np, soundfile as sf
 KIT = Path(__file__).parent; P = Path.cwd(); FPS = 30; LEAD = 0.9; GAP = 0.55; COVER = 2.0
@@ -34,6 +34,19 @@ SPLIT = r'(?<=[，。：；？！])'; END = ('。', '？', '；', '！'); LUFS =
 def jload(name, default=None):
     f = P / name; return json.load(open(f, encoding='utf-8')) if f.exists() else default
 BRIEF = jload('brief.json', {}) or {}
+# 画幅和平台：brief 写 "platform":"douyin|channels|xhs|bilibili|youtube"，或直接写 "aspect":"9:16|3:4|16:9"（可再写 "safe":[上,右,下,左]）
+# 竖版安全区是保守值（上约 15%、下约 30%、左 10%、右 15%）：平台的标题、文案、点赞评论按钮会盖住这些地方，发布前在 App 里预览一遍
+PLATFORMS = {'douyin': {'name': '抖音', 'aspect': '9:16', 'safe': [288, 162, 576, 108]},
+             'channels': {'name': '视频号', 'aspect': '9:16', 'safe': [288, 162, 576, 108]},
+             'xhs': {'name': '小红书', 'aspect': '3:4', 'safe': [144, 108, 288, 86]},
+             'bilibili': {'name': 'B 站', 'aspect': '16:9', 'safe': [0, 0, 0, 0]},
+             'youtube': {'name': 'YouTube', 'aspect': '16:9', 'safe': [0, 0, 0, 0]}}
+SIZES = {'16:9': (1920, 1080), '9:16': (1080, 1920), '3:4': (1080, 1440)}
+_PL = PLATFORMS.get(BRIEF.get('platform', ''), {}); ASPECT = BRIEF.get('aspect') or _PL.get('aspect') or '16:9'
+if ASPECT not in SIZES: sys.exit(f'brief 的 aspect 只能是 {" / ".join(SIZES)}')
+CW, CH = SIZES[ASPECT]; VERT = CH > CW
+SAFE = BRIEF.get('safe') or _PL.get('safe') or ([round(CH * .15), round(CW * .15), round(CH * .3), round(CW * .1)] if VERT else [0, 0, 0, 0])
+COVER_NAME = {'16:9': '封面_横版.png', '9:16': '封面_9x16.png', '3:4': '封面_3x4.png'}[ASPECT]
 READ_CPS = BRIEF.get('read_cps', 4.5); READ_PAD = BRIEF.get('read_pad', 1.5)   # 阅读速度：给孩子看用 4.5 字/秒；成年观众可以调到 6
 SUPERLATIVE = re.compile(r'最[大小高低强快早好先多新]|第一|唯一|领先|顶级|顶尖|首[个家创]|独家|全球[首最]|国内[首最]|100%|百分之百|绝对|完美')
 # 允许进成片的素材依据。授权不明的素材只能进参考片单（study），不能进 assets.json
@@ -45,7 +58,8 @@ TIERS = ('政府名单', '官方记录', '公司披露', '公司自述', '第三
 CJK = re.compile(r'[一-鿿]'); NUMISH = re.compile(r'\d|[一二两三四五六七八九十百千万亿]+(年|倍|万|亿|公里|千米|米|度|吨|岁|天|小时|分钟|秒|种|颗|层)')
 
 # ---------- 时间轴 ----------
-def chunks_for(text, t, lead, voiced, dur, gap, maxlen=24, minlen=7, ct=None):
+def chunks_for(text, t, lead, voiced, dur, gap, maxlen=None, minlen=7, ct=None):
+    maxlen = maxlen or (14 if VERT else 24)   # 竖版字幕一行最多 14 个字
     parts = [p for p in re.split(SPLIT, text) if p]; ch = []
     for p in parts:
         if ch and not ch[-1].endswith(END) and (len(ch[-1]) < minlen or len(p) < 5) and len(ch[-1]) + len(p) <= maxlen: ch[-1] += p
@@ -233,6 +247,49 @@ def facts_check(tl):
         if NUMISH.search(s['vo']) and s['id'] not in covered: warns.append(f"{s['id']} 里有数字或量词，但没有任何一条事实指向它：{s['vo'][:22]}…")
         if SUPERLATIVE.search(s['vo']) and not any(s['id'] in x.get('where', []) and x.get('status') == 'verified' for x in F):
             warns.append(f"{s['id']} 有“最/第一/领先”这类说法，但没有已核实的事实支撑：{SUPERLATIVE.search(s['vo']).group(0)}")
+    return fails, warns
+
+BEATS = ('钩子', '铺垫', '推进', '转折', '揭示', '高潮', '回扣', '收束')
+def story_check(tl):
+    """叙事线：创意方向写清了没有、开头抛出的问题结尾有没有回答、有没有转折、结尾回不回扣开头、和以前的片子是不是太像。规矩见 templates/叙事与创意.md"""
+    D = BRIEF.get('direction'); fails = []; warns = []; S = [s for s in tl if not silent(s)] or tl
+    if not D:
+        return [], ['brief.json 没有 direction（创意方向）：先按 templates/叙事与创意.md 拆提示词、比较三个方向，把选中的写进 brief']
+    if not D.get('logline'): fails.append('direction.logline 没写：用一句话说清“这条片讲什么、为什么值得看”')
+    elif len(D['logline']) > 50: warns.append(f"direction.logline 有 {len(D['logline'])} 字：一句话说不清，说明方向还没想清楚（50 字以内）")
+    for k, why in (('structure', '叙事结构（从手法库里选，或写明自创的）'), ('angle', '视角：谁在讲、离事件多远'), ('hook_type', '开场钩子用哪一种')):
+        if not D.get(k): warns.append(f'direction.{k} 没写：{why}')
+    if len(D.get('alternatives', [])) < 2: warns.append('direction.alternatives 少于两个：没和别的方向比过，容易做成上一条的样子')
+    ids = [s['id'] for s in S]; asks = {}; answers = {}
+    for i, s in enumerate(S):
+        for q in ([s['ask']] if isinstance(s.get('ask'), str) else s.get('ask', [])): asks.setdefault(q, i)
+        for q in ([s['answer']] if isinstance(s.get('answer'), str) else s.get('answer', [])): answers.setdefault(q, i)
+        if s.get('beat') and s['beat'] not in BEATS: warns.append(f"{s['id']} 的 beat「{s['beat']}」不在 {'/'.join(BEATS)} 里")
+    for q, i in asks.items():
+        if q not in answers: fails.append(f'{ids[i]} 抛出的问题「{q}」到结尾都没有回答（在回答它的那句写 "answer":"{q}"）')
+        elif answers[q] < i: fails.append(f'问题「{q}」在 {ids[answers[q]]} 先回答、{ids[i]} 才抛出：顺序反了')
+    for q, i in answers.items():
+        if q not in asks: warns.append(f'{ids[i]} 回答了「{q}」，但前面没有哪句把它问出来（在提问的那句写 "ask":"{q}"）')
+    if not asks: warns.append('全片没有一句 ask：开头没抛出观众想知道答案的问题，后面就没有“为什么要看下去”')
+    beats = [s.get('beat') for s in S]
+    if any(beats):
+        if beats[0] not in ('钩子', None) and S[0]['t0'] < 4: warns.append(f'第一句的 beat 是「{beats[0]}」：开头 3 秒要是钩子')
+        mid = beats[len(beats) // 5: len(beats) * 9 // 10]
+        if not any(b in ('转折', '揭示', '高潮') for b in mid): warns.append('中段没有转折、揭示或高潮：整条片是平的，观众没有“原来如此”的时刻')
+        if beats[-1] not in ('回扣', '收束') and beats[-2:] .count('回扣') == 0: warns.append('最后一两句不是回扣或收束：结尾没有回到开头')
+    else: warns.append('script.json 没有标 beat（钩子/铺垫/推进/转折/揭示/高潮/回扣/收束）：标上才能检查叙事线')
+    cb = D.get('callback')
+    if cb:
+        head = ''.join(s['vo'] for s in S[:3]); tail = ''.join(s['vo'] for s in S[-3:])
+        if cb not in head or cb not in tail: warns.append(f'回扣词「{cb}」要在前三句和后三句的旁白里都出现（现在：开头{"有" if cb in head else "没有"}，结尾{"有" if cb in tail else "没有"}）')
+    # 和以前的片子太像：结构、钩子、视角、声音、风格五样里有三样一样
+    try: films = json.load(open(KIT.parent / 'templates' / 'registry.json', encoding='utf-8')).get('films', [])
+    except Exception: films = []
+    me = {'structure': D.get('structure'), 'hook': D.get('hook_type'), 'angle': D.get('angle'), 'voice': (BRIEF.get('voice') or {}).get('voice'), 'style': BRIEF.get('style')}
+    for f in films[-6:]:
+        if f.get('title') == BRIEF.get('title'): continue
+        same = [k for k, v in me.items() if v and f.get(k) == v]
+        if len(same) >= 3: warns.append(f"和《{f['title']}》太像：{'、'.join(same)} 都一样。换掉其中两样（见 叙事与创意.md「不千篇一律」）")
     return fails, warns
 
 # ---------- 素材层 ----------
@@ -519,8 +576,10 @@ def need_seconds(s, pad=1.5):
 
 def scan_check(sc):
     """用整片扫描结果查：文字停留、出画、压字幕带、文字互相重叠、画面空档、开场。"""
-    W, H, step = sc['W'], sc['H'], sc['frames'][1]['t'] - sc['frames'][0]['t']; fails = {k: [] for k in ('read', 'frame')}; warns = {k: [] for k in ('subzone', 'overlap', 'dead', 'hook', 'small')}; small = {}
-    key = lambda s: re.sub(r'[\d.,]+', '#', s); runs = {}; inside = set(); seen = {}; zone = (W / 2 - 520, H - 118, W / 2 + 520, H - 40); zrun = {}; orun = {}
+    W, H, step = sc['W'], sc['H'], sc['frames'][1]['t'] - sc['frames'][0]['t']; fails = {k: [] for k in ('read', 'frame')}; warns = {k: [] for k in ('subzone', 'overlap', 'dead', 'hook', 'small')}; small = {}; fails['unsafe'] = []; urun = {}
+    key = lambda s: re.sub(r'[\d.,]+', '#', s); runs = {}; inside = set(); seen = {}; zone = (W / 2 - 520, H - 118, W / 2 + 520, H - 40) if not VERT else (SAFE[3], H - SAFE[2] - 130, W - SAFE[1], H - SAFE[2]);
+    st, sr, sb, sl = SAFE; safe_ok = lambda b: b[0] >= sl - 2 and b[1] >= st - 2 and b[2] <= W - sr + 2 and b[3] <= H - sb + 2
+    zrun = {}; orun = {}
     hit = lambda a, b: min(a[2], b[2]) - max(a[0], b[0]) > 0 and min(a[3], b[3]) - max(a[1], b[1]) > 0
     for fr in sc['frames']:
         t = fr['t']; vis = set(); allb = [(key(s), (x0, y0, x1, y1), a) for s, x0, y0, x1, y1, a, *_ in fr['tx'] if s.strip()]; fsz = {key(r[0]): r[6] for r in fr['tx'] if len(r) > 6}; vert = {key(s) for s, x0, y0, x1, y1, a, *_ in fr['tx'] if len(CJK.findall(s)) > 1 and (y1 - y0) > 1.6 * (x1 - x0)}; boxes = [x for x in allb if re.search(r'[A-Za-z一-鿿]', x[0])]
@@ -531,6 +590,7 @@ def scan_check(sc):
                 if px < MIN_PX - 1.5: small.setdefault(k, (t, px))
                 if b[0] >= -2 and b[1] >= -2 and b[2] <= W + 2 and b[3] <= H + 2: vis.add(k); inside.add(k)
             if a >= .6 and hit(b, zone): zrun.setdefault(k, []).append(t)
+            if VERT and a >= .6 and not safe_ok(b): urun.setdefault(k, []).append(t)
         for i in range(len(allb)):   # 重叠检查把纯数字也算上
             for j in range(i + 1, len(allb)):
                 (k1, b1, a1), (k2, b2, a2) = allb[i], allb[j]
@@ -550,6 +610,8 @@ def scan_check(sc):
         if k not in inside: fails['frame'].append(f"{t:6.1f}s 「{k[:18]}」从没完整出现在画面里（被裁边）")
     for k, ts in zrun.items():
         if len(ts) * step >= .3: warns['subzone'].append(f"{ts[0]:6.1f}s 「{k[:18]}」进入字幕带 {len(ts) * step:.1f}s")
+    for k, ts in urun.items():
+        if len(ts) * step >= .5: fails['unsafe'].append(f"{ts[0]:6.1f}s 「{k[:18]}」在平台遮挡区里 {len(ts) * step:.1f}s：会被标题、文案或按钮盖住，挪进 safeBox()")
     for (a, b), ts in orun.items():
         if len(ts) * step >= .5: warns['overlap'].append(f"{ts[0]:6.1f}s 「{a[:12]}」和「{b[:12]}」重叠 {len(ts) * step:.1f}s")
     for k, (t, px) in small.items(): warns['small'].append(f"{t:6.1f}s 「{k[:18]}」只有 {px:.0f} 像素，手机上读不清（至少 {MIN_PX}）")
@@ -563,7 +625,7 @@ def scan_check(sc):
     first = min([t for t in seen.values()] + [e['t'] for e in sc['events']] + [99])
     if first > 2.0: warns['hook'].append(f"开场 {first:.1f}s 才出现第一个内容：前 1 秒就该有东西落地")
     return fails, warns
-DEAD_DF = 0.12; MIN_PX = 32
+DEAD_DF = 0.12; MIN_PX = 32 if not VERT else 40   # 竖版在手机上整屏看，字再大一点
 
 # ---------- 浏览器 ----------
 class Q(http.server.SimpleHTTPRequestHandler):
@@ -575,9 +637,9 @@ class Q(http.server.SimpleHTTPRequestHandler):
         return str(P / path.lstrip('/'))
 def browser(p, tl):
     srv = socketserver.TCPServer(('127.0.0.1', 0), Q); threading.Thread(target=srv.serve_forever, daemon=True).start()
-    b = p.chromium.launch(args=['--enable-gpu-rasterization', '--ignore-gpu-blocklist']); pg = b.new_page(viewport={'width': 1920, 'height': 1080}); errs = []
+    b = p.chromium.launch(args=['--enable-gpu-rasterization', '--ignore-gpu-blocklist']); pg = b.new_page(viewport={'width': CW, 'height': CH}); errs = []
     pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('console', lambda m: m.type == 'error' and errs.append(m.text))
-    pg.goto(f'http://127.0.0.1:{srv.server_address[1]}/kit/film.html?packs=' + ','.join(BRIEF.get('packs', []))); 
+    pg.goto(f'http://127.0.0.1:{srv.server_address[1]}/kit/film.html?packs=' + ','.join(BRIEF.get('packs', [])) + f'&w={CW}&h={CH}&safe=' + ','.join(map(str, SAFE))); 
     try: total = pg.evaluate('([tl,a])=>window.init(tl,a)', [tl, assets()])
     except Exception as e: print('页面没能启动：', '；'.join(errs[:5]) or str(e).split('\n')[0]); b.close(); sys.exit(1)
     return b, pg, total, errs
@@ -623,15 +685,18 @@ if __name__ == '__main__':
     if cmd == 'study': cmd_study(sys.argv[2], float(sys.argv[3]) if len(sys.argv) > 3 else 0.3); sys.exit()
     if cmd == 'lines':
         L = [l for l in json.load(open(P / 'script.json')) + (json.load(open(P / 'short.json')) if (P / 'short.json').exists() else []) if not silent(l)]
-        (P / 'lines.txt').write_text(''.join(f"{l['id']}|{l.get('tts') or l['vo']}\n" for l in L), encoding='utf-8'); print('lines.txt', len(L), '句，', sum(len(l.get('tts') or l['vo']) for l in L), '字'); sys.exit()
+        VO = BRIEF.get('voice', {}) or {}; sty = lambda l: (l.get('tone') or VO.get('style') or '').replace('|', '／').strip()
+        (P / 'lines.txt').write_text(''.join(f"{l['id']}|{l.get('tts') or l['vo']}" + (f"|{sty(l)}" if sty(l) else '') + "\n" for l in L), encoding='utf-8'); print('lines.txt', len(L), '句，', sum(len(l.get('tts') or l['vo']) for l in L), '字', f'（{sum(1 for l in L if sty(l))} 句带语气提示）')
+        if VO: print('配音命令（在用户电脑的项目文件夹里，前台分批跑）：python3 <工坊>/kit/tts_openrouter.py run lines.txt', VO.get('model', 'google/gemini-3.8-flash-tts'), VO.get('voice', 'Charon'), VO.get('speed', ''))
+        sys.exit()
     tl, total = timeline(); print('正片时长', round(total, 2), '（逐字时间：%d/%d 句）' % (sum('ct' in s for s in tl), len(tl)))
     if cmd == 'timeline': sys.exit()
     if cmd == 'facts': f, w = facts_check(tl); show('断言台账', f, w); sys.exit(1 if f else 0)
     if cmd == 'check':
-        rep = {}; f, w = facts_check(tl); rep['断言台账'] = (f, w); f, w = asr_check(tl); rep['配音回听'] = (f, w)
+        rep = {}; f, w = facts_check(tl); rep['断言台账'] = (f, w); rep['叙事线'] = story_check(tl); f, w = asr_check(tl); rep['配音回听'] = (f, w)
         sc = get_scan(tl, cache='--fresh' not in sys.argv); F, Wn = scan_check(sc)
         if (P / 'assets.json').exists(): rep['素材授权'] = assets_check(set(sc.get('used', {})))
-        rep['阅读时长'] = (F['read'], []); rep['文字出画'] = (F['frame'], []); rep['字幕带'] = ([], Wn['subzone']); rep['文字重叠'] = ([], Wn['overlap']); rep['画面空档'] = ([], Wn['dead']); rep['开场'] = ([], Wn['hook']); rep['小字'] = ([], Wn['small'])
+        rep['阅读时长'] = (F['read'], []); rep['文字出画'] = (F['frame'], []); rep['平台遮挡区'] = (F['unsafe'], []) if VERT else ([], []); rep['字幕带'] = ([], Wn['subzone']); rep['文字重叠'] = ([], Wn['overlap']); rep['画面空档'] = ([], Wn['dead']); rep['开场'] = ([], Wn['hook']); rep['小字'] = ([], Wn['small'])
         miss = {}; [miss.setdefault(m.split('|')[0], []).append(m.split('|')[1]) for m in sc.get('miss', [])]
         need = BRIEF.get('must_show', []); shown = {}
         for fr in sc['frames']:
@@ -662,7 +727,7 @@ if __name__ == '__main__':
         name = sys.argv[2]; r = P / 'check_report.json'
         ok = r.exists() and json.load(open(r))['fails'] == 0 and r.stat().st_mtime >= (P / 'scenes.js').stat().st_mtime
         if not ok and '--force' not in sys.argv: print('check 没通过或已过期：先运行 check；确实要出片就加 --force'); sys.exit(1)
-        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-loop', '1', '-framerate', '30', '-t', str(COVER), '-i', '封面_横版.png', '-f', 'lavfi', '-t', str(COVER), '-i', 'anullsrc=r=44100:cl=stereo', '-i', 'silent.mp4', '-i', 'mix.wav', '-filter_complex', "[0:v]scale=1920:1080,format=yuv420p,fade=t=out:st=1.6:d=0.4,setsar=1[c];[2:v]fps=30,format=yuv420p,setsar=1[m];[3:a]aresample=44100[ma];[c][1:a][m][ma]concat=n=2:v=1:a=1[v][a]", '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-crf', '24', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', name + '.mp4'], check=True)
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-loop', '1', '-framerate', '30', '-t', str(COVER), '-i', COVER_NAME, '-f', 'lavfi', '-t', str(COVER), '-i', 'anullsrc=r=44100:cl=stereo', '-i', 'silent.mp4', '-i', 'mix.wav', '-filter_complex', f"[0:v]scale={CW}:{CH},format=yuv420p,fade=t=out:st=1.6:d=0.4,setsar=1[c];[2:v]fps=30,format=yuv420p,setsar=1[m];[3:a]aresample=44100[ma];[c][1:a][m][ma]concat=n=2:v=1:a=1[v][a]", '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-crf', '24', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', name + '.mp4'], check=True)
         srt([c for s in tl for c in s['chunks']], P / (name + '.srt'), COVER); credits_file(name); print('已出', name + '.mp4', name + '.srt'); print('交付后做复盘，把这条片记进模板台账：python3 ../kit/workshop.py retro --delivered'); sys.exit()
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
@@ -676,19 +741,21 @@ if __name__ == '__main__':
             from PIL import Image; import io
             step = float(sys.argv[2]) if len(sys.argv) > 2 else 5; od = P / 'sheets'; od.mkdir(exist_ok=True); ts = list(np.arange(step / 2, total - 1, step))
             for n in range(0, len(ts), 9):
-                im = Image.new('RGB', (1920, 1080))
-                for i, t in enumerate(ts[n:n + 9]): im.paste(Image.open(io.BytesIO(grab(float(t)))).resize((640, 360)), ((i % 3) * 640, (i // 3) * 360))
+                im = Image.new('RGB', (CW, CH)); tw_, th_ = CW // 3, CH // 3
+                for i, t in enumerate(ts[n:n + 9]): im.paste(Image.open(io.BytesIO(grab(float(t)))).resize((tw_, th_)), ((i % 3) * tw_, (i // 3) * th_))
                 im.save(od / f'sheet{n // 9:02d}_{ts[n]:.0f}s.jpg', quality=86)
             print('总览图', -(-len(ts) // 9), '张，在 sheets/')
         elif cmd == 'render':
+            (P / 'render.pid').write_text(str(os.getpid()))   # 要停后台渲染：kill $(cat render.pid)；别用 pkill/pgrep -f，会匹配到发命令的那个 shell 自己
             ff = pipe(P / (sys.argv[2] if len(sys.argv) > 2 else 'silent.mp4')); n = round(total * FPS)
             for i in range(n):
                 ff.stdin.write(grab(i / FPS))
                 if i % 600 == 0: print(i, n, flush=True)
             ff.stdin.close(); ff.wait(); print('done', n, flush=True)
         elif cmd == 'cover':
-            for v, name in [('wide', '封面_横版.png'), ('tall', '封面_竖版.png')]:
+            for v, name in ([('wide', '封面_横版.png'), ('tall', '封面_竖版.png')] if not VERT else [('vert', '封面_9x16.png'), ('tall', '封面_3x4.png')]):
                 (P / name).write_bytes(base64.b64decode(pg.evaluate('v=>window.coverFrame(v)', v).split(',')[1]))
+        elif cmd == 'short' and VERT: print('这条片本身就是竖版，不需要 short；横版片才用 short 另出竖版'); sys.exit(1)
         elif cmd == 'short':
             segs, stot = short_plan(tl); print('短片时长', round(stot, 2)); vf = lambda t: base64.b64decode(pg.evaluate('([t,s,p])=>window.vertFrameA(t,s,p)', [*short_at(segs, t), t / stot]).split(',')[1])
             if sys.argv[2] == 'stills':

@@ -73,7 +73,8 @@ def cmd_gallery():
         for th in e.get('themes', [None]):
             name = e['name'] + (f'_{th}' if th else '')
             if want and e['name'] not in want and name not in want: continue
-            d = run / name; shutil.rmtree(d, ignore_errors=True); shutil.copytree(GAL / e['name'], d)
+            d = run / name; shutil.rmtree(d, ignore_errors=True); shutil.copytree(GAL / e.get('src', e['name']), d)
+            if e.get('brief'): bj = json.load(open(d / 'brief.json', encoding='utf-8')); bj.update(e['brief']); (d / 'brief.json').write_text(json.dumps(bj, ensure_ascii=False), encoding='utf-8')   # 同一条样片换平台、画幅再出一组
             if th:
                 (d / 'scenes.js').write_text((d / 'scenes.tpl.js').read_text(encoding='utf-8').replace('__THEME__', th).replace('__CHROME__', e.get('chrome', 'label')), encoding='utf-8')
                 (d / 'brief.json').write_text((d / 'brief.json').read_text(encoding='utf-8').replace('__THEME__', th), encoding='utf-8')
@@ -81,7 +82,7 @@ def cmd_gallery():
             r = subprocess.run([sys.executable, str(KIT / 'build.py'), 'stills', ','.join(map(str, e['shots'])), str(od)], cwd=d, capture_output=True, text=True)
             shots = sorted(od.glob('*.jpg'))
             if r.returncode or len(shots) != len(e['shots']): bad.append(f'{name}：渲染失败　' + (r.stdout + r.stderr).strip().split('\n')[-1][:160]); continue
-            sheet = Image.new('RGB', (480 * len(shots), 270)); [sheet.paste(Image.open(s).resize((480, 270)), (480 * i, 0)) for i, s in enumerate(shots)]; sheet.save(out / f'{name}.jpg', quality=85)
+            w0, h0 = Image.open(shots[0]).size; sw, sh = (480, 270) if w0 >= h0 else (270, round(270 * h0 / w0)); sheet = Image.new('RGB', (sw * len(shots), sh)); [sheet.paste(Image.open(s).resize((sw, sh)), (sw * i, 0)) for i, s in enumerate(shots)]; sheet.save(out / f'{name}.jpg', quality=85)
             for s in shots:
                 n += 1; b = base / name / s.name
                 if not b.exists(): new.append(f'{name}/{s.name}')
@@ -141,7 +142,9 @@ def cmd_retro():
     f.write_text('\n'.join(L) + '\n', encoding='utf-8'); print('已写', f.name, '：二、四、五、六要手写完，再把结论落进台账（add / inbox / lesson / promote）')
     if '--delivered' in sys.argv:
         films = R.setdefault('films', [])
-        if not any(x['title'] == title for x in films): films.append({'title': title, 'date': TODAY, 'genre': brief.get('genre'), 'style': brief.get('style'), 'packs': brief.get('packs', [])})
+        if not any(x['title'] == title for x in films): films.append({'title': title, 'date': TODAY, 'genre': brief.get('genre'), 'style': brief.get('style'), 'packs': brief.get('packs', []),
+            'structure': (brief.get('direction') or {}).get('structure'), 'hook': (brief.get('direction') or {}).get('hook_type'), 'angle': (brief.get('direction') or {}).get('angle'),
+            'voice': (brief.get('voice') or {}).get('voice'), 'platform': brief.get('platform'), 'aspect': brief.get('aspect') or {'douyin': '9:16', 'channels': '9:16', 'xhs': '3:4'}.get(brief.get('platform', ''), '16:9')})
         for u in used:
             if title not in by[u].setdefault('used_in', []): by[u]['used_in'].append(title)
         save(R); log(f'成片《{title}》记入台账：用到 {len(used)} 项（' + '、'.join(by[u]['name'] for u in used[:10]) + ('…' if len(used) > 10 else '') + '）')

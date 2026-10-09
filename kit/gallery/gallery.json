@@ -216,6 +216,30 @@
     26.9,
     31.9
    ]
+  },
+  {
+   "name": "vertical",
+   "shots": [
+    10.7,
+    16.7,
+    26.3,
+    34.8,
+    41.1,
+    47.0
+   ]
+  },
+  {
+   "name": "vertical_xhs",
+   "src": "vertical",
+   "brief": {
+    "platform": "xhs"
+   },
+   "shots": [
+    10.7,
+    26.3,
+    41.1,
+    47.0
+   ]
   }
  ]
 }
