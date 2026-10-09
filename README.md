@@ -50,40 +50,67 @@
 
 ## 安装
 
-### 在 Claude Code 里用（推荐，功能最全）
+这是一个标准的 Agent Skill：仓库根目录的 `SKILL.md` 是说明，`kit/`、`templates/` 是它要用的工具箱。任何能加载 `SKILL.md` 的 agent 都可以装。实际做过成片的只有 Claude（Claude Code 和 Claude 应用）；别的 agent 按同一规范应当能加载，但没有逐个试过，遇到问题欢迎提 issue。
 
-把仓库克隆成个人 skill，目录名要和 skill 名一致：
+### 方式一：克隆到 agent 的 skill 目录（推荐，功能最全）
+
+目录名要和 skill 名一致（`narrated-video-studio`）。把下面的 `<skill 目录>` 换成你用的 agent 对应的位置：
 
 ```sh
-git clone https://github.com/chrisopal/narrated-video-studio ~/.claude/skills/narrated-video-studio
+git clone https://github.com/chrisopal/narrated-video-studio <skill 目录>/narrated-video-studio
 ```
 
-只想在某一个项目里用，就克隆到那个项目的 `.claude/skills/narrated-video-studio`。装好后在 Claude Code 里输入 `/narrated-video-studio`，或者直接说“帮我做一条讲清楚某某的视频”，Claude 会自己加载它。更新就是在这个目录里 `git pull`。
+| agent | 全局 skill 目录 | 只在一个项目里用 |
+|---|---|---|
+| Claude Code | `~/.claude/skills` | 项目里的 `.claude/skills` |
+| Codex | `~/.agents/skills` | 项目里的 `.agents/skills` |
+| Cursor | `~/.cursor/skills` | 项目里的 `.agents/skills` |
+| Gemini CLI | `~/.gemini/skills` | 项目里的 `.agents/skills` |
+| OpenCode | `~/.config/opencode/skills` | 项目里的 `.agents/skills` |
 
-装依赖（macOS 示例，Linux 换成对应的包管理器）：
+表里的路径取自 [vercel-labs/skills](https://github.com/vercel-labs/skills) 的说明，各家会调整，以你所用 agent 的文档为准。装好后直接说“帮我做一条讲清楚某某的视频”，或用 agent 自己的方式点名这个 skill（Claude Code 里是 `/narrated-video-studio`）。更新就是在这个目录里 `git pull`。
+
+用克隆的方式，是因为这个 skill 会改自己：每条片子做完，复盘得到的新模板、新检查要提交回仓库。想把自己的沉淀留下来，先 fork，再克隆你的 fork。
+
+### 方式二：用 skills 命令行装
 
 ```sh
+npx skills add chrisopal/narrated-video-studio            # 交互选择装给哪个 agent
+npx skills add chrisopal/narrated-video-studio -g -a claude-code -a codex -y
+```
+
+这样装进去的如果只有 `SKILL.md`、没有旁边的 `kit/`，agent 会按 skill 里写的，在开工时把本仓库克隆到工作目录再用。
+
+### 方式三：在 Claude 应用里上传（网页版、桌面版）
+
+1. 下载 [`dist/narrated-video-studio.zip`](dist/narrated-video-studio.zip)（里面只有一份 `SKILL.md`）。
+2. 在 Claude 里打开 **Customize → Skills**，点 **+** → **Create skill** → **Upload a skill**，上传这个 zip。需要先在设置里打开“代码执行和文件创建”。
+3. 对 Claude 说“做一条视频”。它会先把这个仓库克隆到自己的工作区再开工。
+
+应用里的工作区是临时的，所以每次都要重新克隆和装依赖；配音要联网调接口，工作区出不去时需要在你自己的电脑上跑那一步。
+
+### 依赖
+
+```sh
+# macOS
 brew install ffmpeg
+# Debian / Ubuntu
+sudo apt-get install -y ffmpeg
+
 pip install playwright numpy soundfile pillow
 playwright install chromium
 # 可选：配音回听（把配音转回文字和稿子比对）
 pip install sherpa-onnx pypinyin
-# 可选：水墨、石印、漆屏风这几套风格用的宋体
+# 可选：水墨、石印、漆屏风这几套风格用的宋体（Linux 装 fonts-noto-cjk）
 brew install --cask font-noto-serif-cjk-sc
 ```
+
+主要在 macOS 和 Linux 上用过，Windows 没有试过。
 
 配音二选一：
 
 - 有 [OpenRouter](https://openrouter.ai) 的密钥：存成仓库根目录的 `openrouter_key.txt`（只放一行；这个文件已在 `.gitignore` 里，不会被提交），或设环境变量 `OPENROUTER_API_KEY`。
 - 没有密钥：用 `kit/tts.sh`，它走免费的 edge-tts（`pip install edge-tts`）。
-
-### 在 Claude 应用里用（网页版、桌面版）
-
-1. 下载 [`dist/narrated-video-studio.zip`](dist/narrated-video-studio.zip)（里面只有一份 `SKILL.md`）。
-2. 在 Claude 里打开 **Customize → Skills**，点 **+** → **Create skill** → **Upload a skill**，上传这个 zip。需要先在设置里打开“代码执行和文件创建”。
-3. 对 Claude 说“做一条视频”。它会按 skill 里写的，先把这个仓库克隆到自己的工作区再开工。
-
-应用里 Claude 的工作区是临时的，所以它每次都要重新克隆和装依赖；配音要联网调接口，工作区出不去时需要在你自己的电脑上跑那一步。想让它把复盘后的模板改动推回仓库，它得有这个仓库的写权限——用自己的 fork 最省事。
 
 ## 怎么用
 
@@ -98,6 +125,7 @@ brew install --cask font-noto-serif-cjk-sc
 | “讲讲我爷爷那台老缝纫机，温情一点” | 先拆提示词（要故事、要慢、要留白），给三个不同的讲法（比如“一物一史”“书信体”“器物自述”），你挑一个；声音也跟着换：语速、语气、哪里不说话 |
 | “做一条抖音，讲清楚为什么电池会鼓包” | 直接出 9:16 竖版：钩子在第一句，一屏一件事，字和画面都在安全区里，附发布文案 |
 | “讲一家做谐波减速器的隐形冠军” | 用“制造业隐形冠军”卡和产业图谱风格：从选题库起步，每条断言标来源层级（政府名单、公司披露、公司自述……），公司自己说的写成“公司称”，片尾带“不构成投资建议” |
+| “做一条一分钟的无旁白短片，四季，卡着音乐走” | 用“诗意影像”卡：一个画面母题贯穿，按节拍网格换场和换机位，字写在画上；可以叠艺术引擎的笔触、胶片质感 |
 | “这些是我在展会拍的视频，剪一条” | 转写素材、给镜头打分出联系表、按句子定入出点，用满屏片段、转场、J/L 剪接重新剪；原声在旁白下自动压低 |
 
 **不千篇一律**：每条片子立项时先拆提示词，再写三个创意方向（视角、结构、钩子、声音、画面母题五样里至少三样不同），选定后写进 `brief.json`。叙事手法库里有十四种讲法（一物一史、问题链、拆解、旅程、日记书信体、双线对照、悬念倒叙……），见 `templates/叙事与创意.md`。检查会看逻辑线（开头问的结尾答了没有、中段有没有转折、结尾回不回扣开头），还会拿它和最近六条片子比，太像就提醒。
@@ -117,7 +145,7 @@ brew install --cask font-noto-serif-cjk-sc
 
 ```sh
 mkdir -p ~/video-work && cd ~/video-work
-ln -sfn ~/.claude/skills/narrated-video-studio/kit kit
+ln -sfn <skill 目录>/narrated-video-studio/kit kit     # 用绝对路径
 python3 kit/build.py                 # 不带参数：列出全部命令
 python3 kit/workshop.py status       # 模板台账：哪些稳定、哪些候选、收件箱里有什么
 ```
@@ -138,7 +166,7 @@ python3 ../kit/build.py final 样片            # 出 样片.mp4
 
 **收件箱**（一个点子，或别处看到的做法）→ **候选**（写成了代码、有样张、在一条片里试过）→ **稳定**（两条成片用过，且回归样张里有它）→ **退役**
 
-每条片子做完要复盘：新写的函数逐个决定“沉淀成通用组件 / 留在本片 / 并入已有的”；检查没拦住的问题记进 `templates/经验库.md`，同一类问题第二次出现就必须变成一项自动检查或一个模板默认值。改了引擎之后跑 `python3 kit/workshop.py gallery`，158 张样张会重渲并和基线逐张比，防止改一处坏一片。想把一种新风格做成风格包，照 `templates/新风格包任务书.md` 做。
+每条片子做完要复盘：新写的函数逐个决定“沉淀成通用组件 / 留在本片 / 并入已有的”；检查没拦住的问题记进 `templates/经验库.md`，同一类问题第二次出现就必须变成一项自动检查或一个模板默认值。改了引擎之后跑 `python3 kit/workshop.py gallery`，185 张样张会重渲并和基线逐张比，防止改一处坏一片。想把一种新风格做成风格包，照 `templates/新风格包任务书.md` 做。
 
 ## 目录
 
@@ -149,8 +177,48 @@ python3 ../kit/build.py final 样片            # 出 样片.mp4
 | `kit/packs/` | 风格包：水墨引擎、固定人物、行迹地图、石印画报、漆屏风（从旧片收进来），扁平发光、概念形变、白板手写、桌面拼贴、动态文字、等距沙盘、全息界面、活体录屏、简笔角色、讲解员、铜版画、木刻版画、案卷、产业图谱（自己实现） |
 | `kit/gallery/` | 回归样张和基线图；也是最好的入门例子 |
 | `templates/` | 叙事与创意（拆提示词、三个方向、叙事手法库、逻辑线、声音）、竖版与平台、题材模板（十五张卡）、风格模板、风格包用法、素材与剪辑、素材授权请求函、制造业隐形冠军选题库、拉片、台账、经验库、更新记录 |
-| `legacy/` | 三条旧片的源码和把它们收编成风格包的脚本 |
+| `legacy/` | 三条旧片的源码、huashu-art-motion 的上游源码（`legacy/huashu/`），以及把它们收编成风格包的脚本 |
+| `tools/` | `selftest.py` 不开浏览器的自检；`make_skill_zip.sh` 生成上传用的 zip |
 | `docs/images/` | 本页用的效果图 |
+
+## 致谢：参考和借鉴过的项目
+
+这个工坊不是凭空做出来的。动手之前和做的过程中，读过下面这些开源的视频 skill，从它们那里学到了很多。谢谢这些作者把自己的方法公开出来。
+
+**直接收进了代码的**
+
+- [alchaincyf/huashu-art-motion](https://github.com/alchaincyf/huashu-art-motion)（花叔，MIT）：它的绘画库、动效库和转场库共 16 个文件原样收在 `legacy/huashu/`，生成本仓库的艺术引擎 `kit/packs/art.js`（重绘、后期、45 个转场）；逐帧动效检查照它验收脚本的量法重写；九种解说动画语法、经验回流的做法也受它启发。许可全文、取用的提交和范围见 [`legacy/huashu/UPSTREAM.md`](legacy/huashu/UPSTREAM.md)。
+
+**借鉴了思路、规则是重新写的**
+
+| 项目 | 许可 | 学到了什么 |
+|---|---|---|
+| [lemomo-ai/lemo-opuscar](https://github.com/lemomo-ai/lemo-opuscar) | MIT | 导演方法（三个候选结构、声音优先）、阅读时长公式、蓝图 / 水墨 / 瑞士网格 / 等距 / 全息 / 铜版 / 木刻 / 案卷等风格语法 |
+| [sunxiayi/make-blender-education-video-skill](https://github.com/sunxiayi/make-blender-education-video-skill) | MIT | 断言台账的三种状态；七种讲解叙事模式 |
+| [BusyBee3333/animated-explainer-skills](https://github.com/BusyBee3333/animated-explainer-skills) | MIT | 留存检查：钩子与高潮呼应、画面空档 |
+| [iart-ai/data-animation-skills](https://github.com/iart-ai/data-animation-skills)、[map-animation-skills](https://github.com/iart-ai/map-animation-skills) | MIT | 图表节奏预算；地图节拍的思路 |
+| [Finderchangchang/promo-video-skill](https://github.com/Finderchangchang/promo-video-skill) | Apache-2.0 | 镜头类型清单、行业规则与极限词检查、“骨架与皮肤”二分 |
+| [crimeacs/product-demo-director](https://github.com/crimeacs/product-demo-director) | MIT | 断言绑定证据、产品出场时间、模拟画面必须标注 |
+| [jaxxchen003/book-video-factory](https://github.com/jaxxchen003/book-video-factory) | MIT | 文学类的溯源、观点与事实分开 |
+| [zenstory-ai/video-recap-skills](https://github.com/zenstory-ai/video-recap-skills) | MIT | 素材理解索引、声音归属、入出点落在句界 |
+| [znyupup/ai-video-editing-skill](https://github.com/znyupup/ai-video-editing-skill)、[Fagan1024/smart-video-editor](https://github.com/Fagan1024/smart-video-editor) | MIT | 素材分析、切片与规整的 ffmpeg 做法、带时间码抽帧 |
+| [eternityspring/reelbench-skills](https://github.com/eternityspring/reelbench-skills) | Apache-2.0 | 拉片：机器量切点、镜头表字段 |
+| [calesthio/OpenMontage](https://github.com/calesthio/OpenMontage) | AGPL-3.0 | 只参考了思路（题材流水线、素材清单字段、来源许可记录），没有使用它的代码或文字 |
+
+没有收录任何项目的角色形象、示范视频或素材。完整记录在 [`templates/来源与许可.md`](templates/来源与许可.md)。如果哪一处的归属写得不准确，请提 issue，会马上改。
+
+### 和它们有什么不一样
+
+这些项目各有专长：有的把画面和动效做到很深，有的专做某一类片子或某一个环节。本项目想做的是另一件事——**把一句话变成一条能发布的片子的整条流程**，并且让每一步都留下可核对的记录：
+
+- **先查证再写稿**：数字、年份、人名、引语都进断言台账，带来源和来源层级；公司自己说的只能写成“公司称”。
+- **素材过授权台账**：能进成片的素材只有几种依据，授权素材要有凭证，检查不过不出片。
+- **配音要回听**：把配音转回文字和稿子比对，并取到每个字的发音时刻，画面按关键词对时而不是写死秒数。
+- **检查是门禁**：阅读时长、文字出画、平台遮挡区、叙事线、动效等二十多项，有不通过项就拒绝出片。
+- **模板库会生长**：每条片子做完复盘，新写的东西经“收件箱 → 候选 → 稳定”进入模板库，改动要过回归样张。
+- **横版竖版都是原生的**，题材卡偏中文语境（行迹地图、行旅日记、双线叙事、制造业隐形冠军等）。
+
+和 huashu-art-motion 具体比：它是一套画面引擎，35 种艺术风格各有一个完整场景，画面的质感和动效的丰富程度明显在本项目之上，还有按音乐节拍编排和拆解复刻参考片的方法；本项目只收了它引擎里通用的那一层（渲染器和转场），没有收它的 35 个风格场景、角色和参数化片段。想做“让一幅画活起来”的艺术动画，直接用它；想从选题、查证一路做到带字幕和授权清单的成片，用本项目。
 
 ## 已知的限制
 
@@ -162,12 +230,13 @@ python3 ../kit/build.py final 样片            # 出 样片.mp4
 - 竖版：引擎、字幕、封面、安全区检查都支持了，但不少风格包的版式是按横版设计的（讲解员、漆屏风两栏、行迹地图），竖版里要重排；平台安全区是保守值，发布前在 App 里预览。
 - 重新剪辑的素材要在台账里写清来源：自己拍的、企业书面授权的、图库按许可可用的，或者从网上下载、作为引用的短片段（每段不超过 15 秒、画面上标来源）。注明来源不等于获得授权，引用别人的片段由做片子的人决定并承担风险；工具箱不带批量抓取视频网站的功能。
 - 选题库里的企业资料按检索日期记录，用之前要对照最新的年报和公告重新核对；片子只讲企业和技术，不讲股票。
-- 文档、注释和模板都是中文；主要在 macOS 和 Linux 上用过，Windows 没有试过。
+- 艺术引擎、节拍网格、“诗意影像”题材卡是新加的，只有样片，还没在成片里用过。
+- 文档、注释和模板都是中文；主要在 macOS 和 Linux 上用过，Windows 没有试过。除 Claude 之外的 agent 没有实测。
 
 更完整的清单在 `SKILL.md` 末尾。
 
 ## 许可
 
-本仓库自己写的代码、模板和文档按 [MIT 许可](LICENSE)。字体和海岸线数据来自第三方，各按自己的许可，见 [THIRD_PARTY.md](THIRD_PARTY.md)。
+本仓库自己写的代码、模板和文档按 [MIT 许可](LICENSE)。艺术引擎的上游源码（huashu-art-motion，MIT）、字体和海岸线数据来自第三方，各按自己的许可，见 [THIRD_PARTY.md](THIRD_PARTY.md)。
 
 你用它做出来的视频归你；片子里引用的事实、原文、照片和视频素材的来源与授权由做片子的人负责，工具只负责帮你把台账记清楚。

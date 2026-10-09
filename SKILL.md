@@ -32,9 +32,9 @@ description: 做讲解类和叙事类视频：科普、历史、人物传记与�
 
 开工先拿到工坊：
 
-- **本机（Claude Code）**：工坊就是 skill 所在目录 `${CLAUDE_SKILL_DIR}`（通常是 `~/.claude/skills/narrated-video-studio`），先 `git -C <工坊> pull`。
-- **云端工作区**（每次是新的）：`git clone https://github.com/chrisopal/narrated-video-studio`；仓库不公开时先把它接入会话再克隆。要把改动推回去，需要有这个仓库的写权限。
-- 只有一份上传的 `SKILL.md`、身边没有 `kit/`：按上一条克隆。
+- **本机**：`SKILL.md` 旁边有 `kit/` 时，工坊就是 skill 所在目录（Claude Code 里是 `${CLAUDE_SKILL_DIR}`，通常 `~/.claude/skills/narrated-video-studio`；别的 agent 在各自的 skill 目录，如 `~/.agents/skills/`），先 `git -C <工坊> pull`。
+- **云端工作区**（每次是新的）：`git clone https://github.com/chrisopal/narrated-video-studio`（公开仓库；用的是自己的 fork 就克隆 fork）。要把改动推回去，需要有这个仓库的写权限。
+- 只有一份 `SKILL.md`、身边没有 `kit/`（上传的 zip，或用 skills 命令行装的）：按上一条克隆。
 
 项目不放进仓库。找一个工作目录，在里面给引擎做个链接，项目建在同级，下文所有命令都在项目目录里运行：
 
@@ -51,7 +51,7 @@ mkdir -p ../kit/models && cd ../kit/models && curl -sL -o m.tar.bz2 https://gith
 
 配音密钥：OpenRouter 的密钥存成工坊根目录的 `openrouter_key.txt`（一行，已在 `.gitignore` 里），或环境变量 `OPENROUTER_API_KEY`。不要读出来、不要写进任何别的地方、不要提交。没有密钥就用 `kit/tts.sh`（edge-tts，免费）。
 
-云端和用户电脑怎么分工：查资料、画面、渲染、回听、切片可以在云端；配音要联网调接口，云端出不去时在用户电脑上的那份工坊里跑（先找 `~/Development/narrated-video-studio`、`~/.claude/skills/narrated-video-studio`，找不到就问用户克隆在哪）；用户的原始视频在他电脑上，取到项目的 `footage/` 再处理。成片和项目文件最后存到用户指定的位置（没说就是 `~/Movies/<项目名>/`）。
+云端和用户电脑怎么分工：查资料、画面、渲染、回听、切片可以在云端；配音要联网调接口，云端出不去时在用户电脑上的那份工坊里跑（先找各 agent 的 skill 目录，如 `~/.claude/skills/narrated-video-studio`、`~/.agents/skills/narrated-video-studio`，找不到就问用户克隆在哪）；用户的原始视频在他电脑上，取到项目的 `footage/` 再处理。成片和项目文件最后存到用户指定的位置（没说就是 `~/Movies/<项目名>/`）。
 
 ## 流程
 
