@@ -30,6 +30,10 @@
 
 ![又六套风格包](docs/images/styles_six.jpg)
 
+**艺术引擎**：同一幅画换几种画法——旋动的短笔触、点彩、马赛克转场、马赛克、老胶片、明暗法。它是叠在任何风格包上面的一层，绘画库、动效库和转场库收编自 [alchaincyf/huashu-art-motion](https://github.com/alchaincyf/huashu-art-motion)（MIT）
+
+![艺术引擎](docs/images/art_engine.jpg)
+
 **制造业隐形冠军 + 重新剪辑素材**：上排是产业图谱包——人形机器人的关节里藏着哪些零件、零件爆炸图、份额和“进口 / 国产”对比（样片用的是虚构企业，数据为示意）；下排是剪辑能力——竖拍素材放进横框的三种铺法、片段之间的擦切、原声先进的 J-cut
 
 ![产业图谱与剪辑](docs/images/industry_recut.jpg)

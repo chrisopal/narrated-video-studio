@@ -13,7 +13,8 @@
   timeline                 配音时长（有 audio/words.json 就用逐字时间）→ timeline.json + vo.wav
   stills 3,10,20 [目录]    抽帧检查
   sheet [间隔秒]           整片总览图（每 5 秒一帧，9 帧一张）→ sheets/
-  check                    交付前总检查：断言、素材授权、回听、阅读时长、出画、字幕带、重叠、小字、空档 → check_report.json
+  check [--no-motion]      交付前总检查：断言、素材授权、回听、阅读时长、出画、字幕带、重叠、小字、空档、动效 → check_report.json
+  motion                   动效数字：每句的运动面积、静止帧对、跳变、每帧耗时，全片的确定性（同一时刻画两遍是否一样）
   render [out.mp4]         横版无声视频
   mix                      配乐 + 音效 + 素材原声（有旁白处自动压低）+ 配音 → mix.wav（响度 -14 LUFS）
   final 名字 [--force]     封面 2 秒 + 正片 + 音轨 → <名字>.mp4、<名字>.srt、素材来源与授权.txt
@@ -649,14 +650,50 @@ def browser(p, tl):
     return b, pg, total, errs
 def pipe(out, crf=18):
     return subprocess.Popen(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', str(FPS), '-c:v', 'mjpeg', '-i', '-', '-c:v', 'libx264', '-crf', str(crf), '-preset', 'medium', '-pix_fmt', 'yuv420p', str(out)], stdin=subprocess.PIPE)
-def get_scan(tl, cache=True):
-    f = P / '_scan.json'
+def page_pass(tl, name, expr, cache=True):
+    """在页面里跑一遍整片的量测（expr），结果存成 <name>；场景、时间轴、素材、引擎都没动过就直接用上次的。"""
+    f = P / name
     if cache and f.exists() and f.stat().st_mtime > max((P / x).stat().st_mtime for x in ('scenes.js', 'timeline.json', 'assets.json', 'clips/meta.json') if (P / x).exists()) and f.stat().st_mtime > max((KIT / x).stat().st_mtime for x in ['kit.js', 'components.js'] + [f'packs/{k}.js' for k in BRIEF.get('packs', [])]): return json.load(open(f))
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
-        b, pg, total, errs = browser(p, tl); sc = pg.evaluate('()=>window.scan(0.1)'); b.close()
+        b, pg, total, errs = browser(p, tl); sc = pg.evaluate(expr); b.close()
         if errs: print('页面报错', errs[:5]); sys.exit(1)
     json.dump(sc, open(f, 'w'), ensure_ascii=False); return sc
+def get_scan(tl, cache=True): return page_pass(tl, '_scan.json', '()=>window.scan(0.1)', cache)
+def get_motion(tl, cache=True): return page_pass(tl, '_motion.json', '()=>window.motionScan(%d)' % FPS, cache)
+
+# ---------- 动效 ----------
+STILL_MV = 0.0005; JUMP_MV = 0.03; JUMP_X = 6; SLOW_MS = 250   # 相邻两帧变了的像素不到万分之五算“没动”；超过 3% 且是这一句平常的 6 倍算“跳变”；一帧画超过 250 毫秒算慢
+def motion_stats(mo, tl):
+    """按句子汇总：运动面积中位数、静止帧对占比、跳变。量法照 huashu-art-motion 的 qa.py：整片每一对相邻帧都量，不抽样。"""
+    rows = []; fr = mo['frames']
+    for s in tl:
+        xs = [f for f in fr if s['t0'] <= f['t'] < s['t1']]
+        if not xs: continue
+        mv = sorted(f['mv'] for f in xs); med = mv[len(mv) // 2]; still = sum(v < STILL_MV for v in mv) / len(mv)
+        edge = lambda f: f['t'] - s['t0'] < .6 or s['t1'] - f['t'] < .6   # 句子两头是分场淡入淡出和转场，本来就整屏在变
+        # 跳变是“孤立的一下”：比这一句平常大得多，而且只持续一两对相邻帧（一对 = 硬切，连着两对 = 闪了一帧）；连着三对以上都大的是运镜或转场，不算
+        thr = max(JUMP_MV, JUMP_X * max(med, STILL_MV)); jumps = []; i = 0
+        while i < len(xs):
+            j = i
+            while j < len(xs) and xs[j]['mv'] > thr: j += 1
+            if 1 <= j - i <= 2 and not edge(xs[i]): jumps.append(xs[i])
+            i = max(j, i + 1)
+        # 步进动画（一秒画几步，手绘动画的做法；art 包 look 的步进形式就是）：画面多数帧不动、隔一小会儿整屏换一下、反复出现，那是有意的节奏，不报
+        gaps = [b['t'] - a['t'] for a, b in zip(jumps, jumps[1:])]; step = 0
+        if len(jumps) >= 4 and still >= .4 and max(gaps) <= .5: step = max(1, round(len(gaps) / sum(gaps))); jumps = []   # 大半时间相邻帧不动，隔不到半秒整屏换一下，反复出现
+        rows.append({'id': s['id'], 't0': s['t0'], 'dur': s['t1'] - s['t0'], 'med': med, 'still': still, 'jumps': jumps, 'step': step, 'ms': sorted(f['ms'] for f in xs)[len(xs) // 2]})
+    return rows
+def motion_check(mo, tl):
+    rows = motion_stats(mo, tl); warns = {'jump': [], 'still': [], 'slow': [], 'det': []}
+    for r in rows:
+        for f in r['jumps']: warns['jump'].append(f"{f['t']:6.1f}s 相邻两帧有 {f['mv'] * 100:.0f}% 的画面变了（{r['id']} 这一句平常是 {r['med'] * 100:.1f}%）：硬切、闪烁或穿帮，看这一帧；有意的拍点可以保留")
+        if r['dur'] >= 4 and r['still'] > .85 and not r['step']: warns['still'].append(f"{r['t0']:6.1f}s {r['id']} 这一句有 {r['still'] * 100:.0f}% 的时间相邻帧完全不动：画是静的，只是偶尔换一下。给主体一个持续的小动作")
+    ms = sorted(f['ms'] for f in mo['frames']); med = ms[len(ms) // 2] if ms else 0
+    if med > SLOW_MS: warns['slow'].append(f"画一帧的中位耗时 {med:.0f} 毫秒，整片渲染大约 {med * mo['total'] * FPS / 60000:.0f} 分钟：整屏重绘改用步进形式 look(名字, t, {{draw, fps}})，或只在几句里用")
+    for d in mo['det']:
+        if not d['same']: warns['det'].append(f"{d['t']:6.1f}s 同一时刻画两遍，结果不一样：用了 Math.random、Date，或有跨帧累积的状态（比如画进一张不清空的离屏）。重渲、抽帧和回归样张都会和成片对不上")
+    return rows, warns
 
 # ---------- 竖版 ----------
 def short_plan(tl):
@@ -709,12 +746,24 @@ if __name__ == '__main__':
                     if m in r[0] and r[5] >= .8: shown[m] = shown.get(m, 0) + 1
         rep['必须出现的声明'] = ([f'画面上没有出现「{m}」，或停留不到 2 秒（brief.json 的 must_show 要求）' for m in need if shown.get(m, 0) * (sc['frames'][1]['t'] - sc['frames'][0]['t']) < 2], [])
         rep['字体缺字'] = ([], [f"{'毛笔体' if k == 'Brush' else '草书'}没有这些字，会回落成楷体：{''.join(sorted(v))}（换字、换成宋体，或装全字库）" for k, v in miss.items()])
+        if '--no-motion' not in sys.argv:   # 动效：相邻帧量出来的运动、跳变、耗时，和“同一时刻画两遍是否一样”。都是提醒：数字是线索，要看帧才能下结论
+            mo = get_motion(tl, cache='--fresh' not in sys.argv); rows, Mw = motion_check(mo, tl)
+            rep['确定性'] = ([], Mw['det']); rep['跳变'] = ([], Mw['jump']); rep['逐帧不动'] = ([], Mw['still']); rep['渲染耗时'] = ([], Mw['slow'])
         for k, (f, w) in rep.items(): show(k, f, w)
         nf = sum(len(f) for f, _ in rep.values()); nw = sum(len(w) for _, w in rep.values())
         json.dump({'fails': nf, 'warns': nw, 'detail': {k: {'fails': f, 'warns': w} for k, (f, w) in rep.items()}}, open(P / 'check_report.json', 'w'), ensure_ascii=False, indent=1)
         import datetime
         with open(P / 'check_history.jsonl', 'a', encoding='utf-8') as fh: fh.write(json.dumps({'time': datetime.datetime.now().isoformat(timespec='seconds'), 'fails': nf, 'warns': nw, 'by': {k: len(f) + len(w) for k, (f, w) in rep.items()}}, ensure_ascii=False) + '\n')   # 复盘时统计“检查拦下了什么”
         print(f'总计：{nf} 项不通过，{nw} 项提醒（提醒要逐条看帧确认，不能直接忽略）'); sys.exit(1 if nf else 0)
+    if cmd == 'motion':   # 动效数字：每句的运动面积、静止帧对、跳变、每帧耗时；最后是确定性
+        mo = get_motion(tl, cache='--fresh' not in sys.argv); rows, Mw = motion_check(mo, tl)
+        print('句子      起点    时长   运动面积(中位)  静止帧对   跳变   每帧毫秒')
+        for r in rows: print(f"{r['id']:8s}{r['t0']:6.1f}s {r['dur']:5.1f}s {r['med'] * 100:10.2f}%   {r['still'] * 100:7.0f}%  {len(r['jumps']):5d}  {r['ms']:8.0f}" + (f"   步进，约 {r['step']} 步/秒" if r['step'] else ''))
+        mv = sorted(f['mv'] for f in mo['frames']); n = len(mv)
+        print(f"全片：运动面积中位数 {mv[n // 2] * 100:.2f}%，静止帧对 {sum(v < STILL_MV for v in mv) / n * 100:.0f}%，确定性 {sum(d['same'] for d in mo['det'])}/{len(mo['det'])} 处一致")
+        print('读法：运动面积多数好看的段落在 0.5%–8%；静止帧对超过四成读起来是“一卡一卡”；跳变先看帧再判断。数字是线索，不是结论。')
+        for k, title in (('det', '确定性'), ('jump', '跳变'), ('still', '逐帧不动'), ('slow', '渲染耗时')): show(title, [], Mw[k])
+        sys.exit()
     if cmd == 'mix':
         sc = get_scan(tl); ev = list(sc['events']); seen = set()
         for s in tl:   # 每换一章加一声转场

@@ -141,6 +141,14 @@ window.vertFrameA=async(t,sub,prog)=>{window.CLEAN=1;await window.renderFrameA(t
 window.scan=async(step=.1)=>{const T=total(),th=document.createElement('canvas');th.width=96;th.height=54;const c=th.getContext('2d',{willReadFrequently:true});let prev=null;const frames=[],ev={},used={},miss={};window.CLEAN=1;
   for(let t=0;t<T;t+=step){await window.renderFrameA(t);REC={tx:[],ev,used,miss};window.renderFrame(t);REC=null;c.drawImage(cv,0,0,96,54);const d=c.getImageData(0,0,96,54).data;let df=0;if(prev){for(let i=0;i<d.length;i+=4)df+=Math.abs(d[i]-prev[i])+Math.abs(d[i+1]-prev[i+1])+Math.abs(d[i+2]-prev[i+2]);df/=d.length/4*3}prev=d;frames.push({t:+t.toFixed(2),tx:LASTTX,df:+df.toFixed(3)})}
   window.CLEAN=0;return {frames,events:Object.entries(ev).map(([k,g])=>{const i=k.lastIndexOf('@');return {type:k.slice(0,i),t:+k.slice(i+1),gain:g}}).sort((a,b)=>a.t-b.t),used,miss:Object.keys(miss),W,H,total:T}};
+// 动效扫描：整片逐帧画一遍，量每一对相邻帧有多少像素在动（mv，占画面的比例）和画这一帧用了多久（ms）；
+// 另抽几个时刻，隔着别的帧各画两遍，看结果是不是逐像素一样（det）。量法照 huashu-art-motion 的 qa.py：
+// 隔 0.1 秒比两帧看得出“有没有动”，看不出“是连续在动还是一卡一卡”，也看不出单帧的闪烁和硬切，所以这里每一对相邻帧都比，不抽样。
+window.motionScan=async(fps=30)=>{const T=total(),tw_=192,th_=Math.round(192*H/W),th=document.createElement('canvas');th.width=tw_;th.height=th_;const c=th.getContext('2d',{willReadFrequently:true}),frames=[],det=[];window.CLEAN=1;let a=null;
+  for(let k=0;k/fps<T;k++){const t=k/fps,s=performance.now();await window.renderFrameA(t);c.drawImage(cv,0,0,tw_,th_);const b=c.getImageData(0,0,tw_,th_).data,ms=performance.now()-s;if(a){let n=0;for(let i=0;i<a.length;i+=4)if(Math.abs(a[i]-b[i])>12||Math.abs(a[i+1]-b[i+1])>12||Math.abs(a[i+2]-b[i+2])>12)n++;frames.push({t:+((k-1)/fps).toFixed(3),mv:+(n/(a.length/4)).toFixed(5),ms:+ms.toFixed(1)})}a=b}
+  const png=async t=>{await window.renderFrameA(t);return cv.toDataURL('image/png')};
+  for(let k=0;k<8;k++){const t=+(T*(k+.5)/8).toFixed(2),u=await png(t);await png((t+T/2)%T);await png(Math.max(0,t-.5));det.push({t,same:u===await png(t)})}
+  window.CLEAN=0;return {frames,det,total:T,fps}};
 let LASTTX=[],ASSETS=[];
 // tl 时间轴；assets 素材台账（图片直接载入 IM，视频片段登记到 CLIPS，逐帧按需加载）
 window.init=async(tl,assets)=>{TL=tl;FILM=window.FILM;TH=THEMES[FILM.theme]||THEMES.space;if(FILM.themePatch)Object.assign(TH,FILM.themePatch);ASSETS=assets||[];

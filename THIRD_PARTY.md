@@ -11,6 +11,8 @@
 | 东部细海岸线（`LAND_E`） | `kit/packs/map.js`、`legacy/dongpo.html` | 取自 GSHHG 海岸线数据（经 basemap 数据文件），GNU LGPL |
 | 全图粗海岸线（`LAND_W`） | `kit/packs/map.js`、`legacy/hehai.html` | 旧片带来的数据，**原始来源这次没有核对到**；介意的话换成自己确认过来源的数据 |
 | 江河、湖、山、地名的经纬度 | `kit/packs/map.js` | 本项目手工录入的示意数据，不是测绘成果，不可作为地理依据 |
+| 艺术引擎的上游源码 | `legacy/huashu/`，以及由它生成的 `kit/packs/art.js` | alchaincyf/huashu-art-motion，MIT License，Copyright (c) 2026 alchaincyf。许可全文在 `legacy/huashu/LICENSE`，取用的提交和范围在 `legacy/huashu/UPSTREAM.md`。上游作者的卡通形象不在 MIT 范围内，没有收进来 |
+| Inter、Computer Modern Unicode、Press Start 2P | `kit/fonts/art/` | 各自作者，SIL Open Font License 1.1（`kit/fonts/art/OFL.txt`） |
 
 宋体不随仓库分发，渲染时用本机的思源宋体（Noto Serif CJK SC）或系统宋体。
 

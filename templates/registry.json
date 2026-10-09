@@ -353,7 +353,8 @@
   "engrave",
   "woodcut",
   "dossier",
-  "industry"
+  "industry",
+  "art"
  ],
  "films": [
   {
@@ -2245,6 +2246,26 @@
    "status": "inbox",
    "from": "评审 docs/review-2026-10-09.md",
    "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "pack.art",
+   "kind": "pack",
+   "name": "艺术引擎（重绘、后期、转场、绘画与动效库）",
+   "pack": "art",
+   "from": "收编 alchaincyf/huashu-art-motion（MIT），接合层自己写",
+   "demo": "art",
+   "status": "candidate",
+   "since": "2026-10-10",
+   "used_in": []
+  },
+  {
+   "id": "check.motion",
+   "kind": "check",
+   "name": "动效：逐帧运动面积、跳变、逐帧不动、渲染耗时、确定性（同一时刻画两遍）",
+   "from": "照 huashu-art-motion qa.py 的量法重写",
+   "status": "candidate",
+   "since": "2026-10-10",
    "used_in": []
   }
  ]
