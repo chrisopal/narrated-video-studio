@@ -13,6 +13,7 @@
   timeline                 配音时长（有 audio/words.json 就用逐字时间）→ timeline.json + vo.wav
   stills 3,10,20 [目录]    抽帧检查
   sheet [间隔秒]           整片总览图（每 5 秒一帧，9 帧一张）→ sheets/
+  （文章转视频：先用 python3 ../kit/article.py fetch 网址，见 templates/文章转视频.md）
   check [--no-motion]      交付前总检查：断言、素材授权、回听、阅读时长、出画、字幕带、重叠、小字、空档、动效 → check_report.json
   beats 音乐文件            量一条音乐的速度和第一拍的位置，给出要写进 brief.json 的 bpm、beat_offset（卡点的片子用）
   motion                   动效数字：每句的运动面积、静止帧对、跳变、每帧耗时，全片的确定性（同一时刻画两遍是否一样）
@@ -251,6 +252,7 @@ def facts_check(tl):
     F = json.load(open(f)); covered = set()
     for i, x in enumerate(F):
         tag = f"第{i + 1}条「{x.get('claim', '')[:16]}」"
+        if x.get('status') == 'todo': fails.append(tag + ' 还是 todo：这是从文章里扫出来的说法，查证后改成 verified / inferred / opinion / quote，稿子里不用它就删掉这条'); continue
         if x.get('status') not in ('verified', 'inferred', 'conceptual', 'opinion', 'quote'): fails.append(tag + ' 的 status 要填 verified / inferred / conceptual / opinion / quote')
         if x.get('status') == 'quote' and not x.get('source'): fails.append(tag + ' 是引文，source 要写出处（书名章节页码、讲话场合日期或网址）')
         if x.get('status') == 'opinion' and not x.get('note'): warns.append(tag + ' 是观点，note 里写清是谁的观点，稿子里不能说成事实')
@@ -685,6 +687,33 @@ def page_pass(tl, name, expr, cache=True):
 def get_scan(tl, cache=True): return page_pass(tl, '_scan.json', '()=>window.scan(0.1)', cache)
 def get_motion(tl, cache=True): return page_pass(tl, '_motion.json', '()=>window.motionScan(%d)' % FPS, cache)
 
+# ---------- 文章转视频：原文依据 ----------
+ARTICLE_BASIS = {'own': '自己的文章', 'licensed': '已获原作者书面授权', 'commentary': '介绍和评论别人的文章'}
+def article_check(tl):
+    """brief.json 有 source_article（这条片是从一篇文章来的）时查：凭什么用这篇文章、画面上有没有注明出处、视频稿是不是在照念原文。规矩见 templates/文章转视频.md"""
+    SA = BRIEF.get('source_article') or {}; fails = []; warns = []; basis = SA.get('basis')
+    if basis not in ARTICLE_BASIS: fails.append("source_article.basis 要填：own（" + ARTICLE_BASIS['own'] + "）/ licensed（" + ARTICLE_BASIS['licensed'] + "）/ commentary（" + ARTICLE_BASIS['commentary'] + "，只能用自己的话讲、少量引用）。这一项要问用户，不能替他猜")
+    if basis == 'licensed' and not SA.get('proof'): fails.append('source_article 标了已获授权：proof 里写授权人、范围、日期（凭证文件放进项目，写在 proof_file）')
+    credit = SA.get('credit')
+    if basis != 'own' and (not credit or credit not in BRIEF.get('must_show', [])): fails.append('别人的文章要在画面上注明出处：把 source_article.credit 这一句原样写进 brief.json 的 must_show（检查会确认它清楚显示 ≥2 秒）')
+    f = P / 'article' / 'article.json'
+    if not f.exists(): warns.append('没有 article/article.json，没法比对视频稿和原文（python3 ../kit/article.py fetch 网址）'); return fails, warns
+    D = json.load(open(f, encoding='utf-8')); norm = lambda x: re.sub(r'[^\u4e00-\u9fffA-Za-z0-9]', '', x)
+    if SA.get('sha') and D['meta'].get('sha') and SA['sha'] != D['meta']['sha']: warns.append('article/ 里的文章和 brief.json 记的不是同一版（重新取过文？）：确认用的是哪一版，把 source_article.sha 改过来')
+    art = norm(''.join(b.get('text', '') for b in D['blocks'] if not b.get('boiler') and b['type'] in ('p', 'quote', 'li', 'h'))); vo = norm(''.join(s.get('vo', '') for s in tl if not silent(s))); K = 12
+    if len(vo) < K or len(art) < K: return fails, warns
+    grams = {art[i:i + K] for i in range(len(art) - K + 1)}; hit = [False] * len(vo)
+    for i in range(len(vo) - K + 1):
+        if vo[i:i + K] in grams: hit[i:i + K] = [True] * K
+    ratio = sum(hit) / len(vo); run = best = 0
+    for h in hit: run = run + 1 if h else 0; best = max(best, run)
+    if basis == 'commentary':
+        if ratio > .25: fails.append(f'旁白有 {ratio * 100:.0f}% 和原文连续十几个字一模一样：这是在照念别人的文章。用自己的话重讲；要引原话就短引，并进断言台账标 quote')
+        elif ratio > .12: warns.append(f'旁白有 {ratio * 100:.0f}% 和原文一模一样：介绍别人的文章要用自己的话，原话只留非引不可的')
+        if best >= 60: warns.append(f'有一处连着 {best} 个字和原文相同：这么长的原话要当引文处理（画面上打引号、标出处，断言台账标 quote），或者改写')
+    elif ratio > .6: warns.append(f'旁白有 {ratio * 100:.0f}% 是原文照搬：文章是给眼睛看的，视频稿要重讲——开头换成钩子、长句拆短、每句对一个画面（templates/文章转视频.md 第三节）')
+    return fails, warns
+
 # ---------- 节拍 ----------
 def detect_beats(x, sr):
     """量速度和第一拍：短时能量的上升沿做成“起音曲线”，自相关找周期（60–180 拍/分），再找让拍点落在起音上的相位。返回 (bpm, 第一拍秒数, 可信度 0..1)。"""
@@ -798,6 +827,7 @@ if __name__ == '__main__':
                 for m in need:
                     if m in r[0] and r[5] >= .8: shown[m] = shown.get(m, 0) + 1
         rep['必须出现的声明'] = ([f'画面上没有出现「{m}」，或停留不到 2 秒（brief.json 的 must_show 要求）' for m in need if shown.get(m, 0) * (sc['frames'][1]['t'] - sc['frames'][0]['t']) < 2], [])
+        if BRIEF.get('source_article'): rep['原文依据'] = article_check(tl)
         rep['字体缺字'] = ([], [f"{'毛笔体' if k == 'Brush' else '草书'}没有这些字，会回落成楷体：{''.join(sorted(v))}（换字、换成宋体，或装全字库）" for k, v in miss.items()])
         if '--no-motion' not in sys.argv:   # 动效：相邻帧量出来的运动、跳变、耗时，和“同一时刻画两遍是否一样”。都是提醒：数字是线索，要看帧才能下结论
             mo = get_motion(tl, cache='--fresh' not in sys.argv); rows, Mw = motion_check(mo, tl)

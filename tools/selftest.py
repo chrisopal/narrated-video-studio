@@ -38,4 +38,15 @@ for f in sorted((R / 'kit/packs').glob('*.js')):
 ok('艺术引擎的许可和来历说明在', (R / 'kit/packs/art/LICENSE').exists() and (R / 'kit/packs/art/README.md').exists())
 gone = [str(p.relative_to(R)) for p in list(R.glob('*.md')) + list((R / 'templates').glob('*.md')) + list((R / 'kit').rglob('*.js')) + list((R / 'kit').glob('*.py')) + list((R / 'kit').glob('*.html')) if p.name not in ('更新记录.md', 'STATUS.md') and re.search(r'legacy/|mkpacks|mkart', p.read_text(encoding='utf-8'))]
 ok('没有指向已删除的 legacy 目录的说明', not gone, str(gone))
+# 文章转视频：用一份仿公众号页面的样例跑取文和分析
+import tempfile
+with tempfile.TemporaryDirectory() as td:
+    r = subprocess.run([sys.executable, str(R / 'kit/article.py'), 'fetch', str(R / 'tools/fixtures/wx_article.html')], cwd=td, capture_output=True, text=True); T = Path(td)
+    ok('article.py 取文和分析跑得通', r.returncode == 0 and (T / 'article/article.json').exists(), (r.stdout + r.stderr).strip().split('\n')[-1][:160])
+    if (T / 'article/article.json').exists():
+        D = json.load(open(T / 'article/article.json', encoding='utf-8')); M = D['meta']; B = D['blocks']; AN = json.load(open(T / 'article/analysis.json', encoding='utf-8')); SG = json.load(open(T / 'brief.suggest.json', encoding='utf-8')); FA = json.load(open(T / 'facts.json', encoding='utf-8'))
+        ok('  标题、公众号、作者、时间、原创标记', M['title'] == '高原上为什么煮不熟饭' and M['account'] == '工坊自检号' and M['author'] == '自检样例' and M['published'].startswith('2025-10-09') and M['original'], str(M))
+        ok('  两个小标题、一处引文、三条列表、一段代码', [b['type'] for b in B if not b.get('boiler')].count('h') == 2 and sum(b['type'] == 'quote' for b in B) == 1 and sum(b['type'] == 'li' for b in B) == 3 and sum(b['type'] == 'code' for b in B) == 1)
+        ok('  配图带图注，文首文末套话不算正文', any(b['type'] == 'img' and b.get('caption') for b in B) and B[0].get('boiler') and B[-1].get('boiler') and not any('往期' in b.get('text', '') for b in B if not b.get('boiler')))
+        ok('  题材、强调色、出处署名、待核实清单', AN['genres'][0]['genre'] == '科普原理' and SG.get('themePatch', {}).get('a1') == '#d65a28' and SG['source_article']['basis'] == '?' and SG['must_show'] == [SG['source_article']['credit']] and len(FA) >= 3 and all(x['status'] == 'todo' for x in FA), json.dumps(SG, ensure_ascii=False)[:200])
 print(f'\n{len(bad)} 项不通过' if bad else '\n全部通过'); sys.exit(1 if bad else 0)

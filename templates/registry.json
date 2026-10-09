@@ -2315,6 +2315,24 @@
    "status": "candidate",
    "since": "2026-10-10",
    "used_in": []
+  },
+  {
+   "id": "flow.article",
+   "kind": "flow",
+   "name": "文章转视频：article.py 取文（公众号、网页、纯文本）、内容分析、题材和风格建议、待核实清单",
+   "from": "用户要求",
+   "status": "candidate",
+   "since": "2026-10-10",
+   "used_in": []
+  },
+  {
+   "id": "check.原文依据",
+   "kind": "check",
+   "name": "原文依据：文章是谁的、授权凭证、画面注明出处、旁白不照念原文",
+   "from": "文章转视频",
+   "status": "candidate",
+   "since": "2026-10-10",
+   "used_in": []
   }
  ]
 }
