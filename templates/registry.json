@@ -2192,6 +2192,60 @@
    "from": "配音语气",
    "since": "2026-10-09",
    "used_in": []
+  },
+  {
+   "id": "inbox-021",
+   "kind": "check",
+   "name": "回听记录保存 WAV 的 SHA-256、模型和阈值，换了同名配音文件要重跑（评审 P1）",
+   "status": "inbox",
+   "from": "评审 docs/review-2026-10-09.md",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "inbox-022",
+   "kind": "check",
+   "name": "check、render、mix 各存输入指纹，final 要求三者同一版本（现在只比 scenes.js 的时间）（评审 P1）",
+   "status": "inbox",
+   "from": "评审 docs/review-2026-10-09.md",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "inbox-023",
+   "kind": "check",
+   "name": "short 竖版摘要也要过检查（文字、字幕、来源）（评审 P2）",
+   "status": "inbox",
+   "from": "评审 docs/review-2026-10-09.md",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "inbox-024",
+   "kind": "flow",
+   "name": "回归样张记录字体文件哈希、浏览器版本、系统和画布参数，区分同环境回归和跨平台差异（评审 P2；用户电脑上 125/148 帧和云端基线不同）",
+   "status": "inbox",
+   "from": "评审 docs/review-2026-10-09.md",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "inbox-025",
+   "kind": "check",
+   "name": "断言台账来源结构化：版本/卷章/段落/摘录；严格校验网址；原话、转述、解读分开标（评审 P2，文学类）",
+   "status": "inbox",
+   "from": "评审 docs/review-2026-10-09.md",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "inbox-026",
+   "kind": "flow",
+   "name": "配音缓存按文本、模型、声音、语速、语气做键，原子写入（现在只按“有没有 mp3”跳过）（评审 P2）",
+   "status": "inbox",
+   "from": "评审 docs/review-2026-10-09.md",
+   "since": "2026-10-09",
+   "used_in": []
   }
  ]
 }

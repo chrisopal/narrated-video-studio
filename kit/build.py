@@ -631,10 +631,14 @@ DEAD_DF = 0.12; MIN_PX = 32 if not VERT else 40   # 竖版在手机上整屏看�
 class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
     def translate_path(self, path):
-        path = path.split('?')[0]
-        if path.startswith('/kit/'): return str(KIT / path[5:])
-        if path.startswith('/project/'): return str(P / path[9:])
-        return str(P / path.lstrip('/'))
+        # 只许读工坊 kit/ 和项目目录里的文件：挡住 /kit//绝对路径、../ 越界，也不给密钥和隐藏文件（2026-10-09 评审 P1）
+        from urllib.parse import unquote
+        path = unquote(path.split('?')[0].split('#')[0])
+        root, rel = (KIT, path[5:]) if path.startswith('/kit/') else (P, path[9:]) if path.startswith('/project/') else (P, path)
+        root = os.path.normpath(str(root)); f = os.path.normpath(os.path.join(root, rel.lstrip('/\\')))
+        parts = os.path.relpath(f, root).split(os.sep)
+        if not f.startswith(root + os.sep) or any(x.startswith('.') for x in parts) or os.path.basename(f) in ('openrouter_key.txt',) or f.endswith('.key'): return os.path.join(root, '__forbidden__')
+        return f
 def browser(p, tl):
     srv = socketserver.TCPServer(('127.0.0.1', 0), Q); threading.Thread(target=srv.serve_forever, daemon=True).start()
     b = p.chromium.launch(args=['--enable-gpu-rasterization', '--ignore-gpu-blocklist']); pg = b.new_page(viewport={'width': CW, 'height': CH}); errs = []
@@ -751,7 +755,12 @@ if __name__ == '__main__':
             for i in range(n):
                 ff.stdin.write(grab(i / FPS))
                 if i % 600 == 0: print(i, n, flush=True)
-            ff.stdin.close(); ff.wait(); print('done', n, flush=True)
+            ff.stdin.close(); rc = ff.wait()
+            out = P / (sys.argv[2] if len(sys.argv) > 2 else 'silent.mp4')
+            if rc: print(f'编码失败：ffmpeg 退出码 {rc}，{out.name} 不能用', flush=True); sys.exit(1)
+            pr = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-count_packets', '-show_entries', 'stream=width,height,nb_read_packets', '-of', 'csv=p=0', str(out)], capture_output=True, text=True).stdout.strip().split(',')
+            if len(pr) < 3 or (int(pr[0]), int(pr[1])) != (CW, CH) or abs(int(pr[2]) - n) > 2: print(f'输出不对：{out.name} 是 {pr}，应为 {CW}x{CH}、{n} 帧', flush=True); sys.exit(1)
+            print('done', n, flush=True)
         elif cmd == 'cover':
             for v, name in ([('wide', '封面_横版.png'), ('tall', '封面_竖版.png')] if not VERT else [('vert', '封面_9x16.png'), ('tall', '封面_3x4.png')]):
                 (P / name).write_bytes(base64.b64decode(pg.evaluate('v=>window.coverFrame(v)', v).split(',')[1]))

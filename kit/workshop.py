@@ -107,7 +107,7 @@ def scan_project(R, P):
         if i['kind'] == 'genre': hit = brief.get('genre') == i['name']
         elif i['kind'] == 'style': hit = bool(re.search(r"theme:\s*['\"]" + re.escape(i['id'].split('.', 1)[1]) + r"['\"]", src))
         elif i['kind'] == 'pack': hit = bool(re.search(r'PACK\.' + re.escape(i['id'].split('.', 1)[1]) + r'\b', src))   # 真的取用了才算，光写在 brief 里不算
-        else: hit = any(re.search(r'(?<![\w$])' + re.escape(s) + r'\s*\(', src) for s in i.get('symbols', []))
+        else: hit = any(re.search(r'(?<![\w$.])' + re.escape(s) + r'\s*\(', src) for s in i.get('symbols', []))
         if hit: used.append(i['id'])
     known = {s for i in R['items'] for s in i.get('symbols', [])}; local = []
     for m in re.finditer(r'(?:^|\n)\s*(?:function\s+([A-Za-z_$][\w$]*)\s*\(|(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>)', src):

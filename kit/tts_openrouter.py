@@ -73,10 +73,11 @@ if __name__ == '__main__':
             name = (model.split('/')[1] + '__' + v + ('__语气' if style else '')).replace('.', '_') + '.mp3'; ok, msg = speak(k, model, v, text, od / name, style=style); print(('成功 ' if ok else '失败 ') + name, '|', msg, flush=True)
     elif sys.argv[1] == 'run':
         args = [a for a in sys.argv if a != '--redo']; redo = '--redo' in sys.argv
-        lines, model, voice = args[2], args[3], (args[4] if len(args) > 4 and args[4] != '-' else None); speed = args[5] if len(args) > 5 and args[5] else None; n = 0
+        lines, model, voice = args[2], args[3], (args[4] if len(args) > 4 and args[4] != '-' else None); speed = args[5] if len(args) > 5 and args[5] else None; n = 0; bad = []
         for line in Path(lines).read_text().splitlines():
             if '|' not in line: continue
             i, text, *rest = line.split('|', 2); style = rest[0] if rest else None
             if not redo and Path(i + '.mp3').exists() and Path(i + '.mp3').stat().st_size > 2000: print('跳过', i, '（已有）', flush=True); continue
-            ok, msg = speak(k, model, voice, text, i + '.mp3', speed, style); n += len(text); print(('成功 ' if ok else '失败 ') + i, '|', msg + ('　语气：' + style if style else ''), flush=True)
+            ok, msg = speak(k, model, voice, text, i + '.mp3', speed, style); n += len(text); bad += [] if ok else [i]; print(('成功 ' if ok else '失败 ') + i, '|', msg + ('　语气：' + style if style else ''), flush=True)
         print('合计字符数', n)
+        if bad: print('失败', len(bad), '句：', ' '.join(bad)); sys.exit(1)   # 有失败就非零退出，别让后面的步骤当成配完了
