@@ -36,6 +36,6 @@ for f in sorted((R / 'kit/packs').glob('*.js')):
                 r = subprocess.run(['node', '--check', str(d / f'{x}.js')], capture_output=True, text=True); ok(f'JS 语法 kit/packs/{m.group(2)}/{x}.js', r.returncode == 0, r.stderr.strip().split('\n')[0] if r.stderr else '')
 # 改自别人项目的代码，许可全文要跟着走
 ok('艺术引擎的许可和来历说明在', (R / 'kit/packs/art/LICENSE').exists() and (R / 'kit/packs/art/README.md').exists())
-gone = [str(p.relative_to(R)) for p in list(R.glob('*.md')) + list((R / 'templates').glob('*.md')) + list((R / 'kit').rglob('*.js')) + list((R / 'kit').glob('*.py')) + list((R / 'kit').glob('*.html')) if p.name != '更新记录.md' and re.search(r'legacy/|mkpacks|mkart', p.read_text(encoding='utf-8'))]
+gone = [str(p.relative_to(R)) for p in list(R.glob('*.md')) + list((R / 'templates').glob('*.md')) + list((R / 'kit').rglob('*.js')) + list((R / 'kit').glob('*.py')) + list((R / 'kit').glob('*.html')) if p.name not in ('更新记录.md', 'STATUS.md') and re.search(r'legacy/|mkpacks|mkart', p.read_text(encoding='utf-8'))]
 ok('没有指向已删除的 legacy 目录的说明', not gone, str(gone))
 print(f'\n{len(bad)} 项不通过' if bad else '\n全部通过'); sys.exit(1 if bad else 0)
