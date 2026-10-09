@@ -402,6 +402,15 @@
    "genre": "工业零部件",
    "style": "blueprint",
    "packs": []
+  },
+  {
+   "title": "一圈会弯的齿：绿的谐波和谐波减速器",
+   "date": "2026-10-09",
+   "genre": "制造业隐形冠军",
+   "style": "industry",
+   "packs": [
+    "industry"
+   ]
   }
  ],
  "items": [
@@ -738,7 +747,9 @@
    "status": "candidate",
    "from": "参考其他 skill 的常用版式整理",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "一圈会弯的齿：绿的谐波和谐波减速器"
+   ],
    "symbols": [
     "lowerThird"
    ],
@@ -779,7 +790,9 @@
    "status": "candidate",
    "from": "参考其他 skill 的常用版式整理",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "一圈会弯的齿：绿的谐波和谐波减速器"
+   ],
    "symbols": [
     "stamp"
    ],
@@ -805,7 +818,9 @@
    "status": "candidate",
    "from": "参考其他 skill 的常用版式整理",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "一圈会弯的齿：绿的谐波和谐波减速器"
+   ],
    "symbols": [
     "timeline"
    ],
@@ -818,7 +833,9 @@
    "status": "candidate",
    "from": "参考其他 skill 的常用版式整理",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "一圈会弯的齿：绿的谐波和谐波减速器"
+   ],
    "symbols": [
     "flowSteps"
    ],
@@ -831,7 +848,9 @@
    "status": "candidate",
    "from": "参考其他 skill 的常用版式整理",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "一圈会弯的齿：绿的谐波和谐波减速器"
+   ],
    "symbols": [
     "bigNumber"
    ],
@@ -844,7 +863,9 @@
    "status": "candidate",
    "from": "参考其他 skill 的常用版式整理",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "一圈会弯的齿：绿的谐波和谐波减速器"
+   ],
    "symbols": [
     "barChart"
    ],
@@ -857,7 +878,9 @@
    "status": "candidate",
    "from": "参考其他 skill 的常用版式整理",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "一圈会弯的齿：绿的谐波和谐波减速器"
+   ],
    "symbols": [
     "lineChart"
    ],
@@ -870,7 +893,9 @@
    "status": "candidate",
    "from": "参考其他 skill 的常用版式整理",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "一圈会弯的齿：绿的谐波和谐波减速器"
+   ],
    "symbols": [
     "specTable"
    ],
@@ -911,7 +936,9 @@
    "status": "candidate",
    "from": "参考其他 skill 的常用版式整理",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "一圈会弯的齿：绿的谐波和谐波减速器"
+   ],
    "symbols": [
     "quoteCard"
    ],
@@ -1862,7 +1889,9 @@
    "demo": "industry",
    "status": "candidate",
    "since": "2026-10-08",
-   "used_in": []
+   "used_in": [
+    "一圈会弯的齿：绿的谐波和谐波减速器"
+   ]
   },
   {
    "id": "pack.industry",
@@ -1873,14 +1902,18 @@
    "demo": "industry",
    "status": "candidate",
    "since": "2026-10-08",
-   "used_in": []
+   "used_in": [
+    "一圈会弯的齿：绿的谐波和谐波减速器"
+   ]
   },
   {
    "id": "genre.制造业隐形冠军",
    "kind": "genre",
    "name": "制造业隐形冠军",
    "from": "题材模板第 14 张卡",
-   "used_in": [],
+   "used_in": [
+    "一圈会弯的齿：绿的谐波和谐波减速器"
+   ],
    "status": "candidate",
    "since": "2026-10-08"
   },
@@ -1992,6 +2025,42 @@
    "used_in": [
     "用户要求"
    ]
+  },
+  {
+   "id": "inbox-015",
+   "kind": "component",
+   "name": "industry 包收进谐波啮合示意 mesh()（刚轮/柔轮/波发生器，运动关系已验证）和六轴机械臂线稿 arm()",
+   "status": "inbox",
+   "from": "一圈会弯的齿",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "inbox-016",
+   "kind": "component",
+   "name": "components.js 加 push()：静止画面慢推，避开画面空档；sourceTag 加对齐参数",
+   "status": "inbox",
+   "from": "一圈会弯的齿",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "inbox-017",
+   "kind": "component",
+   "name": "quoteCard 折行不拆专名（公司名、人名）",
+   "status": "inbox",
+   "from": "一圈会弯的齿",
+   "since": "2026-10-09",
+   "used_in": []
+  },
+  {
+   "id": "inbox-018",
+   "kind": "check",
+   "name": "引语卡的引号“”和第一行文字被检查报重叠（误报），检查里排除引号或组件把引号放进文字框外",
+   "status": "inbox",
+   "from": "一圈会弯的齿",
+   "since": "2026-10-09",
+   "used_in": []
   }
  ]
 }

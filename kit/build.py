@@ -41,7 +41,7 @@ BASIS = {'own': '自有素材', 'licensed': '已获授权', 'public-domain': '�
 NEED_CREDIT = {'cc-by', 'cc-by-sa', 'licensed', 'excerpt'}
 # excerpt：网上下载的企业宣传片、发布会、报道里的片段，为介绍和评论而引用。只用短片段、画面上标来源；注明来源不等于获得授权，用户自己决定承担这个风险
 EXCERPT_MAX = BRIEF.get('excerpt_max', 15); EXCERPT_SHARE = BRIEF.get('excerpt_share', .3)
-TIERS = ('政府名单', '公司披露', '公司自述', '第三方报告', '媒体')
+TIERS = ('政府名单', '官方记录', '公司披露', '公司自述', '第三方报告', '媒体')   # 官方记录：专利、标准、法规这类政府或标准机构的文件
 CJK = re.compile(r'[一-鿿]'); NUMISH = re.compile(r'\d|[一二两三四五六七八九十百千万亿]+(年|倍|万|亿|公里|千米|米|度|吨|岁|天|小时|分钟|秒|种|颗|层)')
 
 # ---------- 时间轴 ----------

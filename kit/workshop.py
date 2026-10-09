@@ -101,7 +101,7 @@ def scan_project(R, P):
     src = (P / 'scenes.js').read_text(encoding='utf-8'); brief = json.load(open(P / 'brief.json', encoding='utf-8')) if (P / 'brief.json').exists() else {}
     used = []
     for i in R['items']:
-        if i['status'] == 'inbox': continue
+        if i['status'] in ('inbox', 'retired') or i['id'].startswith('inbox-'): continue
         hit = False
         if i['kind'] == 'genre': hit = brief.get('genre') == i['name']
         elif i['kind'] == 'style': hit = bool(re.search(r"theme:\s*['\"]" + re.escape(i['id'].split('.', 1)[1]) + r"['\"]", src))

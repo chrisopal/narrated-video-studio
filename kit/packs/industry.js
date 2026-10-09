@@ -6,17 +6,17 @@
    - chainMap(t, t0, {tiers:[{name, items:[…]}], focus, flow, label, x, y, w, h, gap, stagger, focusAt, itemH, size, speed})
        产业链层级图：一层一层从左到右出现，层间连线经中间节点汇合，flow 时连线上有流动的小点；focus 那一项到 focusAt 时变橙、
        上方弹出 label（缺省“它在这里”）并有脉冲框。返回 {done, focus:{x,y,w,h}}
-   - robotBody(t, t0, {x, y, h, joints, hi, labels, side, hiAt, stagger, idle, labelDx})
+   - robotBody(t, t0, {x, y, h, joints, hi, labels, side, hiAt, stagger, idle, labelDx, raise})
        自己设计的通用人形机器人正面线稿（x,y 是两脚中点的地面，h 是身高）；先从脚到头逐件出现，hi 里的关节按顺序点亮（橙色 + 脉冲），
        labels:{关节:'说明'} 的关节点亮时引出标签；idle 缺省开（呼吸、手臂轻摆、头微动）。关节名 shoulder elbow wrist hand hip knee ankle waist neck。
-       返回 {pos(关节, 'l'|'r') → [x,y]}
+       raise 0..1：右臂（画面右侧）抬起，可以随时间变化做“抬手”。返回 {pos(关节, 'l'|'r') → [x,y]}
    - exploded(t, t0, dur, layers, {x, y, axis:'x'|'y', gap, labels, focus, k, back, center, labelGap})
        零件按层炸开、停住、在 t0+dur-0.6 前归位（back:false 不归位）；focus（层名或序号）那一层用橙色。layers=[{shape, r, r2, w, name, teeth, spin, at}]，
        shape：housing 外壳（带螺栓孔）| ring 圆环 | ringGear 内齿圈 | flex 柔性杯形齿轮（外齿）| gear 外齿轮 | wave 椭圆凸轮（波发生器）| disc 圆盘 | shaft 轴；
        r 外半径、r2 内孔半径、w 沿轴厚度、spin 自转角速度（弧度/秒）。炸开后每层引出名称（labels:false 不要，或给字符串数组覆盖）
    - shareRing(t, t0, [{name, value}], {focus, source, x, y, r, thick, title, unit, decimals, dur})
        份额环：扇区顺时针依次扫出，焦点扇区橙色并外移，其余退灰；外圈引线标签；中心是焦点的数；
-       图下写“来源：…”，不给 source 时写“示意数据”
+       图下写“来源：…”（离环心 r+130，srcGap 可调，给下方的扇区标签留地方），不给 source 时写“示意数据”
    - vsLocal(t, t0, {left:{title, lines, col}, right:{title, lines, col}, x, y, w, h, gap, tR, stagger, size})
        “进口 / 国产”两栏对比卡（h 不给就按条目数定高）：左栏钢蓝、右栏橙色，从两侧滑入，条目逐条出现，中间是流动的箭头
    - iconWall(t, t0, [{icon, label}], {x, y, cols, size, gap, stagger, hi})
@@ -104,14 +104,14 @@ PACK.industry=(function(){
   const JN={shoulder:'肩',elbow:'肘',wrist:'腕',hand:'手',hip:'髋',knee:'膝',ankle:'踝',waist:'腰',neck:'颈'};
   const JR={shoulder:3.8,elbow:3.1,wrist:2.5,hand:2.3,hip:3.7,knee:3.3,ankle:2.7,waist:3.1,neck:2.3};
   // 身高 100 个单位，原点在两脚中点的地面，向上为负
-  function pose(t,idle){const b=idle?Math.sin(t*1.7)*.45:0,sw=idle?Math.sin(t*1.15)*.05:0,ht=idle?Math.sin(t*.8+1)*.05:0,P={b,ht};
+  function pose(t,idle,raise=0){const b=idle?Math.sin(t*1.7)*.45:0,sw=idle?Math.sin(t*1.15)*.05:0,ht=idle?Math.sin(t*.8+1)*.05:0,P={b,ht};
     for(const s of [-1,1]){const k=s<0?'l':'r';P['ankle_'+k]=[s*9.5,-6];P['knee_'+k]=[s*10,-29];P['hip_'+k]=[s*9,-49];
-      const sh=[s*16,-78+b],au=.12+s*sw,af=au-.16+s*sw*.6,el=[sh[0]+s*17*Math.sin(au),sh[1]+17*Math.cos(au)],wr=[el[0]+s*15*Math.sin(af),el[1]+15*Math.cos(af)];
+      const sh=[s*16,-78+b],rz=s>0?raise:0,au=.12+s*sw+rz*1.9,af=au-.16+s*sw*.6+rz*.9,el=[sh[0]+s*17*Math.sin(au),sh[1]+17*Math.cos(au)],wr=[el[0]+s*15*Math.sin(af),el[1]+15*Math.cos(af)];
       P['shoulder_'+k]=sh;P['elbow_'+k]=el;P['wrist_'+k]=wr;P['hand_'+k]=[wr[0]+s*5.5*Math.sin(af),wr[1]+5.5*Math.cos(af)];P['af_'+k]=af}
     P.waist=[0,-58.5+b*.7];P.neck=[0,-82.5+b];return P}
   function limb(p,q,w1,w2,lw){const dx=q[0]-p[0],dy=q[1]-p[1],l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;G.beginPath();G.moveTo(p[0]+nx*w1/2,p[1]+ny*w1/2);G.lineTo(q[0]+nx*w2/2,q[1]+ny*w2/2);G.lineTo(q[0]-nx*w2/2,q[1]-ny*w2/2);G.lineTo(p[0]-nx*w1/2,p[1]-ny*w1/2);G.closePath();solid();G.stroke();
     G.save();G.globalAlpha*=.45;G.lineWidth=lw*.7;line(p[0]+dx*.28+nx*w1*.22,p[1]+dy*.28+ny*w1*.22,p[0]+dx*.72+nx*w2*.22,p[1]+dy*.72+ny*w2*.22);G.restore()}
-  function robotBody(t,t0,o={}){const x=o.x??960,y=o.y??900,h=o.h??700,u=h/100,idle=o.idle!==false,P=pose(t,idle),hi=o.hi||[],labels=o.labels||{},st=o.stagger??.45,hiAt=o.hiAt??t0+1.2;
+  function robotBody(t,t0,o={}){const x=o.x??960,y=o.y??900,h=o.h??700,u=h/100,idle=o.idle!==false,P=pose(t,idle,o.raise||0),hi=o.hi||[],labels=o.labels||{},st=o.stagger??.45,hiAt=o.hiAt??t0+1.2;
     const joints=o.joints||['shoulder','elbow','wrist','hip','knee','ankle','hand','waist','neck'],S=(p)=>[x+p[0]*u,y+p[1]*u];
     const pos=(j,s='r')=>S(P[j+'_'+s]||P[j]||[0,0]);
     if(t<t0)return {pos};
@@ -207,7 +207,7 @@ PACK.industry=(function(){
     // 中心：焦点的数
     const F=segs.find(s=>s.f);if(F){const kc=eo(seg(t,t0+.4,tD));if(kc>0){numtxt(fmt(F.d.value*expo(seg(t,t0+.4,tD)),dec)+unit,x,y+r*.12,Math.round(r*.4),TH.a1,'center',kc);txt(F.d.name,x,y+r*.12+50,34,TH.ink,TH.f.b,'center',kc)}}
     if(o.title)txt(o.title,x,y-r-64,40,TH.ink,TH.f.t,'center',k);
-    txt(o.source?'来源：'+o.source:'示意数据',x,y+r+82,32,TH.note,TH.f.s,'center',k);
+    txt(o.source?'来源：'+o.source:'示意数据',x,y+r+(o.srcGap??130),32,TH.note,TH.f.s,'center',k);
     return tD+.25+segs.length*.15}
 
   /* ---------- 进口 / 国产 两栏对比 ---------- */
@@ -233,7 +233,7 @@ PACK.industry=(function(){
       case 'plane':{P([[0,-.95],[.09,-.8],[.09,.62],[0,.88],[-.09,.62],[-.09,-.8]],true);P([[.09,-.15],[.95,.22],[.95,.34],[.09,.16]]);P([[-.09,-.15],[-.95,.22],[-.95,.34],[-.09,.16]]);P([[.07,.62],[.36,.8],[.36,.88],[.05,.8]]);P([[-.07,.62],[-.36,.8],[-.36,.88],[-.05,.8]]);
         AC(()=>{P([[.55,.12],[.55,.24]]);P([[-.55,.12],[-.55,.24]])});break}
       case 'wind':{P([[-.06,.95],[-.025,-.25]]);P([[.06,.95],[.025,-.25]]);P([[-.3,.95],[.3,.95]]);const hx=0,hy=-.32;for(let i=0;i<3;i++){const a=t*1.4+i*TAU/3,c=Math.cos(a),sn=Math.sin(a);P([[hx+c*.08,hy+sn*.08],[hx+c*.35-sn*.07,hy+sn*.35+c*.07],[hx+c*.68,hy+sn*.68],[hx+c*.35+sn*.03,hy+sn*.35-c*.03]],true)}AC(()=>A(hx,hy,.08));break}
-      case 'medical':{G.save();G.translate(-.32,.28);G.rotate(-Math.PI/4);G.beginPath();G.roundRect(-.52,-.2,1.04,.4,.2);G.stroke();P([[0,-.2],[0,.2]]);G.save();G.globalAlpha*=.35;G.beginPath();G.roundRect(-.52,-.2,.52,.4,[.2,0,0,.2]);G.fill();G.restore();G.restore();
+      case 'medical':{G.save();G.translate(-.32,.3);const q=.16,r=.48;G.beginPath();G.moveTo(-q,-r);G.lineTo(q,-r);G.lineTo(q,-q);G.lineTo(r,-q);G.lineTo(r,q);G.lineTo(q,q);G.lineTo(q,r);G.lineTo(-q,r);G.lineTo(-q,q);G.lineTo(-r,q);G.lineTo(-r,-q);G.lineTo(-q,-q);G.closePath();G.stroke();G.save();G.globalAlpha*=.35;G.fill();G.restore();G.restore();
         const ph=(t*.8)%1;AC(()=>P([[-.1,-.5],[.15,-.5],[.27,-.82],[.42,-.2],[.55,-.5],[.95,-.5]]));G.beginPath();G.arc(lerp(-.1,.95,ph),-.5,.05,0,TAU);G.fill();break}
       case 'factory':{P([[-.95,.82],[.95,.82]]);P([[-.92,.82],[-.92,-.05],[-.55,.2],[-.55,-.05],[-.18,.2],[-.18,-.05],[.19,.2],[.19,.82]]);P([[.36,.82],[.36,-.62],[.62,-.62],[.62,.82]]);
         AC(()=>{for(const wx of [-.74,-.37])P([[wx,.42],[wx+.16,.42],[wx+.16,.58],[wx,.58]],true)});G.save();for(let i=0;i<3;i++){const q=((t*.35+i/3)%1);G.globalAlpha*=1;G.save();G.globalAlpha*=(1-q)*.8;A(.49+q*.25,-.72-q*.45,.06+q*.1);G.restore()}G.restore();break}
