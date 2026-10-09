@@ -61,6 +61,14 @@ const S=id=>TL.find(s=>s.id===id);
 const T=id=>S(id).t0,N=id=>{const i=TL.findIndex(s=>s.id===id);return i+1<TL.length?TL[i+1].t0:TL[i].t1+3};
 function at(id,kw,off=0){const s=S(id);const i=kw?s.vo.indexOf(kw):0;if(i<0)console.error('找不到关键词',id,kw);if(s.ct&&i>=0)return s.t0+s.ct[i]+off;return s.t0+s.lead+(i<0?0:i/s.vo.length)*(s.voiced-s.lead)+off}
 const total=()=>TL[TL.length-1].t1+3;
+/* ---------- 节拍网格（brief.json 写了 bpm 才有；没有时这几个函数返回 0 并报错） ---------- */
+// beatT(n) 第 n 拍的时刻（0 是正片第一句开始的那一拍，可以是小数：beatT(2.5) 是第三拍的后半拍）；barT(n) 第 n 小节第一拍的时刻
+// beatAt(t) 此刻是第几拍（带小数）；beatN(t, 每几拍) 此刻是第几个整拍（整数，用来在拍点上换画面：图组[beatN(t,2)%图组.length]）
+// pulse(t, {every:每几拍一次, off:错后几拍, decay:衰减秒数}) 拍点上是 1，随后很快落回 0：乘在大小、亮度、位移上就是“跟着拍子跳一下”
+const BT=()=>{const b=TL[0]&&TL[0]._grid;if(!b)console.error('没有节拍网格：在 brief.json 里写 "bpm"');return b};
+const beatT=n=>{const b=BT();return b?b.t0+n*b.spb:0},barT=n=>{const b=BT();return b?b.t0+n*b.meter*b.spb:0};
+const beatAt=t=>{const b=BT();return b?(t-b.t0)/b.spb:0},beatN=(t,every=1)=>Math.floor(beatAt(t)/every+1e-6);
+function pulse(t,o={}){const b=BT();if(!b)return 0;const ev=o.every??1,x=(beatAt(t)-(o.off||0))/ev;if(x<-1e-6)return 0;return Math.exp(-(x-Math.floor(x+1e-6))*ev*b.spb/(o.decay??.18))}
 
 /* ---------- 文字与图形小件 ---------- */
 // 竖版在手机上整屏看：24–39 像素的小字一律放到 40（tw 量宽也照这个算，版式不会对不上）

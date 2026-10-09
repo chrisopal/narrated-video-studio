@@ -304,6 +304,28 @@
     "iso",
     "host"
    ]
+  },
+  "诗意影像": {
+   "styles": [
+    "songink",
+    "sky",
+    "woodcut",
+    "engrave"
+   ],
+   "chrome": "none",
+   "components": [
+    "beatT",
+    "barT",
+    "beatN",
+    "pulse"
+   ],
+   "packs_optional": [
+    "ink",
+    "art",
+    "woodcut",
+    "engrave"
+   ],
+   "narration": "无旁白或极少旁白；可按节拍网格卡点"
   }
  },
  "themes": [
@@ -2264,6 +2286,32 @@
    "kind": "check",
    "name": "动效：逐帧运动面积、跳变、逐帧不动、渲染耗时、确定性（同一时刻画两遍）",
    "from": "照 huashu-art-motion qa.py 的量法重写",
+   "status": "candidate",
+   "since": "2026-10-10",
+   "used_in": []
+  },
+  {
+   "id": "genre.诗意影像",
+   "kind": "genre",
+   "name": "诗意影像（无旁白，可卡点）",
+   "from": "题材模板第 15 张卡",
+   "used_in": [],
+   "status": "candidate",
+   "since": "2026-10-10"
+  },
+  {
+   "id": "comp.beatgrid",
+   "kind": "component",
+   "name": "节拍网格：brief.bpm、段落按 bars/beats 定长、beatT/barT/beatAt/beatN/pulse、合成配乐跟拍、build.py beats 量速度",
+   "from": "用户要求（文艺向、卡点）",
+   "symbols": [
+    "beatT",
+    "barT",
+    "beatAt",
+    "beatN",
+    "pulse"
+   ],
+   "demo": "beat",
    "status": "candidate",
    "since": "2026-10-10",
    "used_in": []

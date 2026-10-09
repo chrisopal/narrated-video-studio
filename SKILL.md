@@ -1,6 +1,6 @@
 ---
 name: narrated-video-studio
-description: 做讲解类和叙事类视频：科普、历史、人物传记与行迹、行旅日记、小人物与大时代、AI 与科技、小说文学、工业零部件、制造业隐形冠军、企业介绍、生产流程、数据、新闻与谣言核查。从一句提示词出发拆出受众和情绪，比较三个不同的叙事方向（视角、结构、钩子、声音、画面母题）再动手，配音按方向定声音和语气；横版长片之外，能原生做抖音、小红书、视频号的竖版（9:16、3:4，带平台安全区检查）。十九套风格包，外加一层艺术引擎（把任何画面重绘成笔触、点彩、马赛克，叠胶片和光影，45 个转场），可把自有或授权的视频素材转写、挑镜头、重新剪辑；工具箱在 GitHub 仓库 chrisopal/narrated-video-studio，每条片做完把好用的东西沉淀回仓库。用户说“做一条视频”“讲清楚某某”“讲一个故事”“发抖音/小红书/视频号”“讲一家隐形冠军企业”“把这些素材剪一条”“像东坡那条那样做”时使用。
+description: 做讲解类和叙事类视频：科普、历史、人物传记与行迹、行旅日记、小人物与大时代、AI 与科技、小说文学、工业零部件、制造业隐形冠军、企业介绍、生产流程、数据、新闻与谣言核查；也做无旁白的诗意影像和按音乐节拍卡点的短片。从一句提示词出发拆出受众和情绪，比较三个不同的叙事方向（视角、结构、钩子、声音、画面母题）再动手，配音按方向定声音和语气；横版长片之外，能原生做抖音、小红书、视频号的竖版（9:16、3:4，带平台安全区检查）。十九套风格包，外加一层艺术引擎（把任何画面重绘成笔触、点彩、马赛克，叠胶片和光影，45 个转场），可把自有或授权的视频素材转写、挑镜头、重新剪辑；工具箱在 GitHub 仓库 chrisopal/narrated-video-studio，每条片做完把好用的东西沉淀回仓库。用户说“做一条视频”“讲清楚某某”“讲一个故事”“发抖音/小红书/视频号”“讲一家隐形冠军企业”“把这些素材剪一条”“像东坡那条那样做”时使用。
 ---
 
 # 讲解视频工坊
@@ -92,6 +92,7 @@ mkdir -p ../kit/models && cd ../kit/models && curl -sL -o m.tar.bz2 https://gith
 | 第一人称经历、带笑点的讲述 | stick + 包 stick | none | beats stick say emote prop hold |
 | 器物、工艺、零件构造的图版 | engrave + 包 engrave | label | plate etch hatch callNo loupe tint |
 | 厚重的历史与文学 | woodcut + 包 woodcut | none | print carve gouge spot title rain |
+| 诗意影像：无旁白或极少旁白的短片，可以卡点（一首诗、四时、器物、片头片尾） | songink / sky / woodcut，可加包 art | none | 节拍网格 beatT barT beatN pulse；art 的 look、post、trans |
 | 谣言核查、“几条说法哪条是真的” | dossier + 包 dossier | none | folder card verdict tally halftone redact |
 
 ```json
@@ -99,6 +100,8 @@ mkdir -p ../kit/models && cd ../kit/models && curl -sL -o m.tar.bz2 https://gith
  "direction":{"logline":"一句话：讲什么 + 为什么值得看","angle":"谁在讲、离事件多远","structure":"拆解","hook_type":"日常物件的反常","emotion":"好奇→意外→明白","motif":"轮子","callback":"轮子","alternatives":["方向 B 一句话","方向 C 一句话"]},
  "voice":{"model":"google/gemini-3.8-flash-tts","voice":"Charon","style":"清楚、平稳，像耐心的老师","persona":"讲解员"}}
 ```
+
+卡点的片子再加 `"bpm":90`（每分钟几拍；写了它，每一句都从拍点开始，合成配乐的重音落在小节线上）、`"meter":4`（一小节几拍）；用自己的音乐时先运行 `python3 ../kit/build.py beats 音乐文件` 量出速度和第一拍，把它给的 `bpm`、`beat_offset` 写进来。
 
 可选字段：`"platform":"douyin|channels|xhs|bilibili|youtube"` 发布平台（定画幅和安全区）；`"aspect":"9:16|3:4|16:9"` 和 `"safe":[上,右,下,左]` 直接指定；`"packs":["ink","figures","map"]` 要加载的风格包；`"music":"guqin"` 五声拨弦配乐、每章换调（缺省是合成铺底；写成文件路径就用那条音乐，文件要进素材台账）；`"sfx":false` 不加音效（水墨一类安静的片子）；`"duck":12` 旁白时素材原声压低多少分贝（缺省 12，`false` 不压低）；`"tiers_required":true` 断言台账每条都要填来源层级 `tier`（企业、产业类必开）；`"must_show":["不构成投资建议"]` 片中必须出现的声明（检查要求整句至少清楚显示 2 秒）。
 
@@ -195,7 +198,7 @@ window.FILM={theme:'blueprint', chrome:'question',   // 章节条：question | l
  scenes(t){ scn(t,T('a0'),N('a0'),()=>{ … }); … }};
 ```
 
-取时：`T(id)` `N(id)` `at(id,'词',偏移)`。缓动：`seg eo eio expo back lerp cl rnd`。颜色和字体从主题取：`TH.ink TH.dim TH.note TH.a1 TH.a2 TH.a3 TH.card`，`TH.f.t`（标题字体）`TH.f.b`（正文）。这样换风格不用改场景。
+取时：`T(id)` `N(id)` `at(id,'词',偏移)`。有节拍网格（brief 写了 `bpm`）时另有：`beatT(n)` 第 n 拍的时刻、`barT(n)` 第 n 小节的时刻、`beatAt(t)` 此刻第几拍、`beatN(t,每几拍)` 整数拍序（在拍点上换画面）、`pulse(t,{every,decay})` 拍点上是 1 随后落回 0（乘在大小、亮度上就是跟着拍子跳）；无旁白段落可写 `"bars":2` 或 `"beats":8` 代替 `dur`。缓动：`seg eo eio expo back lerp cl rnd`。颜色和字体从主题取：`TH.ink TH.dim TH.note TH.a1 TH.a2 TH.a3 TH.card`，`TH.f.t`（标题字体）`TH.f.b`（正文）。这样换风格不用改场景。
 
 | 组件 | 调用 | 用在 |
 |---|---|---|
@@ -331,6 +334,7 @@ python3 ../kit/build.py short render 名字_竖版短片
 - 横版片的 `short` 竖版摘要仍然是把横版画面放进竖框，不是重排版。
 - 语气提示（`instructions`）只在 Gemini 的 TTS 上实测过；别的模型可能忽略它，回听照样跑。
 - 回归样张的基线是云端环境渲染的；换了机器或字体，第一次会全部报不同，看过图再 `--accept`。
+- 节拍网格只用合成配乐验证过（72、90、120、128 拍的铺底和拨弦）；`build.py beats` 量真实音乐分不清快一倍还是慢一倍，也分不清哪一拍是小节第一拍，没有明显鼓点的音乐量不准，要人听着核对。变速的音乐不支持。
 - 五声拨弦配乐是程序合成的，够做底，不是真乐器；用户有授权的配乐就用他的。
 - 视频片段的流程用自制片段验证过切片、取帧、署名、授权检查和原声混入；还没有用真实拍摄素材做过整片。
 - 固定人物只有宋人文士和清末官员两个，没有女性、孩童、僧道、武人；主角不是这两类时要新画，不要硬套。

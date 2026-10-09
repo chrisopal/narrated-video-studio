@@ -14,6 +14,7 @@
   stills 3,10,20 [目录]    抽帧检查
   sheet [间隔秒]           整片总览图（每 5 秒一帧，9 帧一张）→ sheets/
   check [--no-motion]      交付前总检查：断言、素材授权、回听、阅读时长、出画、字幕带、重叠、小字、空档、动效 → check_report.json
+  beats 音乐文件            量一条音乐的速度和第一拍的位置，给出要写进 brief.json 的 bpm、beat_offset（卡点的片子用）
   motion                   动效数字：每句的运动面积、静止帧对、跳变、每帧耗时，全片的确定性（同一时刻画两遍是否一样）
   render [out.mp4]         横版无声视频
   mix                      配乐 + 音效 + 素材原声（有旁白处自动压低）+ 配音 → mix.wav（响度 -14 LUFS）
@@ -25,9 +26,11 @@
 brief.json 里和构建有关的字段：packs 风格包列表；music 配乐（pad 缺省 / guqin 五声拨弦 / 文件路径）；sfx:false 不加音效；read_cps、read_pad 阅读速度；
           duck 旁白下素材原声压低的分贝数（缺省 12；false 不压低，原声和音效同轨，即旧做法）
           tiers_required:true 断言台账每条都要填 tier（来源层级）；must_show:[…] 画面上必须清楚出现 ≥2 秒的声明
-script.json 里一句可以写 "silent":true,"dur":秒数 表示无旁白段落（只有画面和配乐）
+          bpm 节拍网格（每分钟几拍；写了它，每一句都从拍点上开始，分场里可以用 beatT、barT、pulse 卡点）；meter 一小节几拍（缺省 4）；
+          beat_offset 网格上某个小节第一拍在片中的秒数（用自己的音乐时写，build.py beats 会量出来；合成配乐不用写）
+script.json 里一句可以写 "silent":true,"dur":秒数 表示无旁白段落（只有画面和配乐）；有 bpm 时可以写 "beats":拍数 或 "bars":小节数 代替 dur
 """
-import json, re, sys, os, base64, subprocess, threading, http.server, socketserver, hashlib, shutil
+import json, re, sys, os, math, base64, subprocess, threading, http.server, socketserver, hashlib, shutil
 from pathlib import Path
 import numpy as np, soundfile as sf
 KIT = Path(__file__).parent; P = Path.cwd(); FPS = 30; LEAD = 0.9; GAP = 0.55; COVER = 2.0
@@ -88,18 +91,33 @@ def char_times(line, W):
     return ct if spoken == line['vo'] else [ct[round(i * (len(ct) - 1) / max(1, n - 1))] for i in range(n)]
 
 silent = lambda l: bool(l.get('silent')) or not (l.get('tts') or l.get('vo'))
+def beat_grid():
+    """节拍网格：brief.json 写了 bpm 才有。t0 是正片第一句开始的那一拍（一个小节的第一拍）。"""
+    bpm = float(BRIEF.get('bpm') or 0)
+    if bpm <= 0: return None
+    if not 30 <= bpm <= 300: print(f'✗ brief.json 的 bpm={bpm:g} 不像一个速度（常见 60–180）'); sys.exit(1)
+    spb = 60 / bpm; meter = int(BRIEF.get('meter', 4)); o = BRIEF.get('beat_offset'); bar = spb * meter
+    t0 = LEAD if o is None else float(o) + math.ceil((.3 - float(o)) / bar - 1e-6) * bar   # 自己的音乐：从片头 0.3 秒之后的第一条小节线开始
+    return {'bpm': bpm, 'spb': round(spb, 6), 'meter': meter, 't0': round(t0, 4)}
 def timeline():
-    S = json.load(open(P / 'script.json')); W = words(); t = LEAD; out = []; mix = []
+    S = json.load(open(P / 'script.json')); W = words(); BG = beat_grid(); t = BG['t0'] if BG else LEAD; out = []; mix = []
+    snap = (lambda x: BG['t0'] + math.ceil((x - BG['t0']) / BG['spb'] - 1e-4) * BG['spb']) if BG else (lambda x: x)   # 有节拍网格时，每一句的结束（下一句的开始）往后靠到最近的拍点上
     sr = SR
     for s in S:
-        if silent(s):   # 无旁白段落：{"id","ch","silent":true,"dur":秒数}，只有画面和配乐
-            s = {**s, 'vo': s.get('vo', '')}; d = float(s['dur']); out.append({**s, 't0': round(t, 3), 'dur': d, 'lead': 0, 'voiced': d, 't1': round(t + d, 3), 'chunks': []}); t += d; continue
+        if silent(s):   # 无旁白段落：{"id","ch","silent":true,"dur":秒数}，只有画面和配乐；有 bpm 时可写 "beats":拍数 或 "bars":小节数
+            s = {**s, 'vo': s.get('vo', '')}
+            if BG and ('beats' in s or 'bars' in s): d = round((float(s['beats']) if 'beats' in s else float(s['bars']) * BG['meter']) * BG['spb'], 4)
+            elif 'beats' in s or 'bars' in s: print(f"✗ {s['id']} 写了 beats/bars，但 brief.json 没写 bpm"); sys.exit(1)
+            else: d = round(snap(t + float(s['dur'])) - t, 4) if BG else float(s['dur'])
+            out.append({**s, 't0': round(t, 3), 'dur': d, 'lead': 0, 'voiced': d, 't1': round(t + d, 3), 'chunks': []}); t += d; continue
         x, sr, dur, lead, voiced = measure(P / 'audio' / f"{s['id']}.wav"); ct = char_times(s, W)
         gap = GAP + s.get('hold', 0)   # hold：这句说完后多留几秒给观众看画面
+        if BG: gap = snap(t + dur + gap) - t - dur
         row = {**s, 't0': round(t, 3), 'dur': round(dur, 3), 'lead': round(lead, 3), 'voiced': round(voiced, 3), 't1': round(t + dur + gap, 3),
                'chunks': chunks_for(s['vo'], t, lead, voiced, dur, GAP, ct=ct)}
         if ct: row['ct'] = ct
         out.append(row); mix.append((t, x)); t += dur + gap
+    if BG and out: out[0]['_grid'] = BG   # 页面从第一句上读网格
     total = out[-1]['t1'] + 3; buf = np.zeros(int(total * sr) + sr)
     for t0, x in mix: buf[int(t0 * sr):int(t0 * sr) + len(x)] += x
     sf.write(P / 'vo.wav', buf[:int(total * sr)], sr); js = json.dumps(out, ensure_ascii=False, indent=1); f = P / 'timeline.json'
@@ -116,10 +134,11 @@ def pluck(f, dur, bright=.5, seed=0):
     return out * np.exp(-np.arange(n) / SR * 1.1)
 def music_guqin(total, tl, name):
     """五声音阶的拨弦配乐：每章换一个调和疏密；底下一条很轻的长音。"""
-    out = np.zeros(int(SR * total) + SR * 6); r = np.random.default_rng(11); penta = [0, 2, 4, 7, 9]; roots = [146.83, 130.81, 164.81, 110.0, 196.0, 123.47]   # D C E A G B
+    BG = (tl or [{}])[0].get('_grid'); out = np.zeros(int(SR * total) + SR * 6); r = np.random.default_rng(11); penta = [0, 2, 4, 7, 9]; roots = [146.83, 130.81, 164.81, 110.0, 196.0, 123.47]   # D C E A G B
     chs = []; [chs.append((s['ch'], s['t0'])) for s in (tl or []) if not chs or chs[-1][0] != s['ch']]; chs = chs or [('', 0)]; bounds = [c[1] for c in chs[1:]] + [total]
     for ci, ((ch, a), b) in enumerate(zip(chs, bounds)):
         root = roots[ci % len(roots)]; gap = [2.6, 1.9, 3.2, 1.5, 2.2][ci % 5]; t = a + .6; prev = 2
+        if BG: hb = BG['spb'] / 2; q = lambda x: BG['t0'] + max(1, round((x - BG['t0']) / hb)) * hb if x > BG['t0'] else BG['t0']; t = q(a) if a >= BG['t0'] else q(t)   # 有节拍网格：拨弦落在半拍上，每章第一声落在章的第一拍
         tt = np.arange(int((b - a + 3) * SR)) / SR; drone = (np.sin(2 * np.pi * root / 2 * tt) + .4 * np.sin(2 * np.pi * root * .75 * tt)) * np.clip(tt / 3, 0, 1) * np.clip((b - a + 3 - tt) / 3, 0, 1) * .05
         i0 = int(a * SR); out[i0:i0 + len(drone)] += drone[:len(out) - i0]
         while t < b - 1.5:
@@ -127,6 +146,7 @@ def music_guqin(total, tl, name):
             x = pluck(f, 5.0, r.uniform(.2, .8), int(t * 100)) * r.uniform(.5, 1); i = int(t * SR); out[i:i + len(x)] += x[:len(out) - i]
             if r.random() < .28: x2 = pluck(f / 2, 5.0, .3, int(t * 100) + 1) * .6; out[i:i + len(x2)] += x2[:len(out) - i]
             t += gap * r.choice([.5, 1, 1, 1.5, 2])
+            if BG: t = max(q(t), q(i / SR + hb))
     out = out[:int(SR * total)]; t = np.arange(len(out)) / SR; out *= np.clip(t / 1.5, 0, 1) * np.clip((total - t) / 3, 0, 1); out = np.tanh(out / (np.abs(out).max() + 1e-9) * 3.0) / np.tanh(3.0)
     d = int(.031 * SR); sf.write(P / name, np.stack([out + .25 * np.roll(out, d * 7), out + .25 * np.roll(out, d * 11)], 1) * .7, SR)
 def music(total, name='music.wav', tl=None):
@@ -137,13 +157,15 @@ def music(total, name='music.wav', tl=None):
         subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-stream_loop', '-1', '-i', str(P / kind), '-t', f'{total:.2f}', '-af', f'afade=t=in:d=1.5,afade=t=out:st={total - 3:.2f}:d=3', '-ar', str(SR), '-ac', '2', str(P / name)], check=True); return
     t = np.arange(int(SR * total)) / SR
     tone = lambda f: np.sin(2 * np.pi * f * t) + 0.3 * np.sin(2 * np.pi * 2 * f * t) + 0.1 * np.sin(2 * np.pi * 3 * f * t)
-    chords = [[73.42, 110, 146.83, 174.61], [58.27, 116.54, 146.83, 174.61], [65.41, 98, 130.81, 196], [55, 110, 138.59, 164.81]]; out = np.zeros_like(t); L = 9.0
-    for i in range(int(total / L) + 1):
-        env = np.clip((t - i * L) / 3, 0, 1) * np.clip((i * L + L + 3 - t) / 3, 0, 1)
+    chords = [[73.42, 110, 146.83, 174.61], [58.27, 116.54, 146.83, 174.61], [65.41, 98, 130.81, 196], [55, 110, 138.59, 164.81]]; out = np.zeros_like(t); L = 9.0; BG0 = (tl or [{}])[0].get('_grid'); o0 = 0.0
+    if BG0: bl = BG0['spb'] * BG0['meter']; L = bl * max(1, round(9.0 / bl)); o0 = BG0['t0'] % L - L   # 和弦按整小节换
+    for i in range(int(total / L) + 2 if BG0 else int(total / L) + 1):
+        env = np.clip((t - o0 - i * L) / 3, 0, 1) * np.clip((o0 + i * L + L + 3 - t) / 3, 0, 1)
         for k, f in enumerate(chords[i % 4]): out += env * tone(f * (1 + 0.0015 * k)) * (0.5 if k == 0 else 0.2) * (1 + 0.15 * np.sin(2 * np.pi * 0.17 * t + k))
-    for b in np.arange(1.0, total - 4, 0.5):
+    BG = (tl or [{}])[0].get('_grid')   # 有节拍网格：轻点落在每一拍，重音落在每小节第一拍；没有就是原来的每半秒一点、每两秒一重
+    for b in (np.arange(BG['t0'], total - 4, BG['spb']) if BG else np.arange(1.0, total - 4, 0.5)):
         i = int(b * SR); n = int(.12 * SR); tt = np.arange(n) / SR; out[i:i + n] += 0.14 * np.sin(2 * np.pi * 146.83 * tt) * np.exp(-tt * 38)
-    for b in np.arange(1.0, total - 4, 2.0):
+    for b in (np.arange(BG['t0'], total - 4, BG['spb'] * BG['meter']) if BG else np.arange(1.0, total - 4, 2.0)):
         i = int(b * SR); n = int(.4 * SR); tt = np.arange(n) / SR; out[i:i + n] += 0.35 * np.sin(2 * np.pi * (48 + 38 * np.exp(-tt * 28)) * tt) * np.exp(-tt * 11)
     out *= np.clip(t / 1.5, 0, 1) * np.clip((total - t) / 3, 0, 1); out = out / np.abs(out).max(); sf.write(P / name, np.stack([out, np.roll(out, 200)], 1) * 0.9, SR)
 
@@ -258,8 +280,9 @@ def story_check(tl):
         return [], ['brief.json 没有 direction（创意方向）：先按 templates/叙事与创意.md 拆提示词、比较三个方向，把选中的写进 brief']
     if not D.get('logline'): fails.append('direction.logline 没写：用一句话说清“这条片讲什么、为什么值得看”')
     elif len(D['logline']) > 50: warns.append(f"direction.logline 有 {len(D['logline'])} 字：一句话说不清，说明方向还没想清楚（50 字以内）")
+    mute = all(silent(s) for s in tl)   # 整条无旁白：没有“问与答”，也谈不上钩子句式；结构、转折、收束照样要有
     for k, why in (('structure', '叙事结构（从手法库里选，或写明自创的）'), ('angle', '视角：谁在讲、离事件多远'), ('hook_type', '开场钩子用哪一种')):
-        if not D.get(k): warns.append(f'direction.{k} 没写：{why}')
+        if not D.get(k) and not (mute and k == 'hook_type'): warns.append(f'direction.{k} 没写：{why}')
     if len(D.get('alternatives', [])) < 2: warns.append('direction.alternatives 少于两个：没和别的方向比过，容易做成上一条的样子')
     ids = [s['id'] for s in S]; asks = {}; answers = {}
     for i, s in enumerate(S):
@@ -271,7 +294,7 @@ def story_check(tl):
         elif answers[q] < i: fails.append(f'问题「{q}」在 {ids[answers[q]]} 先回答、{ids[i]} 才抛出：顺序反了')
     for q, i in answers.items():
         if q not in asks: warns.append(f'{ids[i]} 回答了「{q}」，但前面没有哪句把它问出来（在提问的那句写 "ask":"{q}"）')
-    if not asks: warns.append('全片没有一句 ask：开头没抛出观众想知道答案的问题，后面就没有“为什么要看下去”')
+    if not asks and not mute: warns.append('全片没有一句 ask：开头没抛出观众想知道答案的问题，后面就没有“为什么要看下去”')
     beats = [s.get('beat') for s in S]
     if any(beats):
         if beats[0] not in ('钩子', None) and S[0]['t0'] < 4: warns.append(f'第一句的 beat 是「{beats[0]}」：开头 3 秒要是钩子')
@@ -662,27 +685,56 @@ def page_pass(tl, name, expr, cache=True):
 def get_scan(tl, cache=True): return page_pass(tl, '_scan.json', '()=>window.scan(0.1)', cache)
 def get_motion(tl, cache=True): return page_pass(tl, '_motion.json', '()=>window.motionScan(%d)' % FPS, cache)
 
+# ---------- 节拍 ----------
+def detect_beats(x, sr):
+    """量速度和第一拍：短时能量的上升沿做成“起音曲线”，自相关找周期（60–180 拍/分），再找让拍点落在起音上的相位。返回 (bpm, 第一拍秒数, 可信度 0..1)。"""
+    hop = 256; n = 1024; fr = 1 + (len(x) - n) // hop
+    if fr < 200: return 0, 0, 0
+    idx = np.arange(n)[None, :] + hop * np.arange(fr)[:, None]; mag = np.abs(np.fft.rfft(x[idx] * np.hanning(n), axis=1)); mag = np.log1p(40 * mag)
+    on = np.maximum(0, np.diff(mag, axis=0)).sum(1); on = on - np.convolve(on, np.ones(43) / 43, 'same'); on = np.maximum(on, 0); f = sr / hop
+    ac = np.correlate(on, on, 'full')[len(on) - 1:]; lo, hi = int(f * 60 / 200), int(f * 60 / 50)
+    sc = np.array([ac[l] + .5 * ac[min(len(ac) - 1, 2 * l)] + .25 * ac[min(len(ac) - 1, 4 * l)] for l in range(lo, hi + 1)]); l0 = lo + int(sc.argmax())
+    comb = lambda L, ph: on[np.clip(np.round(ph + L * np.arange(int((len(on) - ph) / L))).astype(int), 0, len(on) - 1)].mean()
+    cand = np.arange(l0 - 1.5, l0 + 1.501, .02)   # 在整数周期附近细搜，拍点才不会越走越偏
+    best = max(((comb(L, ph), L, ph) for L in cand for ph in np.arange(0, L, max(1, L / 24))), key=lambda z: z[0]); hit, L, ph = best
+    conf = float(np.clip(1 - comb(L, ph + L / 2) / (hit + 1e-9), 0, 1)) * float(np.clip(hit / (on.mean() * 3 + 1e-9), 0, 1))   # 拍点上比两拍中间响多少 × 拍点上比平均响多少
+    bpm = 60 * f / L
+    while bpm > 160: bpm /= 2; L *= 2      # 折进 80–160：量出来的常是半拍或两拍
+    while bpm < 80: bpm *= 2; L /= 2; ph = ph % L
+    return bpm, ph / f + n / 2 / sr, conf
+def cmd_beats(path):
+    src = Path(path) if Path(path).exists() else P / path
+    if not src.exists(): print('找不到', path); sys.exit(1)
+    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', str(src), '-t', '90', '-ac', '1', '-ar', '22050', '-f', 'f32le', '-'], capture_output=True).stdout
+    bpm, off, conf = detect_beats(np.frombuffer(raw, dtype=np.float32).astype(np.float64), 22050)
+    if not bpm: print('音乐太短（不到 3 秒），量不出速度'); sys.exit(1)
+    print(f'速度约 {bpm:.1f} 拍/分，第一拍在 {off:.2f} 秒，可信度 {conf:.2f}' + ('（偏低：没有明显鼓点的音乐量不准，自己数一下）' if conf < .5 else ''))
+    print(f'写进 brief.json：  "music": "{path}", "bpm": {bpm:.1f}, "beat_offset": {off:.2f}')
+    print('程序分不清快一倍还是慢一倍、也分不清哪一拍是小节的第一拍：听着不对就把 bpm 乘 2 或除以 2，beat_offset 加减几拍（一拍 = 60÷bpm 秒）。')
+
 # ---------- 动效 ----------
 STILL_MV = 0.0005; JUMP_MV = 0.03; JUMP_X = 6; SLOW_MS = 250   # 相邻两帧变了的像素不到万分之五算“没动”；超过 3% 且是这一句平常的 6 倍算“跳变”；一帧画超过 250 毫秒算慢
 def motion_stats(mo, tl):
     """按句子汇总：运动面积中位数、静止帧对占比、跳变。量法照 huashu-art-motion 的 qa.py：整片每一对相邻帧都量，不抽样。"""
-    rows = []; fr = mo['frames']
+    rows = []; fr = mo['frames']; BG = tl[0].get('_grid') if tl else None
     for s in tl:
         xs = [f for f in fr if s['t0'] <= f['t'] < s['t1']]
         if not xs: continue
         mv = sorted(f['mv'] for f in xs); med = mv[len(mv) // 2]; still = sum(v < STILL_MV for v in mv) / len(mv)
         edge = lambda f: f['t'] - s['t0'] < .6 or s['t1'] - f['t'] < .6   # 句子两头是分场淡入淡出和转场，本来就整屏在变
         # 跳变是“孤立的一下”：比这一句平常大得多，而且只持续一两对相邻帧（一对 = 硬切，连着两对 = 闪了一帧）；连着三对以上都大的是运镜或转场，不算
-        thr = max(JUMP_MV, JUMP_X * max(med, STILL_MV)); jumps = []; i = 0
+        thr = max(JUMP_MV, JUMP_X * max(med, STILL_MV)); jumps = []; onbeat = []; i = 0
         while i < len(xs):
             j = i
             while j < len(xs) and xs[j]['mv'] > thr: j += 1
-            if 1 <= j - i <= 2 and not edge(xs[i]): jumps.append(xs[i])
+            if 1 <= j - i <= 2 and not edge(xs[i]):
+                bt = (xs[i]['t'] + 1 / FPS - BG['t0']) / BG['spb'] if BG else .5   # 卡在拍点上的硬切是有意的：不报，另计数
+                (onbeat if BG and abs(bt - round(bt)) * BG['spb'] <= 1.01 / FPS else jumps).append(xs[i])
             i = max(j, i + 1)
         # 步进动画（一秒画几步，手绘动画的做法；art 包 look 的步进形式就是）：画面多数帧不动、隔一小会儿整屏换一下、反复出现，那是有意的节奏，不报
         gaps = [b['t'] - a['t'] for a, b in zip(jumps, jumps[1:])]; step = 0
         if len(jumps) >= 4 and still >= .4 and max(gaps) <= .5: step = max(1, round(len(gaps) / sum(gaps))); jumps = []   # 大半时间相邻帧不动，隔不到半秒整屏换一下，反复出现
-        rows.append({'id': s['id'], 't0': s['t0'], 'dur': s['t1'] - s['t0'], 'med': med, 'still': still, 'jumps': jumps, 'step': step, 'ms': sorted(f['ms'] for f in xs)[len(xs) // 2]})
+        rows.append({'id': s['id'], 't0': s['t0'], 'dur': s['t1'] - s['t0'], 'med': med, 'still': still, 'jumps': jumps, 'step': step, 'onbeat': len(onbeat), 'ms': sorted(f['ms'] for f in xs)[len(xs) // 2]})
     return rows
 def motion_check(mo, tl):
     rows = motion_stats(mo, tl); warns = {'jump': [], 'still': [], 'slow': [], 'det': []}
@@ -720,6 +772,7 @@ if __name__ == '__main__':
     if len(sys.argv) < 2 or sys.argv[1] in ('-h', '--help', 'help'): print(__doc__); sys.exit()
     cmd = sys.argv[1]
     if cmd == 'probe': cmd_probe(); sys.exit()
+    if cmd == 'beats': cmd_beats(sys.argv[2]); sys.exit()
     if cmd == 'clips': cmd_clips(); sys.exit()
     if cmd == 'transcribe': cmd_transcribe(sys.argv[2]); sys.exit()
     if cmd == 'pick': cmd_pick(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 8); sys.exit()
@@ -758,7 +811,7 @@ if __name__ == '__main__':
     if cmd == 'motion':   # 动效数字：每句的运动面积、静止帧对、跳变、每帧耗时；最后是确定性
         mo = get_motion(tl, cache='--fresh' not in sys.argv); rows, Mw = motion_check(mo, tl)
         print('句子      起点    时长   运动面积(中位)  静止帧对   跳变   每帧毫秒')
-        for r in rows: print(f"{r['id']:8s}{r['t0']:6.1f}s {r['dur']:5.1f}s {r['med'] * 100:10.2f}%   {r['still'] * 100:7.0f}%  {len(r['jumps']):5d}  {r['ms']:8.0f}" + (f"   步进，约 {r['step']} 步/秒" if r['step'] else ''))
+        for r in rows: print(f"{r['id']:8s}{r['t0']:6.1f}s {r['dur']:5.1f}s {r['med'] * 100:10.2f}%   {r['still'] * 100:7.0f}%  {len(r['jumps']):5d}  {r['ms']:8.0f}" + (f"   步进，约 {r['step']} 步/秒" if r['step'] else '') + (f"   卡点硬切 {r['onbeat']} 处" if r['onbeat'] else ''))
         mv = sorted(f['mv'] for f in mo['frames']); n = len(mv)
         print(f"全片：运动面积中位数 {mv[n // 2] * 100:.2f}%，静止帧对 {sum(v < STILL_MV for v in mv) / n * 100:.0f}%，确定性 {sum(d['same'] for d in mo['det'])}/{len(mo['det'])} 处一致")
         print('读法：运动面积多数好看的段落在 0.5%–8%；静止帧对超过四成读起来是“一卡一卡”；跳变先看帧再判断。数字是线索，不是结论。')

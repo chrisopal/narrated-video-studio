@@ -1,0 +1,6 @@
+[
+ {"id":"a0","ch":"春","silent":true,"bars":2,"beat":"钩子"},
+ {"id":"a1","ch":"夏","silent":true,"bars":2,"beat":"推进"},
+ {"id":"a2","ch":"秋","silent":true,"bars":2,"beat":"推进"},
+ {"id":"a3","ch":"冬","silent":true,"bars":2,"beat":"转折"},
+ {"id":"a4","ch":"尾","silent":true,"bars":1,"beat":"收束"}]
