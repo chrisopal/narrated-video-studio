@@ -1,8 +1,8 @@
 /* 风格包 · 漆屏风 —— 出自《王钟儿》：朱漆底、平涂勾线人物、上下两栏并行叙事、屏风六扇翻转
-   由 legacy/tools/mkpacks.py 生成，不要手改这个文件：旧片画法在 legacy/*.html，接合代码在 legacy/tools/glue/lacquer.js */
+   画法出自本项目的旧片《王钟儿》；这个文件就是源码，直接在这里改。 */
 window.PACK=window.PACK||{};window.PACK_INIT=window.PACK_INIT||[];
 PACK.lacquer=(function(){
-const {TAU, F, clamp, lerp, ss, rng, hash2, vn, fbm, mk, rgba, vtext, chapter} = PACK.ink;
+const {TAU, F, clamp, lerp, ss, rng, hash2, vn, fbm, mk, vtext} = PACK.ink;
 const LQ = { BK: 'rgb(26,17,13)', YE: 'rgb(224,180,86)', WH: 'rgb(238,228,202)', GR: 'rgb(62,106,98)', RD: 'rgb(150,36,28)', BR: 'rgb(122,78,44)', SK: 'rgb(242,230,206)', GY: 'rgb(170,164,150)', OC: 'rgb(196,150,70)' };
 function P2(d) { return new Path2D(d); }
 function lqShape(g, d, fill, lw = 2.6, line = LQ.BK) { const p = P2(d); if (fill) { g.fillStyle = fill; g.fill(p); } if (lw) { g.strokeStyle = line; g.lineWidth = lw; g.stroke(p); } }

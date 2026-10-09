@@ -676,7 +676,7 @@ def pipe(out, crf=18):
 def page_pass(tl, name, expr, cache=True):
     """在页面里跑一遍整片的量测（expr），结果存成 <name>；场景、时间轴、素材、引擎都没动过就直接用上次的。"""
     f = P / name
-    if cache and f.exists() and f.stat().st_mtime > max((P / x).stat().st_mtime for x in ('scenes.js', 'timeline.json', 'assets.json', 'clips/meta.json') if (P / x).exists()) and f.stat().st_mtime > max((KIT / x).stat().st_mtime for x in ['kit.js', 'components.js'] + [f'packs/{k}.js' for k in BRIEF.get('packs', [])]): return json.load(open(f))
+    if cache and f.exists() and f.stat().st_mtime > max((P / x).stat().st_mtime for x in ('scenes.js', 'timeline.json', 'assets.json', 'clips/meta.json') if (P / x).exists()) and f.stat().st_mtime > max((KIT / x).stat().st_mtime for x in ['kit.js', 'components.js'] + [f'packs/{k}.js' for k in BRIEF.get('packs', [])] + [str(x.relative_to(KIT)) for k in BRIEF.get('packs', []) for x in (KIT / 'packs' / k).glob('*.js')]): return json.load(open(f))
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         b, pg, total, errs = browser(p, tl); sc = pg.evaluate(expr); b.close()

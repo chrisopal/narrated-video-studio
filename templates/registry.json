@@ -2275,7 +2275,7 @@
    "kind": "pack",
    "name": "艺术引擎（重绘、后期、转场、绘画与动效库）",
    "pack": "art",
-   "from": "收编 alchaincyf/huashu-art-motion（MIT），接合层自己写",
+   "from": "改自 alchaincyf/huashu-art-motion（MIT），模块在 kit/packs/art/，接合层自己写",
    "demo": "art",
    "status": "candidate",
    "since": "2026-10-10",

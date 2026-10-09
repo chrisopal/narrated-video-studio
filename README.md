@@ -166,7 +166,7 @@ python3 ../kit/build.py final 样片            # 出 样片.mp4
 
 **收件箱**（一个点子，或别处看到的做法）→ **候选**（写成了代码、有样张、在一条片里试过）→ **稳定**（两条成片用过，且回归样张里有它）→ **退役**
 
-每条片子做完要复盘：新写的函数逐个决定“沉淀成通用组件 / 留在本片 / 并入已有的”；检查没拦住的问题记进 `templates/经验库.md`，同一类问题第二次出现就必须变成一项自动检查或一个模板默认值。改了引擎之后跑 `python3 kit/workshop.py gallery`，185 张样张会重渲并和基线逐张比，防止改一处坏一片。想把一种新风格做成风格包，照 `templates/新风格包任务书.md` 做。
+每条片子做完要复盘：新写的函数逐个决定“沉淀成通用组件 / 留在本片 / 并入已有的”；检查没拦住的问题记进 `templates/经验库.md`，同一类问题第二次出现就必须变成一项自动检查或一个模板默认值。改了引擎之后跑 `python3 kit/workshop.py gallery`，207 张样张会重渲并和基线逐张比，防止改一处坏一片。想把一种新风格做成风格包，照 `templates/新风格包任务书.md` 做。
 
 ## 目录
 
@@ -177,7 +177,7 @@ python3 ../kit/build.py final 样片            # 出 样片.mp4
 | `kit/packs/` | 风格包：水墨引擎、固定人物、行迹地图、石印画报、漆屏风（从旧片收进来），扁平发光、概念形变、白板手写、桌面拼贴、动态文字、等距沙盘、全息界面、活体录屏、简笔角色、讲解员、铜版画、木刻版画、案卷、产业图谱（自己实现） |
 | `kit/gallery/` | 回归样张和基线图；也是最好的入门例子 |
 | `templates/` | 叙事与创意（拆提示词、三个方向、叙事手法库、逻辑线、声音）、竖版与平台、题材模板（十五张卡）、风格模板、风格包用法、素材与剪辑、素材授权请求函、制造业隐形冠军选题库、拉片、台账、经验库、更新记录 |
-| `legacy/` | 三条旧片的源码、huashu-art-motion 的上游源码（`legacy/huashu/`），以及把它们收编成风格包的脚本 |
+| `kit/packs/art/` | 艺术引擎的各个库（改自 huashu-art-motion）和接合层；来历、改动和许可在这个目录的 `README.md`、`LICENSE` |
 | `tools/` | `selftest.py` 不开浏览器的自检；`make_skill_zip.sh` 生成上传用的 zip |
 | `docs/images/` | 本页用的效果图 |
 
@@ -187,7 +187,7 @@ python3 ../kit/build.py final 样片            # 出 样片.mp4
 
 **直接收进了代码的**
 
-- [alchaincyf/huashu-art-motion](https://github.com/alchaincyf/huashu-art-motion)（花叔，MIT）：它的绘画库、动效库和转场库共 16 个文件原样收在 `legacy/huashu/`，生成本仓库的艺术引擎 `kit/packs/art.js`（重绘、后期、45 个转场）；逐帧动效检查照它验收脚本的量法重写；九种解说动画语法、经验回流的做法也受它启发。许可全文、取用的提交和范围见 [`legacy/huashu/UPSTREAM.md`](legacy/huashu/UPSTREAM.md)。
+- [alchaincyf/huashu-art-motion](https://github.com/alchaincyf/huashu-art-motion)（花叔，MIT）：它的绘画库、动效库和转场库共 16 个文件，改成本仓库的模块方式后放在 `kit/packs/art/`，是艺术引擎（重绘、后期、45 个转场）的主体；逐帧动效检查照它验收脚本的量法重写；九种解说动画语法、经验回流的做法也受它启发。许可全文、取用的提交、改了什么、没取什么，见 [`kit/packs/art/README.md`](kit/packs/art/README.md)。
 
 **借鉴了思路、规则是重新写的**
 

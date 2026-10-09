@@ -1,5 +1,5 @@
 /* 风格包 · 宋式水墨（引擎）—— 出自《东坡》，《河海昆仑录》《王钟儿》共用
-   由 legacy/tools/mkpacks.py 生成，不要手改这个文件：旧片画法在 legacy/*.html，接合代码在 legacy/tools/glue/ink.js */
+   画法出自本项目的旧片《东坡》；这个文件就是源码，直接在这里改。 */
 window.PACK=window.PACK||{};window.PACK_INIT=window.PACK_INIT||[];
 PACK.ink=(function(){
 

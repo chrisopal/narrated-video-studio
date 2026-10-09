@@ -1,5 +1,5 @@
 /* 组件包 · 行迹地图 —— 出自《东坡》（苏子行迹图）和《河海昆仑录》（戍途图）
-   由 legacy/tools/mkpacks.py 生成，不要手改这个文件：旧片画法在 legacy/*.html，接合代码在 legacy/tools/glue/map.js */
+   画法出自本项目的旧片《东坡》《河海昆仑录》；这个文件就是源码，直接在这里改。海岸线数据的来源见 THIRD_PARTY.md。 */
 window.PACK=window.PACK||{};window.PACK_INIT=window.PACK_INIT||[];
 PACK.map=(function(){
 const {TAU, INK, TQ, INKS, SEAL, F, clamp, lerp, ss, rng, mk, rgba, vtext, rules, makeSeal, stamp, drawWalker, drawBoat} = PACK.ink;

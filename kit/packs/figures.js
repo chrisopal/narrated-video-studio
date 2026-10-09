@@ -1,8 +1,8 @@
 /* 组件包 · 固定人物 —— 宋人文士（《东坡》）、清末官员与仆从（《河海昆仑录》）
-   由 legacy/tools/mkpacks.py 生成，不要手改这个文件：旧片画法在 legacy/*.html，接合代码在 legacy/tools/glue/figures.js */
+   人物出自本项目的旧片《东坡》《河海昆仑录》；这个文件就是源码，直接在这里改。 */
 window.PACK=window.PACK||{};window.PACK_INIT=window.PACK_INIT||[];
 PACK.figures=(function(){
-const {TAU, lerp, rgba} = PACK.ink;
+const {TAU, lerp} = PACK.ink;
 const SU = {
   line: 'rgb(34,30,26)', robe: 'rgb(241,235,220)', robeShade: 'rgb(222,213,194)', skin: 'rgb(238,219,190)',
   sash: 'rgb(160,62,48)', hat: 'rgb(30,27,24)', staff: 'rgb(96,78,50)'

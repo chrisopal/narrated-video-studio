@@ -1,8 +1,8 @@
 /* 风格包 · 石印画报 —— 出自《河海昆仑录》：水墨画面过一遍刻版，版框、题签栏、日数里数
-   由 legacy/tools/mkpacks.py 生成，不要手改这个文件：旧片画法在 legacy/*.html，接合代码在 legacy/tools/glue/litho.js */
+   画法出自本项目的旧片《河海昆仑录》；这个文件就是源码，直接在这里改。 */
 window.PACK=window.PACK||{};window.PACK_INIT=window.PACK_INIT||[];
 PACK.litho=(function(){
-const {TAU, INK, INKS, PAPERS, SEAL, F, clamp, lerp, ss, easeOut, rng, hash2, vn, mk, rgba, makePaper, mountain, glyph, vtext, chapter, layer, vignette} = PACK.ink;
+const {TAU, INK, INKS, PAPERS, SEAL, F, clamp, lerp, ss, easeOut, rng, hash2, vn, mk, rgba, makePaper, mountain, vtext, layer, vignette} = PACK.ink;
 const {suFillStroke, suStroke, peiDraw} = PACK.figures;
 function drawCart(g, x, y, s, t, o = {}) {
   const face = o.face ?? 1, ph = t * 3.2;
@@ -56,7 +56,7 @@ function drawGunboat(g, x, y, s, t, a = 1) {
 /* 嘉峪关：城墙、门洞、三层关楼 */
 function makeFort(seed) {
   const c = mk(1500, 700), g = c.getContext('2d'), r = rng(seed);
-  const wallTop = 430, wall = 'rgb(150,124,88)';
+  const wallTop = 430;
   // 城墙（夯土）
   const gr = g.createLinearGradient(0, wallTop, 0, 700); gr.addColorStop(0, 'rgba(120,96,64,.92)'); gr.addColorStop(1, 'rgba(120,96,64,.25)');
   g.fillStyle = gr; g.beginPath(); g.moveTo(0, wallTop + 20); g.lineTo(380, wallTop); g.lineTo(1120, wallTop); g.lineTo(1500, wallTop + 26); g.lineTo(1500, 700); g.lineTo(0, 700); g.fill();
@@ -139,8 +139,6 @@ function engrave(buf) {
   const g = buf.getContext('2d'); g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.filter = 'none';
   FXG.putImageData(im, 0, 0); g.clearRect(0, 0, W, H); g.drawImage(FXC, 0, ARTDY); g.restore();
 }
-
-scene = function (a, b, build, draw, text) { S.push({ a, b, build, draw, text }); };
 
 /* ---------- 题签纸条上的字 ---------- */
 function say(g, u, o) {
