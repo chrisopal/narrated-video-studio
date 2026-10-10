@@ -53,7 +53,7 @@ CW, CH = SIZES[ASPECT]; VERT = CH > CW
 SAFE = BRIEF.get('safe') or _PL.get('safe') or ([round(CH * .15), round(CW * .15), round(CH * .3), round(CW * .1)] if VERT else [0, 0, 0, 0])
 COVER_NAME = {'16:9': '封面_横版.png', '9:16': '封面_9x16.png', '3:4': '封面_3x4.png'}[ASPECT]
 READ_CPS = BRIEF.get('read_cps', 4.5); READ_PAD = BRIEF.get('read_pad', 1.5)   # 阅读速度：给孩子看用 4.5 字/秒；成年观众可以调到 6
-SUPERLATIVE = re.compile(r'最[大小高低强快早好先多新]|第一|唯一|领先|顶级|顶尖|首[个家创]|独家|全球[首最]|国内[首最]|100%|百分之百|绝对|完美')
+SUPERLATIVE = re.compile(r'最[大小高低强快早好先多新]|第一(?![步层次个件项章节条点种类阶段轮批期天年])|唯一|领先|顶级|顶尖|首[个家创]|独家|全球[首最]|国内[首最]|100%|百分之百|绝对|完美')
 # 允许进成片的素材依据。授权不明的素材只能进参考片单（study），不能进 assets.json
 BASIS = {'own': '自有素材', 'licensed': '已获授权', 'public-domain': '公有领域', 'cc0': 'CC0', 'cc-by': 'CC BY', 'cc-by-sa': 'CC BY-SA', 'stock-free': '免费图库许可', 'excerpt': '引用片段（注明来源）'}
 NEED_CREDIT = {'cc-by', 'cc-by-sa', 'licensed', 'excerpt'}

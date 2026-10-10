@@ -49,7 +49,7 @@ mkdir 我的项目 && cd 我的项目 && python3 ../kit/build.py              # 
 mkdir -p ../kit/models && cd ../kit/models && curl -sL -o m.tar.bz2 https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-paraformer-zh-2023-09-14.tar.bz2 && tar xjf m.tar.bz2 && rm m.tar.bz2
 ```
 
-配音密钥：OpenRouter 的密钥存成工坊根目录的 `openrouter_key.txt`（一行，已在 `.gitignore` 里），或环境变量 `OPENROUTER_API_KEY`。不要读出来、不要写进任何别的地方、不要提交。没有密钥就用 `kit/tts.sh`（edge-tts，免费）。
+配音密钥：OpenRouter 的密钥存成工坊根目录的 `openrouter_key.txt`（一行，已在 `.gitignore` 里），或环境变量 `OPENROUTER_API_KEY`。不要读出来、不要写进任何别的地方、不要提交。没有密钥就用 `python3 <工坊>/kit/tts_edge.py lines.txt [声音] [语速]`（edge-tts，免费，云端工作区也能跑；没有语气控制，声音不如前者自然）。
 
 云端和用户电脑怎么分工：查资料、画面、渲染、回听、切片可以在云端；配音要联网调接口，云端出不去时在用户电脑上的那份工坊里跑（先找各 agent 的 skill 目录，如 `~/.claude/skills/narrated-video-studio`、`~/.agents/skills/narrated-video-studio`，找不到就问用户克隆在哪）；用户的原始视频在他电脑上，取到项目的 `footage/` 再处理。成片和项目文件最后存到用户指定的位置（没说就是 `~/Movies/<项目名>/`）。
 
@@ -189,7 +189,7 @@ python3 <工坊>/kit/tts_openrouter.py voices google/gemini-3.8-flash-tts Charon
 
 **声音跟着方向走，不要每条都一个声音一个速度。** 先定人设（`brief.voice.persona`），再试几个声音，用户听过再定；Charon、Kore、Puck、Sulafat 2026-10 实测都能用。`lines.txt` 第三栏是语气提示（来自句子的 `tone` 或 `brief.voice.style`），配音脚本走接口的 `instructions` 字段：实测 Gemini 会照提示变低、变慢，提示本身不会被读出来。**不要把语气提示写进朗读文本前面**，那样会被原样念出来。已经有 mp3 的句子自动跳过，要全部重配加 `--redo`。
 
-用户另有选定的声音就用他的。没有密钥用 `tts.sh`（edge-tts）。在用户电脑上跑时要在前台按批跑（每次调用 170 秒以内，大约二十句），不要放后台：命令一结束后台进程就会被收掉；每批开始前把已经有 mp3 的句子跳过。音频取回后转成 `audio/<id>.wav`（`ffmpeg -i x.mp3 -ar 44100 -ac 1`）；给成年观众时 Charon 偏慢，可以加 `-af atempo=1.1`，转完照样跑回听。只改了几句就只重配那几句。新闻、企业这类题材如果用户想换声音，先用 `voices` 模式试音。
+用户另有选定的声音就用他的。没有密钥用 `tts_edge.py`（edge-tts）。在用户电脑上跑时要在前台按批跑（每次调用 170 秒以内，大约二十句），不要放后台：命令一结束后台进程就会被收掉；每批开始前把已经有 mp3 的句子跳过。音频取回后转成 `audio/<id>.wav`（`ffmpeg -i x.mp3 -ar 44100 -ac 1`）；给成年观众时 Charon 偏慢，可以加 `-af atempo=1.1`，转完照样跑回听。只改了几句就只重配那几句。新闻、企业这类题材如果用户想换声音，先用 `voices` 模式试音。
 
 ### 8. 回听 `python3 ../kit/asr.py`
 

@@ -473,6 +473,19 @@
    "hook": "一碗热粥比情话更难忘",
    "voice": "Charon",
    "aspect": "16:9"
+  },
+  {
+   "title": "先拆岗位，再拆流程：我怎样把一个顾问做成 AI 专家",
+   "date": "2026-10-10",
+   "genre": "AI与科技",
+   "style": "swiss",
+   "packs": [],
+   "structure": "你以为…其实…，接拆解（三层 → 一条路线 → 十七个 Skill → 一个入口）",
+   "hook": "反常识：最容易的做法为什么不管用",
+   "angle": "亲历者第一人称复盘",
+   "voice": "zh-CN-YunyangNeural",
+   "platform": null,
+   "aspect": "16:9"
   }
  ],
  "items": [
@@ -512,7 +525,9 @@
    "status": "candidate",
    "from": "参考其他 skill 的题材模板整理",
    "since": "2026-10-08",
-   "used_in": []
+   "used_in": [
+    "先拆岗位，再拆流程：我怎样把一个顾问做成 AI 专家"
+   ]
   },
   {
    "id": "genre.小说与文学",
@@ -676,7 +691,9 @@
    "status": "candidate",
    "from": "风格预设整理",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "先拆岗位，再拆流程：我怎样把一个顾问做成 AI 专家"
+   ],
    "demo": "components_swiss"
   },
   {
@@ -842,7 +859,8 @@
    "from": "轴承为什么省力",
    "since": "2026-10-08",
    "used_in": [
-    "轴承为什么省力"
+    "轴承为什么省力",
+    "先拆岗位，再拆流程：我怎样把一个顾问做成 AI 专家"
    ],
    "symbols": [
     "sourceTag"
@@ -857,7 +875,8 @@
    "from": "参考其他 skill 的常用版式整理",
    "since": "2026-10-08",
    "used_in": [
-    "一圈会弯的齿：绿的谐波和谐波减速器"
+    "一圈会弯的齿：绿的谐波和谐波减速器",
+    "先拆岗位，再拆流程：我怎样把一个顾问做成 AI 专家"
    ],
    "symbols": [
     "stamp"
@@ -1088,7 +1107,8 @@
    "since": "2026-10-08",
    "used_in": [
     "天为什么是蓝的",
-    "轴承为什么省力"
+    "轴承为什么省力",
+    "先拆岗位，再拆流程：我怎样把一个顾问做成 AI 专家"
    ],
    "symbols": [
     "credits"
@@ -2288,7 +2308,9 @@
    "from": "照 huashu-art-motion qa.py 的量法重写",
    "status": "candidate",
    "since": "2026-10-10",
-   "used_in": []
+   "used_in": [
+    "先拆岗位，再拆流程：我怎样把一个顾问做成 AI 专家"
+   ]
   },
   {
    "id": "genre.诗意影像",
@@ -2323,7 +2345,9 @@
    "from": "用户要求",
    "status": "candidate",
    "since": "2026-10-10",
-   "used_in": []
+   "used_in": [
+    "先拆岗位，再拆流程：我怎样把一个顾问做成 AI 专家"
+   ]
   },
   {
    "id": "check.原文依据",
@@ -2331,6 +2355,44 @@
    "name": "原文依据：文章是谁的、授权凭证、画面注明出处、旁白不照念原文",
    "from": "文章转视频",
    "status": "candidate",
+   "since": "2026-10-10",
+   "used_in": [
+    "先拆岗位，再拆流程：我怎样把一个顾问做成 AI 专家"
+   ]
+  },
+  {
+   "id": "inbox-027",
+   "kind": "component",
+   "name": "高亮过渡三件套收进 components.js：turn(t,a,b) 轮到谁（带过渡的开和关）、mixc(色A,色B,k) 颜色过渡、halo() 当前项外圈呼吸；带 on 0..1 的小牌子 chip()",
+   "status": "inbox",
+   "from": "成片《先拆岗位，再拆流程》",
+   "since": "2026-10-10",
+   "used_in": []
+  },
+  {
+   "id": "inbox-028",
+   "kind": "component",
+   "name": "六步路线 route()（站点、已走过的线、走动的圆点、空心站先出）和文件小图标 doc() 通用化",
+   "status": "inbox",
+   "from": "成片《先拆岗位，再拆流程》",
+   "since": "2026-10-10",
+   "used_in": []
+  },
+  {
+   "id": "inbox-029",
+   "kind": "flow",
+   "name": "文章转视频出原生竖版：现在的竖版摘要是把横版画面缩进一条带子里，画面里的字太小，只有大字幕读得清",
+   "status": "inbox",
+   "from": "成片《先拆岗位，再拆流程》",
+   "since": "2026-10-10",
+   "used_in": []
+  },
+  {
+   "id": "inbox-030",
+   "kind": "flow",
+   "name": "混音：真峰值先到顶时响度到不了 -14 LUFS（这条片 -16），加一道限幅再归一",
+   "status": "inbox",
+   "from": "成片《先拆岗位，再拆流程》",
    "since": "2026-10-10",
    "used_in": []
   }

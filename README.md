@@ -163,7 +163,7 @@ brew install --cask font-noto-serif-cjk-sc
 配音二选一：
 
 - 有 [OpenRouter](https://openrouter.ai) 的密钥：存成仓库根目录的 `openrouter_key.txt`（只放一行；这个文件已在 `.gitignore` 里，不会被提交），或设环境变量 `OPENROUTER_API_KEY`。
-- 没有密钥：用 `kit/tts.sh`，它走免费的 edge-tts（`pip install edge-tts`）。
+- 没有密钥：用 `kit/tts_edge.py`，它走免费的 edge-tts（`pip install edge-tts`）；声音没有前者自然，也不能控制语气。
 
 ## 怎么用
 

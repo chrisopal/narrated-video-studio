@@ -29,6 +29,7 @@ def check(rec, text, wav):
     x, sr = sf.read(wav, dtype='float32'); x = x if x.ndim == 1 else x.mean(1)
     pad = np.zeros(int(sr * .5), dtype='float32'); st = rec.create_stream(); st.accept_waveform(sr, np.concatenate([pad, x, pad])); rec.decode_stream(st)
     toks = [(t.replace('@@', ''), ts - .5) for t, ts in zip(st.result.tokens, st.result.timestamps) if KEEP.search(t)]
+    toks = [(c, ts) for t, ts in toks for c in (t if t.isascii() else [t]) if KEEP.match(c)]   # 英文词识别出来是一整块（power、pp），稿子是按字母比的：拆成字母，大小写不分
     idx = [i for i, c in enumerate(text) if KEEP.match(c)]; exp = [key(text[i]) for i in idx]; got = [key(t) for t, _ in toks]
     sm = difflib.SequenceMatcher(None, exp, got, autojunk=False); score = sm.ratio(); diffs = []; known = {}
     for tag, i1, i2, j1, j2 in sm.get_opcodes():
