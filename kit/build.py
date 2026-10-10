@@ -24,7 +24,7 @@
   short stills|render 名字 竖版短片（short.json：[{id,vo,src:[[句id,比例],[句id,比例]]}]）
 配音回听是单独的脚本：python3 ../kit/asr.py
 模板台账、回归样张、复盘是工坊级的脚本：python3 ../kit/workshop.py
-brief.json 里和构建有关的字段：packs 风格包列表；music 配乐（pad 缺省 / guqin 五声拨弦 / 文件路径）；sfx:false 不加音效；read_cps、read_pad 阅读速度；
+brief.json 里和构建有关的字段：packs 风格包列表；music 配乐（keys 缺省，键盘铺底 / pad 低沉长音 / guqin 五声拨弦 / 文件路径）；music_gain 配乐整体加减几分贝；sfx:false 不加音效；read_cps、read_pad 阅读速度；
           duck 旁白下素材原声压低的分贝数（缺省 12；false 不压低，原声和音效同轨，即旧做法）
           tiers_required:true 断言台账每条都要填 tier（来源层级）；must_show:[…] 画面上必须清楚出现 ≥2 秒的声明
           bpm 节拍网格（每分钟几拍；写了它，每一句都从拍点上开始，分场里可以用 beatT、barT、pulse 卡点）；meter 一小节几拍（缺省 4）；
@@ -150,9 +150,39 @@ def music_guqin(total, tl, name):
             if BG: t = max(q(t), q(i / SR + hb))
     out = out[:int(SR * total)]; t = np.arange(len(out)) / SR; out *= np.clip(t / 1.5, 0, 1) * np.clip((total - t) / 3, 0, 1); out = np.tanh(out / (np.abs(out).max() + 1e-9) * 3.0) / np.tanh(3.0)
     d = int(.031 * SR); sf.write(P / name, np.stack([out + .25 * np.roll(out, d * 7), out + .25 * np.roll(out, d * 11)], 1) * .7, SR)
+def music_keys(total, tl, name):
+    """轻的键盘铺底：中音区的电钢琴分解和弦 + 一层很淡的长音。手机和笔记本的小喇叭放得出来（老的 pad 几乎全在 200 Hz 以下，小喇叭上等于没有）。
+    四小节一轮（C–Am–F–G 的柔和版本），每换一章换一种弹法；有节拍网格就跟网格走，没有就按每分钟 84 拍。"""
+    BG = (tl or [{}])[0].get('_grid'); spb = BG['spb'] if BG else 60 / 84; t0 = (BG['t0'] % (spb * 4)) if BG else .5; n = int(SR * total); out = np.zeros(n + SR * 4); r = np.random.default_rng(7)
+    N = lambda m: 440 * 2 ** ((m - 69) / 12)   # MIDI 音高 → 频率
+    CH = [[60, 64, 67, 74], [57, 60, 64, 67], [53, 57, 60, 64], [55, 59, 62, 64]]   # Cadd9  Am7  Fmaj7  G6
+    PAT = [[0, 2, 1, 3, 2, 1, 3, 2], [0, 1, 2, 3, 2, 3, 1, 2], [0, 2, 3, 2, 1, 2, 3, 1], [0, 3, 2, 1, 3, 2, 1, 2]]
+    def ep(f, dur, vel):   # 电钢琴：一个正弦被自己的二倍频轻轻调制，敲一下就衰减
+        t = np.arange(int(SR * dur)) / SR; return vel * np.sin(2 * np.pi * f * t + 1.1 * np.exp(-t * 9) * np.sin(2 * np.pi * 2 * f * t)) * np.exp(-t * 3.2) * np.clip(t / .004, 0, 1)
+    starts = []; last = None
+    for s_ in (tl or []):
+        if s_['ch'] != last: starts.append(s_['t0']); last = s_['ch']
+    bar = spb * 4; nb = int((total - t0) / bar) + 1
+    for b in range(nb):
+        tb = t0 + b * bar; ch = CH[b % 4]; ci = max(0, sum(1 for x in starts if x <= tb) - 1); pat = PAT[ci % 4]; dense = ci % 2 == 0
+        # 长音：和弦的三个音，慢起慢收，两小节交叠
+        tt = np.arange(int(SR * bar * 1.6)) / SR; env = np.clip(tt / (bar * .45), 0, 1) * np.clip((bar * 1.6 - tt) / (bar * .6), 0, 1)
+        pad = sum(np.sin(2 * np.pi * N(m) * (1 + .0012 * k) * tt) + .18 * np.sin(2 * np.pi * 2 * N(m) * tt) for k, m in enumerate(ch[:3])) * env * .035
+        i = int(tb * SR); out[i:i + len(pad)] += pad[:len(out) - i]
+        if b == 0: continue   # 第一小节只有长音，让开头的旁白先出来
+        for k in range(8):
+            if not dense and k % 2: continue   # 隔一章弹得疏一点
+            if dense and k in (3, 7) and r.random() < .35: continue
+            m = ch[pat[k]] + (12 if k in (4, 6) and r.random() < .5 else 0); x = ep(N(m), 2.4, (.20 if k == 0 else .12) * r.uniform(.8, 1.1))
+            i = int((tb + k * spb / 2 + r.uniform(-.006, .006)) * SR); out[i:i + len(x)] += x[:len(out) - i]
+        x = ep(N(ch[0] - 12), 3.0, .16); i = int(tb * SR); out[i:i + len(x)] += x[:len(out) - i]   # 每小节一个低八度的根音，托一下
+    out = out[:n]; t = np.arange(n) / SR; out *= np.clip(t / 1.2, 0, 1) * np.clip((total - t) / 3.5, 0, 1)
+    out = out / (np.sqrt((out ** 2).mean()) + 1e-9) * 10 ** (-20 / 20); out = np.tanh(out * 1.5) / 1.5   # 平均音量定在 -20 dB，混音时再按比例压到旁白下面
+    d = int(.017 * SR); sf.write(P / name, np.stack([out + .22 * np.roll(out, d), out + .22 * np.roll(out, d * 2)], 1), SR)
 def music(total, name='music.wav', tl=None):
-    """brief.json 的 music：缺省是合成的铺底；'guqin' 是五声拨弦（每章换调）；写成文件路径就用那条音乐（要进素材台账）。"""
-    kind = BRIEF.get('music', 'pad')
+    """brief.json 的 music：缺省 'keys' 是合成的键盘铺底（中音区，小喇叭听得见）；'pad' 是低沉的长音；'guqin' 是五声拨弦（每章换调）；写成文件路径就用那条音乐（要进素材台账）。"""
+    kind = BRIEF.get('music', 'keys')
+    if kind == 'keys': return music_keys(total, tl, name)
     if kind == 'guqin': return music_guqin(total, tl, name)
     if kind not in ('pad', '') and (P / kind).exists():
         subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-stream_loop', '-1', '-i', str(P / kind), '-t', f'{total:.2f}', '-af', f'afade=t=in:d=1.5,afade=t=out:st={total - 3:.2f}:d=3', '-ar', str(SR), '-ac', '2', str(P / name)], check=True); return
@@ -227,6 +257,8 @@ def loudness(path):
     r = subprocess.run(['ffmpeg', '-hide_banner', '-i', str(path), '-af', f'loudnorm=I={LUFS}:TP=-1.5:LRA=11:print_format=json', '-f', 'null', '-'], capture_output=True, text=True)
     return json.loads(r.stderr[r.stderr.rindex('{'):r.stderr.rindex('}') + 1])
 
+# 配乐压到旁白下面多少：键盘铺底的平均音量是定好的（-20 dB），再压 17 dB，大约比旁白低 14 dB；别的配乐沿用 -21。brief.json 的 music_gain 可以整体加减几分贝
+MU_DB = lambda: (-17 if BRIEF.get('music', 'keys') == 'keys' else -21) + float(BRIEF.get('music_gain', 0))
 def mixdown(vo, mu, out, sfx=None, mu_db=-21, orig=None):
     """配音压缩后和配乐、音效（、素材原声轨）相加，再两遍响度归一到 -14 LUFS，限幅保证真峰值不过 -1.5 dBTP。"""
     ins = ['-i', vo, '-i', mu] + (['-i', sfx] if sfx else []) + (['-i', orig] if orig else [])
@@ -237,8 +269,12 @@ def mixdown(vo, mu, out, sfx=None, mu_db=-21, orig=None):
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', *ins, '-filter_complex', fc, '-map', '[a]', '_pre.wav'], check=True)
     m = loudness('_pre.wav')
     af = f"loudnorm=I={LUFS}:TP=-1.5:LRA=11:measured_I={m['input_i']}:measured_TP={m['input_tp']}:measured_LRA={m['input_lra']}:measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true,aresample=44100,alimiter=limit=0.68:level=false:attack=2:release=60"
-    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', '_pre.wav', '-af', af, out], check=True); Path('_pre.wav').unlink()
-    r = loudness(out); print(f"响度 {r['input_i']} LUFS，真峰值 {r['input_tp']} dBTP（目标 {LUFS} / -1.5）")
+    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', '_pre.wav', '-af', af, out], check=True)
+    r = loudness(out)
+    if float(r['input_i']) < LUFS - .6:   # 峰值先到顶、响度还差一截（旁白动态大时常见）：把差的那几分贝补在限幅器前面，让限幅器吃掉个别尖峰
+        up = min(4.0, LUFS - float(r['input_i'])); af2 = af.replace(',aresample=44100,alimiter', f',volume={up:.1f}dB,aresample=44100,alimiter')
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', '_pre.wav', '-af', af2, out], check=True); r = loudness(out)
+    Path('_pre.wav').unlink(); print(f"响度 {r['input_i']} LUFS，真峰值 {r['input_tp']} dBTP（目标 {LUFS} / -1.5）")
 
 def srt(chunks, path, offset=0.0):
     f = lambda s: '%02d:%02d:%02d,%03d' % (s // 3600, s % 3600 // 60, s % 60, round(s % 1 * 1000) % 1000)
@@ -858,7 +894,7 @@ if __name__ == '__main__':
         else:
             n = sfx_track(ev, total); no, sec = orig_track(clipev, total, tl, duck=duck); print('音效', n, '个', f'素材原声 {no} 段（单独一轨，旁白下压低 {duck} dB，共 {sec:.1f} 秒）')
             if no: orig = 'orig.wav'
-        music(total, tl=tl); mixdown('vo.wav', 'music.wav', 'mix.wav', 'sfx.wav', mu_db=-21 + 15 * sum(s['dur'] for s in tl if silent(s)) / max(1, sum(s['dur'] for s in tl)), orig=orig); sys.exit()
+        music(total, tl=tl); mixdown('vo.wav', 'music.wav', 'mix.wav', 'sfx.wav', mu_db=MU_DB() + 15 * sum(s['dur'] for s in tl if silent(s)) / max(1, sum(s['dur'] for s in tl)), orig=orig); sys.exit()
     if cmd == 'final':
         name = sys.argv[2]; r = P / 'check_report.json'
         ok = r.exists() and json.load(open(r))['fails'] == 0 and r.stat().st_mtime >= (P / 'scenes.js').stat().st_mtime
@@ -904,7 +940,7 @@ if __name__ == '__main__':
             else:
                 ff = pipe(P / 'short_silent.mp4', 20)
                 for i in range(round(stot * FPS)): ff.stdin.write(vf(i / FPS))
-                ff.stdin.close(); ff.wait(); music(stot, 'short_music.wav'); mixdown('short_vo.wav', 'short_music.wav', 'short_mix.wav')
+                ff.stdin.close(); ff.wait(); music(stot, 'short_music.wav'); mixdown('short_vo.wav', 'short_music.wav', 'short_mix.wav', mu_db=MU_DB())
                 subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', 'short_silent.mp4', '-i', 'short_mix.wav', '-loop', '1', '-framerate', '30', '-t', '2.5', '-i', '封面_竖版.png', '-f', 'lavfi', '-t', '2.5', '-i', 'anullsrc=r=44100:cl=stereo', '-filter_complex', "[0:v]fps=30,format=yuv420p,setsar=1[m];[1:a]aresample=44100[ma];[2:v]scale=1080:1440,pad=1080:1920:0:240:color=0x061230,format=yuv420p,fade=t=in:st=0:d=0.3,setsar=1[e];[m][ma][e][3:a]concat=n=2:v=1:a=1[v][a]", '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-crf', '22', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', sys.argv[3] + '.mp4'], check=True)
                 srt([c for s in segs for c in s['chunks']], P / (sys.argv[3] + '.srt')); print('已出', sys.argv[3] + '.mp4')
         if errs: print('页面报错', errs[:5]); sys.exit(1)

@@ -115,7 +115,7 @@ mkdir -p ../kit/models && cd ../kit/models && curl -sL -o m.tar.bz2 https://gith
 
 卡点的片子再加 `"bpm":90`（每分钟几拍；写了它，每一句都从拍点开始，合成配乐的重音落在小节线上）、`"meter":4`（一小节几拍）；用自己的音乐时先运行 `python3 ../kit/build.py beats 音乐文件` 量出速度和第一拍，把它给的 `bpm`、`beat_offset` 写进来。
 
-可选字段：`"platform":"douyin|channels|xhs|bilibili|youtube"` 发布平台（定画幅和安全区）；`"aspect":"9:16|3:4|16:9"` 和 `"safe":[上,右,下,左]` 直接指定；`"packs":["ink","figures","map"]` 要加载的风格包；`"music":"guqin"` 五声拨弦配乐、每章换调（缺省是合成铺底；写成文件路径就用那条音乐，文件要进素材台账）；`"sfx":false` 不加音效（水墨一类安静的片子）；`"duck":12` 旁白时素材原声压低多少分贝（缺省 12，`false` 不压低）；`"tiers_required":true` 断言台账每条都要填来源层级 `tier`（企业、产业类必开）；`"must_show":["不构成投资建议"]` 片中必须出现的声明（检查要求整句至少清楚显示 2 秒）。
+可选字段：`"platform":"douyin|channels|xhs|bilibili|youtube"` 发布平台（定画幅和安全区）；`"aspect":"9:16|3:4|16:9"` 和 `"safe":[上,右,下,左]` 直接指定；`"packs":["ink","figures","map"]` 要加载的风格包；`"music":"guqin"` 五声拨弦配乐、每章换调（缺省 `keys` 是合成的键盘铺底，中音区，手机喇叭听得见；`pad` 是低沉长音；写成文件路径就用那条音乐，文件要进素材台账）；`"music_gain":3` 配乐整体加减几分贝（用户说听不清或太吵时调它）；`"sfx":false` 不加音效（水墨一类安静的片子）；`"duck":12` 旁白时素材原声压低多少分贝（缺省 12，`false` 不压低）；`"tiers_required":true` 断言台账每条都要填来源层级 `tier`（企业、产业类必开）；`"must_show":["不构成投资建议"]` 片中必须出现的声明（检查要求整句至少清楚显示 2 秒）。
 
 `read_cps` 是屏幕文字的阅读速度：给孩子看 4.5 字/秒，成年观众可到 6。
 
