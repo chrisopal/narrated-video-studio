@@ -669,6 +669,21 @@
    "voice": null,
    "platform": null,
    "aspect": "16:9"
+  },
+  {
+   "title": "视频工坊（给这个 skill 自己做的发布短片）",
+   "date": "2026-10-12",
+   "genre": "产品宣传",
+   "style": "kinetic",
+   "packs": [
+    "kinetic"
+   ],
+   "structure": "痛点—亮相—三条线—证明—口号",
+   "hook": "一拍一个词的连切",
+   "angle": "替想做视频的人说话，产品第 4 秒后出场",
+   "voice": null,
+   "platform": null,
+   "aspect": "16:9"
   }
  ],
  "items": [
@@ -1909,7 +1924,9 @@
    "pack": "kinetic",
    "from": "自己实现（参考其他 skill 的风格规则）",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "视频工坊（给这个 skill 自己做的发布短片）"
+   ],
    "demo": "kinetic"
   },
   {
@@ -1920,7 +1937,9 @@
    "pack": "kinetic",
    "from": "自己实现（参考其他 skill 的风格规则）",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "视频工坊（给这个 skill 自己做的发布短片）"
+   ],
    "demo": "kinetic"
   },
   {
@@ -2523,7 +2542,9 @@
    "demo": "beat",
    "status": "candidate",
    "since": "2026-10-10",
-   "used_in": []
+   "used_in": [
+    "视频工坊（给这个 skill 自己做的发布短片）"
+   ]
   },
   {
    "id": "flow.article",
@@ -2625,7 +2646,9 @@
    "status": "candidate",
    "from": "题材模板第 17–22 张卡，宣传片.md；样片《青梧》",
    "since": "2026-10-11",
-   "used_in": [],
+   "used_in": [
+    "视频工坊（给这个 skill 自己做的发布短片）"
+   ],
    "demo": "promo"
   },
   {
@@ -2680,7 +2703,9 @@
    "status": "candidate",
    "from": "宣传线，样片《青梧》",
    "since": "2026-10-11",
-   "used_in": [],
+   "used_in": [
+    "视频工坊（给这个 skill 自己做的发布短片）"
+   ],
    "demo": "promo"
   },
   {
@@ -2690,7 +2715,9 @@
    "status": "candidate",
    "from": "宣传线，样片《青梧》",
    "since": "2026-10-11",
-   "used_in": [],
+   "used_in": [
+    "视频工坊（给这个 skill 自己做的发布短片）"
+   ],
    "demo": "promo"
   },
   {
@@ -2741,6 +2768,15 @@
    "from": "《春节的来历和习俗》：用户指出识别出来的字会错",
    "status": "candidate",
    "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "inbox-031",
+   "kind": "component",
+   "name": "宣传线的两个小件收进 kinetic 包：still(图, t, t0, 时长) 铺满的定格慢推；point(序号, 四字卖点, 一句话) 题卡",
+   "status": "inbox",
+   "from": "成片《视频工坊》发布短片",
+   "since": "2026-10-12",
    "used_in": []
   }
  ]
