@@ -100,6 +100,8 @@ def cmd_gallery():
 def scan_project(R, P):
     """这条片的 scenes.js 里用到了台账里的哪些条目；自己新写了哪些函数。"""
     src = (P / 'scenes.js').read_text(encoding='utf-8'); brief = json.load(open(P / 'brief.json', encoding='utf-8')) if (P / 'brief.json').exists() else {}
+    DEF = r'(?:^|\n)\s*(?:function\s+([A-Za-z_$][\w$]*)\s*\(|(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>)'
+    mine = {m.group(1) or m.group(2) for m in re.finditer(DEF, src)}   # 本片自己定义的名字：和台账组件同名时是本片的函数，不算用了组件（经验库 L-047）
     used = []
     for i in R['items']:
         if i['status'] in ('inbox', 'retired') or i['id'].startswith('inbox-'): continue
@@ -107,12 +109,12 @@ def scan_project(R, P):
         if i['kind'] == 'genre': hit = brief.get('genre') == i['name']
         elif i['kind'] == 'style': hit = bool(re.search(r"theme:\s*['\"]" + re.escape(i['id'].split('.', 1)[1]) + r"['\"]", src))
         elif i['kind'] == 'pack': hit = bool(re.search(r'PACK\.' + re.escape(i['id'].split('.', 1)[1]) + r'\b', src))   # 真的取用了才算，光写在 brief 里不算
-        else: hit = any(re.search(r'(?<![\w$.])' + re.escape(s) + r'\s*\(', src) for s in i.get('symbols', []))
+        else: hit = any(s not in mine and re.search(r'(?<![\w$.])' + re.escape(s) + r'\s*\(', src) for s in i.get('symbols', []))
         if hit: used.append(i['id'])
     known = {s for i in R['items'] for s in i.get('symbols', [])}; local = []
-    for m in re.finditer(r'(?:^|\n)\s*(?:function\s+([A-Za-z_$][\w$]*)\s*\(|(?:const|let)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>)', src):
+    for m in re.finditer(DEF, src):
         nm = m.group(1) or m.group(2)
-        if nm in known or len(nm) < 3: continue
+        if len(nm) < 3: continue
         body = src[m.start():]; end = body.find('\n', 1); calls = len(re.findall(r'(?<![\w$])' + re.escape(nm) + r'\s*\(', src)) - 1
         local.append((nm, calls, body[:end if end > 0 else 120].strip()[:110]))
     return brief, used, local
