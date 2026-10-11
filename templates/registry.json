@@ -326,6 +326,28 @@
     "engrave"
    ],
    "narration": "无旁白或极少旁白；可按节拍网格卡点"
+  },
+  "数学影像": {
+   "styles": [
+    "void"
+   ],
+   "chrome": "none",
+   "components": [
+    "stage",
+    "F",
+    "mix",
+    "frame",
+    "draw",
+    "end",
+    "CAM",
+    "say",
+    "code",
+    "eqn"
+   ],
+   "packs": [
+    "gen"
+   ],
+   "narration": "无旁白；字按 lang 出中文、英文或双语"
   }
  },
  "themes": [
@@ -354,7 +376,8 @@
   "engrave",
   "woodcut",
   "dossier",
-  "industry"
+  "industry",
+  "void"
  ],
  "packs": [
   "ink",
@@ -376,7 +399,8 @@
   "woodcut",
   "dossier",
   "industry",
-  "art"
+  "art",
+  "gen"
  ],
  "films": [
   {
@@ -484,6 +508,21 @@
    "hook": "反常识：最容易的做法为什么不管用",
    "angle": "亲历者第一人称复盘",
    "voice": "zh-CN-YunyangNeural",
+   "platform": null,
+   "aspect": "16:9"
+  },
+  {
+   "title": "一个点 A POINT",
+   "date": "2026-10-10",
+   "genre": "数学影像",
+   "style": "void",
+   "packs": [
+    "gen"
+   ],
+   "structure": "回环：始于一个点，终于一个点；中间每一场是一条规则",
+   "angle": "没有叙述者，字是问题自己",
+   "hook": "一个问题",
+   "voice": null,
    "platform": null,
    "aspect": "16:9"
   }
@@ -2395,6 +2434,41 @@
    "from": "成片《先拆岗位，再拆流程》",
    "since": "2026-10-10",
    "used_in": []
+  },
+  {
+   "id": "pack.gen",
+   "kind": "pack",
+   "name": "生成艺术（一批点，一场一条规则）",
+   "pack": "gen",
+   "from": "《一个点》",
+   "demo": "gen",
+   "status": "candidate",
+   "since": "2026-10-10",
+   "used_in": [
+    "一个点"
+   ]
+  },
+  {
+   "id": "genre.数学影像",
+   "kind": "genre",
+   "name": "数学影像（生成艺术短片）",
+   "from": "题材模板第 16 张卡，出自《一个点》",
+   "used_in": [
+    "一个点"
+   ],
+   "status": "candidate",
+   "since": "2026-10-10"
+  },
+  {
+   "id": "theme.void",
+   "kind": "theme",
+   "name": "void 近黑的底",
+   "from": "《一个点》",
+   "status": "candidate",
+   "since": "2026-10-10",
+   "used_in": [
+    "一个点"
+   ]
   }
  ]
 }

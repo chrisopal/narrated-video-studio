@@ -24,7 +24,7 @@
   short stills|render 名字 竖版短片（short.json：[{id,vo,src:[[句id,比例],[句id,比例]]}]）
 配音回听是单独的脚本：python3 ../kit/asr.py
 模板台账、回归样张、复盘是工坊级的脚本：python3 ../kit/workshop.py
-brief.json 里和构建有关的字段：packs 风格包列表；music 配乐（keys 缺省，键盘铺底 / pad 低沉长音 / guqin 五声拨弦 / 文件路径）；music_gain 配乐整体加减几分贝；sfx:false 不加音效；read_cps、read_pad 阅读速度；
+brief.json 里和构建有关的字段：packs 风格包列表；music 配乐（keys 缺省，键盘铺底 / cosmos 太空感的长音和钟声 / pad 低沉长音 / guqin 五声拨弦 / 文件路径）；lang 画面上的字用哪种语言（zh / en / bi）；music_gain 配乐整体加减几分贝；sfx:false 不加音效；read_cps、read_pad 阅读速度；
           duck 旁白下素材原声压低的分贝数（缺省 12；false 不压低，原声和音效同轨，即旧做法）
           tiers_required:true 断言台账每条都要填 tier（来源层级）；must_show:[…] 画面上必须清楚出现 ≥2 秒的声明
           bpm 节拍网格（每分钟几拍；写了它，每一句都从拍点上开始，分场里可以用 beatT、barT、pulse 卡点）；meter 一小节几拍（缺省 4）；
@@ -179,10 +179,57 @@ def music_keys(total, tl, name):
     out = out[:n]; t = np.arange(n) / SR; out *= np.clip(t / 1.2, 0, 1) * np.clip((total - t) / 3.5, 0, 1)
     out = out / (np.sqrt((out ** 2).mean()) + 1e-9) * 10 ** (-20 / 20); out = np.tanh(out * 1.5) / 1.5   # 平均音量定在 -20 dB，混音时再按比例压到旁白下面
     d = int(.017 * SR); sf.write(P / name, np.stack([out + .22 * np.roll(out, d), out + .22 * np.roll(out, d * 2)], 1), SR)
+def music_cosmos(total, tl, name):
+    """太空感的配乐：一条缓慢起伏的长音（带中音区的泛音，小喇叭听得见）、稀疏的钟声、小节线上的低鼓、换章前的气流声。
+    每一章的强弱照 brief.json 的 music_energy（每章一个 0..1 的数）走，不写就是“起—涨—最高—落—静”。第二章开头有一声低沉的爆响。"""
+    BG = (tl or [{}])[0].get('_grid'); spb = BG['spb'] if BG else 60 / 64; g0 = BG['t0'] if BG else .9; n = int(SR * total); t = np.arange(n) / SR; out = np.zeros(n + SR * 8); r = np.random.default_rng(23)
+    starts = []; last = None
+    for s_ in (tl or []):
+        if s_['ch'] != last: starts.append(s_['t0']); last = s_['ch']
+    starts = starts or [0]; K = len(starts); E = BRIEF.get('music_energy') or [(.22 + .78 * np.sin(np.pi * min(1, (i + .6) / max(1, K - 1.6))) ** 1.3) if i < K - 1 else .25 for i in range(K)]; E = (list(E) + [E[-1]] * K)[:K]
+    en = np.interp(t, [0] + [s_ + 1.5 for s_ in starts[1:]] + [total], [E[0]] + E[1:] + [E[-1] * .6])   # 每章的强弱，换章后一秒半过渡完
+    N = lambda m: 440 * 2 ** ((m - 69) / 12)
+    # 长音：D 上的空五度，叠到中音区；几条慢 LFO 让它一直在动
+    drone = np.zeros(n)
+    for k, (m, a) in enumerate([(38, .3), (45, .34), (50, .5), (57, .5), (62, .46), (69, .34), (74, .24), (66, .16), (81, .1)]):
+        drone += a * np.sin(2 * np.pi * N(m) * (1 + .0009 * k) * t + .6 * np.sin(2 * np.pi * (.05 + .013 * k) * t)) * (.6 + .4 * np.sin(2 * np.pi * (.031 + .011 * k) * t + k))
+    out[:n] += drone * (.07 + .93 * en ** 1.5) * .16   # 低的两条压着放：能量主要在 200 Hz 以上，小喇叭才听得见
+    def put(x, at_, gain=1.0):
+        i = int(at_ * SR)
+        if 0 <= i < len(out): out[i:i + len(x)] += x[:len(out) - i] * gain
+    def bell(f, dur=5.0):
+        tt = np.arange(int(SR * dur)) / SR; return (np.sin(2 * np.pi * f * tt) + .35 * np.sin(2 * np.pi * f * 2.76 * tt) * np.exp(-tt * 3) + .15 * np.sin(2 * np.pi * f * 5.4 * tt) * np.exp(-tt * 6)) * np.exp(-tt * 1.1) * np.clip(tt / .006, 0, 1)
+    def boom(dur=3.2, f0=95, f1=34):
+        tt = np.arange(int(SR * dur)) / SR; f = f1 + (f0 - f1) * np.exp(-tt * 5); return np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-tt * 1.5) + .25 * np.sin(2 * np.pi * np.cumsum(f * 3) / SR) * np.exp(-tt * 4)
+    def air(dur):   # 气流声：噪声过两次滑动平均，音量越来越大
+        m = int(SR * dur); x = r.standard_normal(m + 400); x = np.convolve(x, np.ones(24) / 24, 'same'); x = x - np.convolve(x, np.ones(400) / 400, 'same'); return x[:m] * (np.arange(m) / m) ** 2.2
+    scale = [62, 64, 66, 69, 71, 74, 76, 78, 81]   # D 大调五声
+    tb = g0; b = 0
+    while tb < total - 2:
+        e = float(np.interp(tb, t[::SR], en[::SR])); ci = max(0, sum(1 for x in starts if x <= tb + .01) - 1)
+        if b % 4 == 0 and e > .3: put(boom(1.6, 70, 40), tb, .22 * e)                   # 每小节一声低鼓
+        if e > .55 and b % 2 == 0: put(bell(N(50 + [0, 7, 5, 7][(b // 2) % 4]), 2.5), tb, .07 * e)   # 中音区的拨动，托住节奏
+        if r.random() < .16 + .5 * e: put(bell(N(scale[int(r.integers(0, len(scale)))] + (12 if r.random() < .25 else 0)), 6.0), tb + (spb / 2 if r.random() < .3 else 0), (.07 + .13 * e) * r.uniform(.6, 1))
+        tb += spb; b += 1
+    for i, s_ in enumerate(starts[1:], 1):
+        d = spb * 2; put(air(d), s_ - d, .05 + .12 * E[i]); put(bell(N(86), 7.0), s_, .05)   # 换章：气流涌上来，一声高钟
+    if K > 1: put(boom(), starts[1], .6)
+    # 一个四个音的动机：每章开头响一次，一章比一章多一个音；倒数第二章慢下来完整地再响一遍（问题回到它自己）
+    motif = [62, 69, 66, 64]
+    for i, s_ in enumerate(starts[1:], 1):
+        slow = i == K - 2; nn = 4 if slow or i >= 4 else i
+        for j in range(nn): put(bell(N(motif[j] + (0 if slow else 12)), 7.0), s_ + spb * (4 if slow else 2) * (j + (1 if slow else .5)), (.2 if slow else .1 + .08 * E[i]))
+    put(bell(N(74), 8.0), starts[-1], .16)
+    out = out[:n]; out *= np.clip(t / 2.0, 0, 1) * np.clip((total - t) / 4.0, 0, 1)
+    wet = out.copy()
+    for dly, gdb in ((.137, .32), (.251, .26), (.389, .2), (.613, .15), (.977, .1)): k = int(dly * SR); wet[k:] += out[:-k] * gdb   # 几道延迟当混响
+    out = wet / (np.sqrt((wet ** 2).mean()) + 1e-9) * 10 ** (-20 / 20); out = np.tanh(out * 1.3) / 1.3
+    d = int(.019 * SR); sf.write(P / name, np.stack([out + .3 * np.roll(out, d), out + .3 * np.roll(out, d * 3)], 1), SR)
 def music(total, name='music.wav', tl=None):
     """brief.json 的 music：缺省 'keys' 是合成的键盘铺底（中音区，小喇叭听得见）；'pad' 是低沉的长音；'guqin' 是五声拨弦（每章换调）；写成文件路径就用那条音乐（要进素材台账）。"""
     kind = BRIEF.get('music', 'keys')
     if kind == 'keys': return music_keys(total, tl, name)
+    if kind == 'cosmos': return music_cosmos(total, tl, name)
     if kind == 'guqin': return music_guqin(total, tl, name)
     if kind not in ('pad', '') and (P / kind).exists():
         subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-stream_loop', '-1', '-i', str(P / kind), '-t', f'{total:.2f}', '-af', f'afade=t=in:d=1.5,afade=t=out:st={total - 3:.2f}:d=3', '-ar', str(SR), '-ac', '2', str(P / name)], check=True); return
@@ -258,7 +305,7 @@ def loudness(path):
     return json.loads(r.stderr[r.stderr.rindex('{'):r.stderr.rindex('}') + 1])
 
 # 配乐压到旁白下面多少：键盘铺底的平均音量是定好的（-20 dB），再压 17 dB，大约比旁白低 14 dB；别的配乐沿用 -21。brief.json 的 music_gain 可以整体加减几分贝
-MU_DB = lambda: (-17 if BRIEF.get('music', 'keys') == 'keys' else -21) + float(BRIEF.get('music_gain', 0))
+MU_DB = lambda: (-17 if BRIEF.get('music', 'keys') in ('keys', 'cosmos') else -21) + float(BRIEF.get('music_gain', 0))
 def mixdown(vo, mu, out, sfx=None, mu_db=-21, orig=None):
     """配音压缩后和配乐、音效（、素材原声轨）相加，再两遍响度归一到 -14 LUFS，限幅保证真峰值不过 -1.5 dBTP。"""
     ins = ['-i', vo, '-i', mu] + (['-i', sfx] if sfx else []) + (['-i', orig] if orig else [])
@@ -705,11 +752,12 @@ def browser(p, tl):
     srv = socketserver.TCPServer(('127.0.0.1', 0), Q); threading.Thread(target=srv.serve_forever, daemon=True).start()
     b = p.chromium.launch(args=['--enable-gpu-rasterization', '--ignore-gpu-blocklist']); pg = b.new_page(viewport={'width': CW, 'height': CH}); errs = []
     pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('console', lambda m: m.type == 'error' and errs.append(m.text))
-    pg.goto(f'http://127.0.0.1:{srv.server_address[1]}/kit/film.html?packs=' + ','.join(BRIEF.get('packs', [])) + f'&w={CW}&h={CH}&safe=' + ','.join(map(str, SAFE))); 
+    pg.goto(f'http://127.0.0.1:{srv.server_address[1]}/kit/film.html?packs=' + ','.join(BRIEF.get('packs', [])) + f'&w={CW}&h={CH}&lang={BRIEF.get("lang", "zh")}&safe=' + ','.join(map(str, SAFE)))   # lang：画面上的字出哪种语言（zh / en / bi），目前 gen 包的 say() 认它
     try: total = pg.evaluate('([tl,a])=>window.init(tl,a)', [tl, assets()])
     except Exception as e: print('页面没能启动：', '；'.join(errs[:5]) or str(e).split('\n')[0]); b.close(); sys.exit(1)
     return b, pg, total, errs
-def pipe(out, crf=18):
+def pipe(out, crf=None):
+    crf = BRIEF.get('crf', 18) if crf is None else crf   # 满屏细点的画面（gen 包）码率吃紧，brief.json 里 "crf":15
     return subprocess.Popen(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', str(FPS), '-c:v', 'mjpeg', '-i', '-', '-c:v', 'libx264', '-crf', str(crf), '-preset', 'medium', '-pix_fmt', 'yuv420p', str(out)], stdin=subprocess.PIPE)
 def page_pass(tl, name, expr, cache=True):
     """在页面里跑一遍整片的量测（expr），结果存成 <name>；场景、时间轴、素材、引擎都没动过就直接用上次的。"""
@@ -899,6 +947,9 @@ if __name__ == '__main__':
         name = sys.argv[2]; r = P / 'check_report.json'
         ok = r.exists() and json.load(open(r))['fails'] == 0 and r.stat().st_mtime >= (P / 'scenes.js').stat().st_mtime
         if not ok and '--force' not in sys.argv: print('check 没通过或已过期：先运行 check；确实要出片就加 --force'); sys.exit(1)
+        if BRIEF.get('cover_lead') is False:   # 不在片头垫封面（无旁白的短片从黑场开始）。silent.mp4 是母版（crf 低、很大），这里压成能上传的大小：码率封顶 12M
+            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', 'silent.mp4', '-i', 'mix.wav', '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-crf', str(BRIEF.get('final_crf', 20)), '-maxrate', '12M', '-bufsize', '24M', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '256k', '-shortest', '-movflags', '+faststart', name + '.mp4'], check=True)
+            srt([c for s in tl for c in s['chunks']], P / (name + '.srt'), 0); credits_file(name); print('已出', name + '.mp4', name + '.srt'); sys.exit()
         subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-loop', '1', '-framerate', '30', '-t', str(COVER), '-i', COVER_NAME, '-f', 'lavfi', '-t', str(COVER), '-i', 'anullsrc=r=44100:cl=stereo', '-i', 'silent.mp4', '-i', 'mix.wav', '-filter_complex', f"[0:v]scale={CW}:{CH},format=yuv420p,fade=t=out:st=1.6:d=0.4,setsar=1[c];[2:v]fps=30,format=yuv420p,setsar=1[m];[3:a]aresample=44100[ma];[c][1:a][m][ma]concat=n=2:v=1:a=1[v][a]", '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-crf', '24', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', name + '.mp4'], check=True)
         srt([c for s in tl for c in s['chunks']], P / (name + '.srt'), COVER); credits_file(name); print('已出', name + '.mp4', name + '.srt'); print('交付后做复盘，把这条片记进模板台账：python3 ../kit/workshop.py retro --delivered'); sys.exit()
     from playwright.sync_api import sync_playwright

@@ -1,0 +1,9 @@
+[{"id":"v","ch":"VOID","silent":true,"bars":3,"beat":"钩子"},
+ {"id":"b","ch":"BANG","silent":true,"bars":3,"beat":"铺垫"},
+ {"id":"g","ch":"GRAVITY","silent":true,"bars":4,"beat":"推进"},
+ {"id":"p","ch":"PATTERN","silent":true,"bars":4,"beat":"推进"},
+ {"id":"m","ch":"MIND","silent":true,"bars":4,"beat":"转折"},
+ {"id":"x","ch":"MACHINE","silent":true,"bars":4,"beat":"高潮"},
+ {"id":"e","ch":"END","silent":true,"bars":3,"beat":"转折"},
+ {"id":"r","ch":"RETURN","silent":true,"bars":3,"beat":"回扣"},
+ {"id":"z","ch":"TITLE","silent":true,"bars":2,"beat":"收束"}]
