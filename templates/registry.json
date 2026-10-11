@@ -348,6 +348,133 @@
     "gen"
    ],
    "narration": "无旁白；字按 lang 出中文、英文或双语"
+  },
+  "产品宣传": {
+   "mode": "promo",
+   "styles": [
+    "kinetic",
+    "keynote",
+    "ui",
+    "holo"
+   ],
+   "chrome": "none",
+   "components": [
+    "clipFull",
+    "callout",
+    "highlight",
+    "bigNumber"
+   ],
+   "packs_optional": [
+    "kinetic",
+    "ui",
+    "holo"
+   ]
+  },
+  "发布会用片": {
+   "mode": "promo",
+   "styles": [
+    "keynote",
+    "kinetic"
+   ],
+   "chrome": "none",
+   "components": [
+    "clipFull"
+   ],
+   "packs_optional": [
+    "kinetic",
+    "art"
+   ]
+  },
+  "城市形象": {
+   "mode": "promo",
+   "styles": [
+    "swiss",
+    "kinetic"
+   ],
+   "chrome": "none",
+   "components": [
+    "clipFull",
+    "xfade",
+    "dipTo",
+    "lowerThird",
+    "bigNumber",
+    "sourceTag"
+   ],
+   "packs_optional": [
+    "kinetic",
+    "map"
+   ]
+  },
+  "场景与空间": {
+   "mode": "promo",
+   "styles": [
+    "swiss",
+    "iso"
+   ],
+   "chrome": "none",
+   "components": [
+    "clipFull",
+    "lowerThird",
+    "callout",
+    "specTable",
+    "bigNumber"
+   ],
+   "packs_optional": [
+    "iso"
+   ]
+  },
+  "项目推介": {
+   "mode": "promo",
+   "styles": [
+    "swiss",
+    "keynote"
+   ],
+   "chrome": "label",
+   "components": [
+    "flowSteps",
+    "timeline",
+    "bigNumber",
+    "barChart",
+    "sourceTag",
+    "stamp"
+   ],
+   "packs_optional": []
+  },
+  "生产宣传片": {
+   "mode": "promo",
+   "styles": [
+    "swiss",
+    "blueprint"
+   ],
+   "chrome": "none",
+   "components": [
+    "clipFull",
+    "clipSound",
+    "bigNumber",
+    "specTable",
+    "callout"
+   ],
+   "packs_optional": [
+    "iso",
+    "holo"
+   ]
+  },
+  "口播讲解": {
+   "mode": "talk",
+   "styles": [
+    "talk"
+   ],
+   "chrome": "none",
+   "components": [
+    "bigNumber",
+    "barChart",
+    "compare2",
+    "flowSteps",
+    "timeline"
+   ],
+   "packs": [
+    "talk"
+   ]
   }
  },
  "themes": [
@@ -377,7 +504,8 @@
   "woodcut",
   "dossier",
   "industry",
-  "void"
+  "void",
+  "talk"
  ],
  "packs": [
   "ink",
@@ -400,7 +528,8 @@
   "dossier",
   "industry",
   "art",
-  "gen"
+  "gen",
+  "talk"
  ],
  "films": [
   {
@@ -2488,6 +2617,131 @@
    "used_in": [
     "一个点"
    ]
+  },
+  {
+   "id": "genre.产品宣传",
+   "kind": "genre",
+   "name": "产品宣传与发布（宣传线）",
+   "status": "candidate",
+   "from": "题材模板第 17–22 张卡，宣传片.md；样片《青梧》",
+   "since": "2026-10-11",
+   "used_in": [],
+   "demo": "promo"
+  },
+  {
+   "id": "genre.发布会用片",
+   "kind": "genre",
+   "name": "发布会用片：开场片、演示段、大屏循环片（宣传线）",
+   "status": "candidate",
+   "from": "题材模板第 17–22 张卡，宣传片.md；样片《青梧》",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "genre.城市形象",
+   "kind": "genre",
+   "name": "城市形象（宣传线，靠实拍）",
+   "status": "candidate",
+   "from": "题材模板第 17–22 张卡，宣传片.md；样片《青梧》",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "genre.场景与空间",
+   "kind": "genre",
+   "name": "场景与空间介绍：园区、展厅、工厂、门店（宣传线）",
+   "status": "candidate",
+   "from": "题材模板第 17–22 张卡，宣传片.md；样片《青梧》",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "genre.项目推介",
+   "kind": "genre",
+   "name": "项目推介：招商、申报、路演（宣传线）",
+   "status": "candidate",
+   "from": "题材模板第 17–22 张卡，宣传片.md；样片《青梧》",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "genre.生产宣传片",
+   "kind": "genre",
+   "name": "生产宣传片（宣传线，生产流程卡的宣传版）",
+   "status": "candidate",
+   "from": "题材模板第 17–22 张卡，宣传片.md；样片《青梧》",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "check.pace",
+   "kind": "check",
+   "name": "镜头节奏（宣传线）：镜头数、平均和最长镜头、快慢对比、换镜头是否在拍点上、口号落幅",
+   "status": "candidate",
+   "from": "宣传线，样片《青梧》",
+   "since": "2026-10-11",
+   "used_in": [],
+   "demo": "promo"
+  },
+  {
+   "id": "flow.promo",
+   "kind": "flow",
+   "name": "宣传线 mode:promo：阅读时长按扫一眼算、两秒不动提醒、片头不垫封面；做法在 宣传片.md",
+   "status": "candidate",
+   "from": "宣传线，样片《青梧》",
+   "since": "2026-10-11",
+   "used_in": [],
+   "demo": "promo"
+  },
+  {
+   "id": "pack.talk",
+   "kind": "pack",
+   "name": "口播版式（人像在角上，卡片内容跟着话换，要点累加，大字幕）",
+   "pack": "talk",
+   "from": "用户给的视频号参考截图（只学版式骨架），自己实现",
+   "demo": "talk",
+   "status": "candidate",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "style.talk",
+   "kind": "style",
+   "name": "口播版式的浅色主题 talk",
+   "pack": "talk",
+   "from": "口播线",
+   "demo": "talk",
+   "status": "candidate",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "genre.口播讲解",
+   "kind": "genre",
+   "name": "口播讲解（口播线：录好的口播配上跟着讲话走的画面）",
+   "from": "题材模板第 23 张卡，口播片.md",
+   "status": "candidate",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "flow.talk",
+   "kind": "flow",
+   "name": "口播线 mode:talk 和 build.py talk：转写、稿子草稿、收紧停顿剪口播、逐字时间来自原声",
+   "from": "口播线",
+   "demo": "talk",
+   "status": "candidate",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "check.talk_proof",
+   "kind": "check",
+   "name": "口播校对：复核识别的存疑字要有人听过、专有名词要有依据、校对单要有人确认",
+   "from": "《春节的来历和习俗》：用户指出识别出来的字会错",
+   "status": "candidate",
+   "since": "2026-10-11",
+   "used_in": []
   }
  ]
 }

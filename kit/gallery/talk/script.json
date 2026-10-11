@@ -1,0 +1,7 @@
+[
+ {"id":"a0","ch":"观点","silent":true,"dur":6,"beat":"钩子"},
+ {"id":"a1","ch":"及格","silent":true,"dur":7,"beat":"铺垫"},
+ {"id":"a2","ch":"及格","silent":true,"dur":5,"beat":"转折"},
+ {"id":"a3","ch":"三层","silent":true,"dur":9,"beat":"推进"},
+ {"id":"a4","ch":"三层","silent":true,"dur":6,"beat":"揭示"},
+ {"id":"a5","ch":"结论","silent":true,"dur":6,"beat":"收束"}]

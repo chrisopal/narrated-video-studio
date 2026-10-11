@@ -119,7 +119,7 @@ function subs(t){const s=TL.find(s=>t>=s.t0&&t<s.t1);if(!s)return;const c=(s.chu
 function credits(t,t0,lines,y0=650){lines.forEach((l,i)=>rise(t,t0+i*.2,l,W/2,y0+i*50,32,TH.note,'H5','center'))}
 
 /* ---------- 渲染入口 ---------- */
-window.renderFrame=t=>{if(REC)REC.tx=[];g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.setLineDash([]);TH.bg(t);FILM.scenes(t);g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.filter='none';if(TH.post)TH.post(t);if(!window.CLEAN){chrome(t);subs(t)}
+window.renderFrame=t=>{if(REC)REC.tx=[];g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.setLineDash([]);TH.bg(t);FILM.scenes(t);g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';g.filter='none';if(TH.post)TH.post(t);if(!window.CLEAN){chrome(t);typeof FILM.subs==='function'?FILM.subs(t):FILM.subs!==false&&subs(t)}
   const f=1-eo(seg(t,0,.6))+seg(t,total()-.8,total());if(f>0){g.fillStyle=`rgba(0,0,0,${cl(f)})`;g.fillRect(0,0,W,H)}if(REC)LASTTX=REC.tx;return true};
 // 竖版：把横版画面放进 1080x1920，上面标题、下面大字幕
 window.vertFrame=(t,sub,prog)=>{window.CLEAN=1;window.renderFrame(t);window.CLEAN=0;let V=window.__V;if(!V){V=window.__V=document.createElement('canvas');V.width=1080;V.height=1920}const v=V.getContext('2d'),C=FILM.cover;
