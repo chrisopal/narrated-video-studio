@@ -6,6 +6,7 @@
   study 参考片.mp4 [阈值]   拉片：切点、镜头时长、节奏数据、联系表 → study/<名字>/（只学结构，不进成片）
   probe                    看素材：footage/ 里每条视频的时长/尺寸/切点/静音段 + 带时间码的联系表 → footage/_index.json
   transcribe 文件名或素材id  把素材里的讲话转成带时间的句子 → footage/<名字>.transcript.json；assets.json 的 in/out 可写 "@s3"/"@s5"
+  talk [口播视频]          口播线：转写一条录好的口播，写出 script.json 草稿，按留下的句子剪好（收紧长停顿），生成逐字时间和 talk 片段；brief 要写 "mode":"talk"
   pick 文件名 [个数]        挑镜头：按清晰度、亮度、运动量、时长给镜头打分，列出候选入出点 + 联系表 footage/_sheets/<名字>_pick.jpg（只建议，不改台账）
   clips                    按 assets.json 里的入出点切片、统一成 30 帧、拆帧 → clips/<id>/
   facts                    检查断言台账 facts.json
@@ -27,7 +28,7 @@
 brief.json 里和构建有关的字段：packs 风格包列表；music 配乐（keys 缺省，键盘铺底 / cosmos 太空感的长音和钟声 / pad 低沉长音 / guqin 五声拨弦 / 文件路径）；lang 画面上的字用哪种语言（zh / en / bi）；music_gain 配乐整体加减几分贝；sfx:false 不加音效；read_cps、read_pad 阅读速度；
           duck 旁白下素材原声压低的分贝数（缺省 12；false 不压低，原声和音效同轨，即旧做法）
           tiers_required:true 断言台账每条都要填 tier（来源层级）；must_show:[…] 画面上必须清楚出现 ≥2 秒的声明
-          mode 两条线：explain 讲解线（缺省）/ promo 宣传线（字按扫一眼算、两秒不动就提醒、多查一项“镜头节奏”、片头缺省不垫封面）；宣传线另有 slogan 口号、shot_max 单个镜头上限秒数（缺省 4）、pace_avg 平均镜头上限（缺省 2.5）
+          mode 三条线：explain 讲解线（缺省）/ talk 口播线（声音是录好的原声，时间轴跟原声走；talk:{file, speaker, max_pause 停顿超过几秒就收紧（缺省 0.7）}）/ promo 宣传线（字按扫一眼算、两秒不动就提醒、多查一项“镜头节奏”、片头缺省不垫封面）；宣传线另有 slogan 口号、shot_max 单个镜头上限秒数（缺省 4）、pace_avg 平均镜头上限（缺省 2.5）
           bpm 节拍网格（每分钟几拍；写了它，每一句都从拍点上开始，分场里可以用 beatT、barT、pulse 卡点）；meter 一小节几拍（缺省 4）；
           beat_offset 网格上某个小节第一拍在片中的秒数（用自己的音乐时写，build.py beats 会量出来；合成配乐不用写）
 script.json 里一句可以写 "silent":true,"dur":秒数 表示无旁白段落（只有画面和配乐）；有 bpm 时可以写 "beats":拍数 或 "bars":小节数 代替 dur
@@ -55,10 +56,12 @@ SAFE = BRIEF.get('safe') or _PL.get('safe') or ([round(CH * .15), round(CW * .15
 COVER_NAME = {'16:9': '封面_横版.png', '9:16': '封面_9x16.png', '3:4': '封面_3x4.png'}[ASPECT]
 # 两条线：explain 讲解线（缺省，旁白定节奏，字要读得完）；promo 宣传线（音乐拍点定节奏，字是几个字的大词，镜头短、有快有慢）。做法见 templates/宣传片.md
 MODE = BRIEF.get('mode', 'explain')
-if MODE not in ('explain', 'promo'): sys.exit('brief 的 mode 只能是 explain（讲解线，缺省）或 promo（宣传线）')
-PROMO = MODE == 'promo'
-READ_CPS = BRIEF.get('read_cps', 10 if PROMO else 4.5); READ_PAD = BRIEF.get('read_pad', .1 if PROMO else 1.5)   # 阅读速度：给孩子看用 4.5 字/秒；成年观众可以调到 6；宣传线是扫一眼的大字，10 字/秒（120 拍时一拍一屏最多三个字）
-READ_MIN = .4 if PROMO else 1.5; DEAD_SEC = 2 if PROMO else 4; HOOK_SEC = 1.0 if PROMO else 2.0
+if MODE not in ('explain', 'promo', 'talk'): sys.exit('brief 的 mode 只能是 explain（讲解线，缺省）、promo（宣传线）或 talk（口播线）')
+PROMO = MODE == 'promo'; TALK = MODE == 'talk'
+if TALK: LEAD = 0.0; GAP = 0.0   # 口播线：声音是录好的原声，时间轴就是剪好的那条口播，句子之间不另加停顿（做法见 templates/口播片.md）
+READ_CPS = BRIEF.get('read_cps', 10 if PROMO else 6 if TALK else 4.5); READ_PAD = BRIEF.get('read_pad', .1 if PROMO else .2 if TALK else 1.5)   # 阅读速度：给孩子看用 4.5 字/秒；成年观众可以调到 6；宣传线是扫一眼的大字，10 字/秒（120 拍时一拍一屏最多三个字）
+READ_MIN = .4 if PROMO else .8 if TALK else 1.5; DEAD_SEC = 2 if PROMO else 8 if TALK else 4;   # 口播线：字是边听边看的，人像一直在动，阈值都放宽
+HOOK_SEC = 1.0 if PROMO else 2.0
 SUPERLATIVE = re.compile(r'最[大小高低强快早好先多新佳优]|国家级|世界级|第一(?![步层次个件项章节条点种类阶段轮批期天年])|唯一|领先|顶级|顶尖|首[个家创]|独家|全球[首最]|国内[首最]|100%|百分之百|绝对|完美')
 # 允许进成片的素材依据。授权不明的素材只能进参考片单（study），不能进 assets.json
 BASIS = {'own': '自有素材', 'licensed': '已获授权', 'public-domain': '公有领域', 'cc0': 'CC0', 'cc-by': 'CC BY', 'cc-by-sa': 'CC BY-SA', 'stock-free': '免费图库许可', 'excerpt': '引用片段（注明来源）'}
@@ -561,13 +564,13 @@ def cmd_transcribe(arg):
         if len(c) > 30:
             gaps = [c[i + 1][1] - c[i][1] for i in range(8, len(c) - 8)]; i = 8 + int(np.argmax(gaps)) + 1; sents[:0] = [c[:i], c[i:]]; continue
         out.append(c)
-    def text(c):
-        s = ''
-        for tk, _, _ in c:
+    def text(c, times=False):
+        s = ''; ct = []
+        for tk, t_, _ in c:
             w = tk.replace('@@', '')
-            if s and re.match(r'[A-Za-z0-9]', w) and re.search(r'[A-Za-z0-9]$', s) and not prev.endswith('@@'): s += ' '
-            s += w; prev = tk
-        return s
+            if s and re.match(r'[A-Za-z0-9]', w) and re.search(r'[A-Za-z0-9]$', s) and not prev.endswith('@@'): s += ' '; ct.append(t_)
+            s += w; ct += [t_] * len(w); prev = tk
+        return ct if times else s
     S = []
     for k, c in enumerate(out):
         a = c[0][1]; b = c[-1][1]; nxt = out[k + 1][0][1] if k + 1 < len(out) else len(x) / SRA; prv = S[-1]['end'] if S else 0
@@ -575,11 +578,66 @@ def cmd_transcribe(arg):
         while i > 0 and not quiet[i - 1] and a - (i - 1) * .02 < .3 and (i - 1) * .02 > prv: i -= 1   # 句首往前找到声音真正起来的地方
         st = max(prv, min(a, i * .02)); j = int((b + .1) / .02)
         while j < nf and not quiet[j] and (j + 1) * .02 < min(nxt, b + .8): j += 1   # 句尾往后找到声音落下去的地方
-        S.append({'n': k + 1, 'start': round(st, 2), 'end': round(max(b + .2, min(j * .02, nxt - .02)), 2), 'text': text(c)})
+        S.append({'n': k + 1, 'start': round(st, 2), 'end': round(max(b + .2, min(j * .02, nxt - .02)), 2), 'text': text(c), 'ct': [round(v, 3) for v in text(c, True)]})   # ct：每个字在素材里的发音时刻（口播线用它把画面挂在词上）
     f = P / 'footage' / (src.stem + '.transcript.json'); f.parent.mkdir(exist_ok=True)
     json.dump({'source': str(src.relative_to(P)) if src.is_relative_to(P) else str(src), 'sha256': sha(src), 'model': ASR_MODEL.name, 'duration': m['duration'], 'sentences': S}, open(f, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     for x_ in S: print(f"s{x_['n']:<3} {tc(x_['start'])}–{tc(x_['end'])}  {x_['text']}")
     print(f'{len(S)} 句 → footage/{f.name}。assets.json 里写 "in":"@s3","out":"@s5" 就是第 3 句开头到第 5 句结尾（各留 {SENT_PAD} 秒余量）。识别会有错字，选点前对照联系表和原声核一下。')
+
+# ---------- 口播线：把一条录好的口播变成时间轴 ----------
+def cmd_talk(arg=None):
+    """口播线的准备：转写 → script.json 草稿（一句一行，src 是转写的第几句）→ 按 script.json 留下的句子剪出口播（长停顿收紧、删掉的句子剪掉）
+    → footage/_talk.mp4、audio/<句id>.wav、audio/words.json（逐字时间，来自原声）、assets.json 里的 talk 片段并切片。
+    改了 script.json（删句子、调顺序以外的改动：校对错字只改 vo，不动 tts）之后重新运行一遍。"""
+    TK = BRIEF.get('talk') or {}; arg = arg or TK.get('file')
+    if not arg: print('用法：build.py talk 口播视频文件（放在 footage/ 里），或在 brief.json 写 "talk":{"file":"footage/x.mp4","speaker":"名字"}'); sys.exit(1)
+    if not TALK: print('✗ brief.json 要写 "mode":"talk"（口播线：时间轴跟原声走）'); sys.exit(1)
+    src = footage_file(arg); f, T = transcript_of(src)
+    if not T or T.get('sha256') != sha(src) or 'ct' not in (T.get('sentences') or [{}])[0]: cmd_transcribe(arg); f, T = transcript_of(src)
+    SS = {x['n']: x for x in T['sentences']}; m = ffprobe(src); sp = P / 'script.json'
+    if not m: print('✗ 这条素材没有画面（口播线要的是带人像的视频）：', src.name); sys.exit(1)
+    if not sp.exists():
+        sp.write_text('[\n' + ',\n'.join(' ' + json.dumps({'id': f"s{x['n']}", 'ch': '', 'vo': x['text'], 'tts': x['text'], 'src': x['n']}, ensure_ascii=False) for x in T['sentences']) + '\n]\n', encoding='utf-8')
+        print(f'已写 script.json 草稿（{len(SS)} 句）。接下来：对着原声校对错字（只改 vo，tts 留着识别原文）；口误、重复的句子整行删掉；填 ch 分章；标 beat、hl（字幕里要变色的词）。改完再运行一遍 talk。')
+    S = json.load(open(sp, encoding='utf-8')); L = [l for l in S if 'src' in l]
+    if not L: print('✗ script.json 里没有带 src 的句子'); sys.exit(1)
+    for l in L:
+        if l['src'] not in SS: print(f"✗ {l['id']} 的 src={l['src']}，转写里没有这一句"); sys.exit(1)
+    PRE = .1; POST = float(TK.get('post', .25)); MAXP = float(TK.get('max_pause', .7)); q = lambda v: round(v * FPS) / FPS
+    rng = []   # 每句在素材里取哪一段。下一句紧接着、中间停顿不长：连着取（不出剪辑点）；否则在句尾留一点气口就切
+    for i, l in enumerate(L):
+        x = SS[l['src']]; a = rng[-1][1] if rng and rng[-1][2] else max(0, x['start'] - PRE); nx = L[i + 1] if i + 1 < len(L) else None
+        joined = bool(nx and nx['src'] == l['src'] + 1 and SS[nx['src']]['start'] - x['end'] <= MAXP)
+        b = SS[nx['src']]['start'] - PRE if joined else min(x['end'] + POST, m['duration'], SS[l['src'] + 1]['start'] - .02 if l['src'] + 1 in SS else 1e9)
+        rng.append([a, max(b, a + .2), joined])
+    runs = []   # 连着的句子并成一段；每段的长度凑成整帧，声音和画面才不会越剪越错位
+    for i, (a, b, j) in enumerate(rng):
+        if runs and rng[i - 1][2]: runs[-1][1] = b; runs[-1][2].append(i)
+        else: runs.append([a, b, [i]])
+    for r in runs:
+        d = q(r[1] - r[0]); r[1] = r[0] + d; rng[r[2][-1]][1] = r[1]
+    kept = sum(r[1] - r[0] for r in runs); out = P / 'footage' / '_talk.mp4'; (P / 'audio').mkdir(exist_ok=True)
+    fc = ''.join(f"[0:v]trim=start={a:.4f}:end={b:.4f},setpts=PTS-STARTPTS,fps={FPS}[v{k}];[0:a]atrim=start={a:.4f}:end={b:.4f},asetpts=PTS-STARTPTS[a{k}];" for k, (a, b, _) in enumerate(runs))
+    fc += ''.join(f'[v{k}][a{k}]' for k in range(len(runs))) + f"concat=n={len(runs)}:v=1:a=1[v][a];[v]scale='min(1280,iw)':-2,setsar=1[vo]"
+    ff = P / 'footage' / '_talk.filter'; ff.write_text(fc)
+    r = subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', str(src), '-filter_complex_script', str(ff), '-map', '[vo]', '-map', '[a]', '-c:v', 'libx264', '-crf', '16', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', str(out)]); ff.unlink()
+    if r.returncode: print('✗ 剪口播失败'); sys.exit(1)
+    x = load_pcm(src, SR); W = {}; fade = int(.008 * SR)
+    for i, (l, (a, b, j)) in enumerate(zip(L, rng)):
+        y = x[int(round(a * SR)):int(round(b * SR))].astype('float64')
+        if not (i and rng[i - 1][2]) and len(y) > 2 * fade: y[:fade] *= np.linspace(0, 1, fade)   # 剪辑点上淡入淡出几毫秒，不出“啪”的一声
+        if not j and len(y) > 2 * fade: y[-fade:] *= np.linspace(1, 0, fade)
+        sf.write(P / 'audio' / f"{l['id']}.wav", y, SR); s_ = SS[l['src']]; spoken = l.get('tts') or l['vo']
+        if len(s_['ct']) != len(spoken): print(f"△ {l['id']} 的 tts 被改过（{len(spoken)} 字，识别原文 {len(s_['ct'])} 字）：逐字时间按比例估。校对错字请只改 vo")
+        ct = [round(max(0, s_['ct'][min(len(s_['ct']) - 1, round(k * (len(s_['ct']) - 1) / max(1, len(spoken) - 1)))] - a), 3) for k in range(len(spoken))]
+        W[l['id']] = {'text': spoken, 'ct': ct, 'ok': True, 'score': 1.0, 'diffs': [], 'talk': True}
+    json.dump(W, open(P / 'audio' / 'words.json', 'w', encoding='utf-8'), ensure_ascii=False)
+    A = jload('assets.json', []) or []; A = [a for a in A if a.get('id') != 'talk']; k = min(1, 960 / max(m['width'], m['height'])); size = [int(m['width'] * k) // 2 * 2, int(m['height'] * k) // 2 * 2]
+    A.insert(0, {'id': 'talk', 'type': 'video', 'file': 'footage/_talk.mp4', 'usage_basis': 'own', 'creator': TK.get('speaker') or '出镜人本人', 'source': f"自己录制的口播：{src.name}", 'in': 0, 'out': round(kept, 3), 'size': size, 'fit': 'cover'})
+    (P / 'assets.json').write_text(json.dumps(A, ensure_ascii=False, indent=1), encoding='utf-8'); cmd_clips()
+    cuts = len(runs) - 1; drop = len(SS) - len(L)
+    print(f"口播：素材 {m['duration']:.1f} 秒 → 剪成 {kept:.1f} 秒，{len(L)} 句（删掉 {drop} 句），{cuts} 个剪辑点，收紧停顿和删句共去掉 {m['duration'] - kept:.1f} 秒")
+    print('下一步：build.py timeline，然后写 scenes.js（风格包 talk，见 templates/口播片.md）')
 
 # ---------- 挑镜头 ----------
 def frame_stats(path, m, fps, w=320):
@@ -932,6 +990,7 @@ if __name__ == '__main__':
     if cmd == 'beats': cmd_beats(sys.argv[2]); sys.exit()
     if cmd == 'clips': cmd_clips(); sys.exit()
     if cmd == 'transcribe': cmd_transcribe(sys.argv[2]); sys.exit()
+    if cmd == 'talk': cmd_talk(sys.argv[2] if len(sys.argv) > 2 else None); sys.exit()
     if cmd == 'pick': cmd_pick(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 8); sys.exit()
     if cmd == 'study': cmd_study(sys.argv[2], float(sys.argv[3]) if len(sys.argv) > 3 else 0.3); sys.exit()
     if cmd == 'lines':
@@ -995,7 +1054,7 @@ if __name__ == '__main__':
         name = sys.argv[2]; r = P / 'check_report.json'
         ok = r.exists() and json.load(open(r))['fails'] == 0 and r.stat().st_mtime >= (P / 'scenes.js').stat().st_mtime
         if not ok and '--force' not in sys.argv: print('check 没通过或已过期：先运行 check；确实要出片就加 --force'); sys.exit(1)
-        if BRIEF.get('cover_lead', not PROMO) is False:   # 不在片头垫封面（无旁白的短片从黑场开始）。silent.mp4 是母版（crf 低、很大），这里压成能上传的大小：码率封顶 12M
+        if BRIEF.get('cover_lead', not (PROMO or TALK)) is False:   # 不在片头垫封面（无旁白的短片从黑场开始）。silent.mp4 是母版（crf 低、很大），这里压成能上传的大小：码率封顶 12M
             subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', 'silent.mp4', '-i', 'mix.wav', '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-crf', str(BRIEF.get('final_crf', 20)), '-maxrate', '12M', '-bufsize', '24M', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '256k', '-shortest', '-movflags', '+faststart', name + '.mp4'], check=True)
             srt([c for s in tl for c in s['chunks']], P / (name + '.srt'), 0); credits_file(name); print('已出', name + '.mp4', name + '.srt'); sys.exit()
         subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-loop', '1', '-framerate', '30', '-t', str(COVER), '-i', COVER_NAME, '-f', 'lavfi', '-t', str(COVER), '-i', 'anullsrc=r=44100:cl=stereo', '-i', 'silent.mp4', '-i', 'mix.wav', '-filter_complex', f"[0:v]scale={CW}:{CH},format=yuv420p,fade=t=out:st=1.6:d=0.4,setsar=1[c];[2:v]fps=30,format=yuv420p,setsar=1[m];[3:a]aresample=44100[ma];[c][1:a][m][ma]concat=n=2:v=1:a=1[v][a]", '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-crf', '24', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', name + '.mp4'], check=True)

@@ -458,6 +458,23 @@
     "iso",
     "holo"
    ]
+  },
+  "口播讲解": {
+   "mode": "talk",
+   "styles": [
+    "talk"
+   ],
+   "chrome": "none",
+   "components": [
+    "bigNumber",
+    "barChart",
+    "compare2",
+    "flowSteps",
+    "timeline"
+   ],
+   "packs": [
+    "talk"
+   ]
   }
  },
  "themes": [
@@ -487,7 +504,8 @@
   "woodcut",
   "dossier",
   "industry",
-  "void"
+  "void",
+  "talk"
  ],
  "packs": [
   "ink",
@@ -510,7 +528,8 @@
   "dossier",
   "industry",
   "art",
-  "gen"
+  "gen",
+  "talk"
  ],
  "films": [
   {
@@ -2673,6 +2692,47 @@
    "since": "2026-10-11",
    "used_in": [],
    "demo": "promo"
+  },
+  {
+   "id": "pack.talk",
+   "kind": "pack",
+   "name": "口播版式（人像在角上，卡片内容跟着话换，要点累加，大字幕）",
+   "pack": "talk",
+   "from": "用户给的视频号参考截图（只学版式骨架），自己实现",
+   "demo": "talk",
+   "status": "candidate",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "style.talk",
+   "kind": "style",
+   "name": "口播版式的浅色主题 talk",
+   "pack": "talk",
+   "from": "口播线",
+   "demo": "talk",
+   "status": "candidate",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "genre.口播讲解",
+   "kind": "genre",
+   "name": "口播讲解（口播线：录好的口播配上跟着讲话走的画面）",
+   "from": "题材模板第 23 张卡，口播片.md",
+   "status": "candidate",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "flow.talk",
+   "kind": "flow",
+   "name": "口播线 mode:talk 和 build.py talk：转写、稿子草稿、收紧停顿剪口播、逐字时间来自原声",
+   "from": "口播线",
+   "demo": "talk",
+   "status": "candidate",
+   "since": "2026-10-11",
+   "used_in": []
   }
  ]
 }
