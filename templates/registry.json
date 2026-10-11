@@ -2733,6 +2733,15 @@
    "status": "candidate",
    "since": "2026-10-11",
    "used_in": []
+  },
+  {
+   "id": "check.talk_proof",
+   "kind": "check",
+   "name": "口播校对：复核识别的存疑字要有人听过、专有名词要有依据、校对单要有人确认",
+   "from": "《春节的来历和习俗》：用户指出识别出来的字会错",
+   "status": "candidate",
+   "since": "2026-10-11",
+   "used_in": []
   }
  ]
 }

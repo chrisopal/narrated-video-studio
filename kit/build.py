@@ -15,7 +15,7 @@
   stills 3,10,20 [目录]    抽帧检查
   sheet [间隔秒]           整片总览图（每 5 秒一帧，9 帧一张）→ sheets/
   （文章转视频：先用 python3 ../kit/article.py fetch 网址，见 templates/文章转视频.md）
-  check [--no-motion]      交付前总检查：断言、素材授权、回听、阅读时长、出画、字幕带、重叠、小字、空档、动效、镜头节奏（宣传线） → check_report.json
+  check [--no-motion]      交付前总检查：断言、素材授权、回听、口播校对（口播线）、阅读时长、出画、字幕带、重叠、小字、空档、动效、镜头节奏（宣传线） → check_report.json
   beats 音乐文件            量一条音乐的速度和第一拍的位置，给出要写进 brief.json 的 bpm、beat_offset（卡点的片子用）
   motion                   动效数字：每句的运动面积、静止帧对、跳变、每帧耗时，全片的确定性（同一时刻画两遍是否一样）
   render [out.mp4]         横版无声视频
@@ -585,6 +585,55 @@ def cmd_transcribe(arg):
     print(f'{len(S)} 句 → footage/{f.name}。assets.json 里写 "in":"@s3","out":"@s5" 就是第 3 句开头到第 5 句结尾（各留 {SENT_PAD} 秒余量）。识别会有错字，选点前对照联系表和原声核一下。')
 
 # ---------- 口播线：把一条录好的口播变成时间轴 ----------
+_strip = lambda z: re.sub(r'[\s，。！？；：、,.!?;:“”"《》（）()·\-—…]', '', z or '')
+def talk_doubts(src, T):
+    """复核识别：每一句换两种切法各再识别一遍，和第一遍逐字比。三遍里有不一样的地方，记成这一句的存疑（doubt），要人对着原声听。
+    它只抓得到“识别不稳”的字；三遍都错成同一个字的（专有名词常这样）抓不到，那要靠查证和通读。"""
+    import sherpa_onnx, difflib
+    x = load_pcm(src, 16000); rec = sherpa_onnx.OfflineRecognizer.from_paraformer(paraformer=str(ASR_MODEL / 'model.int8.onnx'), tokens=str(ASR_MODEL / 'tokens.txt'), num_threads=4); pad = np.zeros(8000, dtype='float32'); n = 0
+    def hear(a, b):
+        st = rec.create_stream(); st.accept_waveform(16000, np.concatenate([pad, x[max(0, int(a * 16000)):int(b * 16000)], pad])); rec.decode_stream(st); return _strip(st.result.text)
+    for q in T['sentences']:
+        base = _strip(q['text']); found = []
+        for pre, post in ((.12, .15), (.45, .5)):
+            alt = hear(q['start'] - pre, q['end'] + post)
+            for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, base, alt, autojunk=False).get_opcodes():
+                if tag == 'equal' or (tag in ('insert', 'delete') and (i1 == 0 or i2 == len(base))): continue   # 句子两头多出来或少掉的字是旁边那一句的
+                if tag == 'replace' and (i1 == 0 or i2 == len(base)) and abs((i2 - i1) - (j2 - j1)) > 1: continue
+                d = {'a': base[i1:i2], 'b': alt[j1:j2], 'at': i1}
+                if not any(f['a'] == d['a'] and f['b'] == d['b'] for f in found): found.append(d)
+        q['doubt'] = found; n += bool(found)
+    return n
+def talk_sheet(S, SS, name='校对单.md'):
+    """校对单：一句一行，识别原文、字幕、改了哪里、哪里存疑。出片前给出镜人或用户过一遍。"""
+    rows = []; fixed = 0; open_ = 0
+    for l in S:
+        if 'src' not in l: continue
+        q = SS[l['src']]; raw = _strip(q['text']); now = _strip(l['vo']); chg = '' if raw == now else '改了字'; fixed += bool(chg)
+        db = '；'.join(f"{d['a'] or '∅'}／{d['b'] or '∅'}" for d in q.get('doubt', [])); ok = (l['asr_ok'] if isinstance(l.get('asr_ok'), str) else '已听过') if l.get('asr_ok') else ''; open_ += bool(db and not ok)
+        rows.append(f"| {l['id']} | {tc(q['start'])} | {q['text']} | {l['vo']} | {chg} | {db} | {ok} |")
+    (P / name).write_text('# 校对单\n\n识别会错字，尤其是人名、地名、书名、术语和同音字。“改了字”是校对时改过的，“存疑”是换个切法再识别结果不一样的地方：这两类请对着原声听一遍。\n'
+        '三遍识别都一样的错字这张表标不出来，所以每一句的字幕都请扫一眼。确认后在 brief.json 的 talk 里写 "proofread":"谁在哪天看过"。\n\n| 句 | 素材里的时间 | 识别原文 | 字幕 | 改动 | 存疑（第一遍／再识别） | 确认 |\n|---|---|---|---|---|---|---|\n' + '\n'.join(rows) + '\n', encoding='utf-8')
+    return fixed, open_
+def talk_check(tl):
+    """口播校对：识别不稳的字有没有人听过、专有名词查了没有、校对单给人看过没有。"""
+    TK = BRIEF.get('talk') or {}; fails = []; warns = []; src = P / TK.get('file', ''); f, T = transcript_of(src) if src.is_file() else (None, None)
+    if not T: return ['找不到口播的转写：先运行 build.py talk'], []
+    SS = {x['n']: x for x in T['sentences']}; L = [l for l in tl if 'src' in l]
+    if any('doubt' not in SS.get(l['src'], {}) for l in L): return ['转写还没做复核识别：重新运行 build.py talk'], []
+    for l in L:
+        q = SS[l['src']]
+        if q['doubt'] and not l.get('asr_ok'): fails.append(f"{l['id']}（素材 {tc(q['start'])}）识别不稳：" + '；'.join(f"{d['a'] or '∅'}／{d['b'] or '∅'}" for d in q['doubt']) + f"。字幕现在是「{l['vo']}」：对着原声听过、改对之后，在这一句写 \"asr_ok\": true（听不了原声、只是按上下文定的，写成一句理由，如 \"asr_ok\":\"上下文只能是红纸\"，校对单里会照样列出来）")
+    terms = TK.get('terms')
+    if terms is None: warns.append('brief.json 的 talk 里没有 terms：把人名、地名、书名、术语这些专有名词列出来逐个查证（[{"term":"神荼","basis":"查证的来源，或“出镜人确认”"}]），确实没有就写 []。识别对专有名词常常稳定地错成同音字，复核抓不到')
+    else:
+        allvo = ''.join(l['vo'] for l in L)
+        for x in terms:
+            if not x.get('basis'): fails.append(f"专有名词「{x.get('term')}」没写 basis：查证的来源，或“出镜人确认”")
+            if x.get('term') and x['term'] not in allvo: warns.append(f"专有名词「{x['term']}」不在字幕里：是不是又被改了")
+    fixed = sum(_strip(SS[l['src']]['text']) != _strip(l['vo']) for l in L)
+    if not TK.get('proofread'): warns.append(f'校对单还没有人确认（改了字的 {fixed} 句，都在 校对单.md 里）：给出镜人或用户看过之后，在 brief.json 的 talk 里写 "proofread":"谁在哪天看过"')
+    return fails, warns
 def cmd_talk(arg=None):
     """口播线的准备：转写 → script.json 草稿（一句一行，src 是转写的第几句）→ 按 script.json 留下的句子剪出口播（长停顿收紧、删掉的句子剪掉）
     → footage/_talk.mp4、audio/<句id>.wav、audio/words.json（逐字时间，来自原声）、assets.json 里的 talk 片段并切片。
@@ -594,6 +643,8 @@ def cmd_talk(arg=None):
     if not TALK: print('✗ brief.json 要写 "mode":"talk"（口播线：时间轴跟原声走）'); sys.exit(1)
     src = footage_file(arg); f, T = transcript_of(src)
     if not T or T.get('sha256') != sha(src) or 'ct' not in (T.get('sentences') or [{}])[0]: cmd_transcribe(arg); f, T = transcript_of(src)
+    if any('doubt' not in x for x in T['sentences']):   # 复核识别：换两种切法各再识别一遍，不一样的地方记成存疑
+        nd = talk_doubts(src, T); json.dump(T, open(f, 'w', encoding='utf-8'), ensure_ascii=False, indent=1); print(f'复核识别：{nd} 句里有识别不稳的字' if nd else '复核识别：三遍结果一致（不等于没有错字，专有名词照样要查）')
     SS = {x['n']: x for x in T['sentences']}; m = ffprobe(src); sp = P / 'script.json'
     if not m: print('✗ 这条素材没有画面（口播线要的是带人像的视频）：', src.name); sys.exit(1)
     if not sp.exists():
@@ -635,6 +686,7 @@ def cmd_talk(arg=None):
     A = jload('assets.json', []) or []; A = [a for a in A if a.get('id') != 'talk']; k = min(1, 960 / max(m['width'], m['height'])); size = [int(m['width'] * k) // 2 * 2, int(m['height'] * k) // 2 * 2]
     A.insert(0, {'id': 'talk', 'type': 'video', 'file': 'footage/_talk.mp4', 'usage_basis': 'own', 'creator': TK.get('speaker') or '出镜人本人', 'source': f"自己录制的口播：{src.name}", 'in': 0, 'out': round(kept, 3), 'size': size, 'fit': 'cover'})
     (P / 'assets.json').write_text(json.dumps(A, ensure_ascii=False, indent=1), encoding='utf-8'); cmd_clips()
+    fixed, open_ = talk_sheet(S, SS); print(f'校对单.md：改了字的 {fixed} 句，存疑还没听过的 {open_} 句')
     cuts = len(runs) - 1; drop = len(SS) - len(L)
     print(f"口播：素材 {m['duration']:.1f} 秒 → 剪成 {kept:.1f} 秒，{len(L)} 句（删掉 {drop} 句），{cuts} 个剪辑点，收紧停顿和删句共去掉 {m['duration'] - kept:.1f} 秒")
     print('下一步：build.py timeline，然后写 scenes.js（风格包 talk，见 templates/口播片.md）')
@@ -1004,6 +1056,7 @@ if __name__ == '__main__':
     if cmd == 'facts': f, w = facts_check(tl); show('断言台账', f, w); sys.exit(1 if f else 0)
     if cmd == 'check':
         rep = {}; f, w = facts_check(tl); rep['断言台账'] = (f, w); rep['叙事线'] = story_check(tl); f, w = asr_check(tl); rep['配音回听'] = (f, w)
+        if TALK: rep['口播校对'] = talk_check(tl)
         sc = get_scan(tl, cache='--fresh' not in sys.argv); F, Wn = scan_check(sc)
         if (P / 'assets.json').exists(): rep['素材授权'] = assets_check(set(sc.get('used', {})))
         rep['阅读时长'] = (F['read'], []); rep['文字出画'] = (F['frame'], []); rep['平台遮挡区'] = (F['unsafe'], []) if VERT else ([], []); rep['字幕带'] = ([], Wn['subzone']); rep['文字重叠'] = ([], Wn['overlap']); rep['画面空档'] = ([], Wn['dead']); rep['开场'] = ([], Wn['hook']); rep['小字'] = ([], Wn['small'])
