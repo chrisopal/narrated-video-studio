@@ -1,0 +1,8 @@
+[
+ {"id":"p0","ch":"痛点","silent":true,"bars":2,"beat":"钩子"},
+ {"id":"p1","ch":"亮相","silent":true,"bars":2,"beat":"揭示"},
+ {"id":"p2","ch":"卖点一","silent":true,"bars":3,"beat":"推进"},
+ {"id":"p3","ch":"卖点二","silent":true,"bars":3,"beat":"推进"},
+ {"id":"p4","ch":"卖点三","silent":true,"bars":2,"beat":"高潮"},
+ {"id":"p5","ch":"证明","silent":true,"bars":2,"beat":"推进"},
+ {"id":"p6","ch":"口号","silent":true,"bars":3,"beat":"收束"}]

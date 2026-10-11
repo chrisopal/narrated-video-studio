@@ -14,7 +14,7 @@
   stills 3,10,20 [目录]    抽帧检查
   sheet [间隔秒]           整片总览图（每 5 秒一帧，9 帧一张）→ sheets/
   （文章转视频：先用 python3 ../kit/article.py fetch 网址，见 templates/文章转视频.md）
-  check [--no-motion]      交付前总检查：断言、素材授权、回听、阅读时长、出画、字幕带、重叠、小字、空档、动效 → check_report.json
+  check [--no-motion]      交付前总检查：断言、素材授权、回听、阅读时长、出画、字幕带、重叠、小字、空档、动效、镜头节奏（宣传线） → check_report.json
   beats 音乐文件            量一条音乐的速度和第一拍的位置，给出要写进 brief.json 的 bpm、beat_offset（卡点的片子用）
   motion                   动效数字：每句的运动面积、静止帧对、跳变、每帧耗时，全片的确定性（同一时刻画两遍是否一样）
   render [out.mp4]         横版无声视频
@@ -27,6 +27,7 @@
 brief.json 里和构建有关的字段：packs 风格包列表；music 配乐（keys 缺省，键盘铺底 / cosmos 太空感的长音和钟声 / pad 低沉长音 / guqin 五声拨弦 / 文件路径）；lang 画面上的字用哪种语言（zh / en / bi）；music_gain 配乐整体加减几分贝；sfx:false 不加音效；read_cps、read_pad 阅读速度；
           duck 旁白下素材原声压低的分贝数（缺省 12；false 不压低，原声和音效同轨，即旧做法）
           tiers_required:true 断言台账每条都要填 tier（来源层级）；must_show:[…] 画面上必须清楚出现 ≥2 秒的声明
+          mode 两条线：explain 讲解线（缺省）/ promo 宣传线（字按扫一眼算、两秒不动就提醒、多查一项“镜头节奏”、片头缺省不垫封面）；宣传线另有 slogan 口号、shot_max 单个镜头上限秒数（缺省 4）、pace_avg 平均镜头上限（缺省 2.5）
           bpm 节拍网格（每分钟几拍；写了它，每一句都从拍点上开始，分场里可以用 beatT、barT、pulse 卡点）；meter 一小节几拍（缺省 4）；
           beat_offset 网格上某个小节第一拍在片中的秒数（用自己的音乐时写，build.py beats 会量出来；合成配乐不用写）
 script.json 里一句可以写 "silent":true,"dur":秒数 表示无旁白段落（只有画面和配乐）；有 bpm 时可以写 "beats":拍数 或 "bars":小节数 代替 dur
@@ -52,8 +53,13 @@ if ASPECT not in SIZES: sys.exit(f'brief 的 aspect 只能是 {" / ".join(SIZES)
 CW, CH = SIZES[ASPECT]; VERT = CH > CW
 SAFE = BRIEF.get('safe') or _PL.get('safe') or ([round(CH * .15), round(CW * .15), round(CH * .3), round(CW * .1)] if VERT else [0, 0, 0, 0])
 COVER_NAME = {'16:9': '封面_横版.png', '9:16': '封面_9x16.png', '3:4': '封面_3x4.png'}[ASPECT]
-READ_CPS = BRIEF.get('read_cps', 4.5); READ_PAD = BRIEF.get('read_pad', 1.5)   # 阅读速度：给孩子看用 4.5 字/秒；成年观众可以调到 6
-SUPERLATIVE = re.compile(r'最[大小高低强快早好先多新]|第一(?![步层次个件项章节条点种类阶段轮批期天年])|唯一|领先|顶级|顶尖|首[个家创]|独家|全球[首最]|国内[首最]|100%|百分之百|绝对|完美')
+# 两条线：explain 讲解线（缺省，旁白定节奏，字要读得完）；promo 宣传线（音乐拍点定节奏，字是几个字的大词，镜头短、有快有慢）。做法见 templates/宣传片.md
+MODE = BRIEF.get('mode', 'explain')
+if MODE not in ('explain', 'promo'): sys.exit('brief 的 mode 只能是 explain（讲解线，缺省）或 promo（宣传线）')
+PROMO = MODE == 'promo'
+READ_CPS = BRIEF.get('read_cps', 10 if PROMO else 4.5); READ_PAD = BRIEF.get('read_pad', .1 if PROMO else 1.5)   # 阅读速度：给孩子看用 4.5 字/秒；成年观众可以调到 6；宣传线是扫一眼的大字，10 字/秒（120 拍时一拍一屏最多三个字）
+READ_MIN = .4 if PROMO else 1.5; DEAD_SEC = 2 if PROMO else 4; HOOK_SEC = 1.0 if PROMO else 2.0
+SUPERLATIVE = re.compile(r'最[大小高低强快早好先多新佳优]|国家级|世界级|第一(?![步层次个件项章节条点种类阶段轮批期天年])|唯一|领先|顶级|顶尖|首[个家创]|独家|全球[首最]|国内[首最]|100%|百分之百|绝对|完美')
 # 允许进成片的素材依据。授权不明的素材只能进参考片单（study），不能进 assets.json
 BASIS = {'own': '自有素材', 'licensed': '已获授权', 'public-domain': '公有领域', 'cc0': 'CC0', 'cc-by': 'CC BY', 'cc-by-sa': 'CC BY-SA', 'stock-free': '免费图库许可', 'excerpt': '引用片段（注明来源）'}
 NEED_CREDIT = {'cc-by', 'cc-by-sa', 'licensed', 'excerpt'}
@@ -388,7 +394,7 @@ def story_check(tl):
         if beats[-1] not in ('回扣', '收束') and beats[-2:] .count('回扣') == 0: warns.append('最后一两句不是回扣或收束：结尾没有回到开头')
     else: warns.append('script.json 没有标 beat（钩子/铺垫/推进/转折/揭示/高潮/回扣/收束）：标上才能检查叙事线')
     cb = D.get('callback')
-    if cb:
+    if cb and not mute:   # 无旁白的片子回扣在画面上，这里查不了
         head = ''.join(s['vo'] for s in S[:3]); tail = ''.join(s['vo'] for s in S[-3:])
         if cb not in head or cb not in tail: warns.append(f'回扣词「{cb}」要在前三句和后三句的旁白里都出现（现在：开头{"有" if cb in head else "没有"}，结尾{"有" if cb in tail else "没有"}）')
     # 和以前的片子太像：结构、钩子、视角、声音、风格五样里有三样一样
@@ -681,7 +687,7 @@ def asr_check(tl):
     return fails, warns
 
 def need_seconds(s, pad=1.5):
-    c = len(CJK.findall(s)); o = len(re.sub(r'\s', '', s)) - c; return max(1.5, c / READ_CPS + o / 15 + READ_PAD)
+    c = len(CJK.findall(s)); o = len(re.sub(r'\s', '', s)) - c; return max(READ_MIN, c / READ_CPS + o / 15 + READ_PAD)
 
 def scan_check(sc):
     """用整片扫描结果查：文字停留、出画、压字幕带、文字互相重叠、画面空档、开场。"""
@@ -726,13 +732,13 @@ def scan_check(sc):
     for k, (t, px) in small.items(): warns['small'].append(f"{t:6.1f}s 「{k[:18]}」只有 {px:.0f} 像素，手机上读不清（至少 {MIN_PX}）")
     # 画面空档：连续 4 秒以上几乎不动
     quiet = None
-    for fr in sc['frames'][5:-30] + [{'t': sc['total'], 'df': 9}]:
+    for fr in sc['frames'][5:-30] + [{'t': sc['frames'][-30]['t'] if PROMO else sc['total'], 'df': 9}]:   # 宣传线：片尾定格的那三秒不算空档
         if fr['df'] < DEAD_DF: quiet = fr['t'] if quiet is None else quiet
         else:
-            if quiet is not None and fr['t'] - quiet >= 4: warns['dead'].append(f"{quiet:6.1f}s 起 {fr['t'] - quiet:.1f}s 画面几乎不动：给这一段加一个和旁白对应的动作")
+            if quiet is not None and fr['t'] - quiet >= DEAD_SEC: warns['dead'].append(f"{quiet:6.1f}s 起 {fr['t'] - quiet:.1f}s 画面几乎不动：" + ('宣传片里两秒不动就是掉拍，换镜头或让主体动起来' if PROMO else '给这一段加一个和旁白对应的动作'))
             quiet = None
     first = min([t for t in seen.values()] + [e['t'] for e in sc['events']] + [99])
-    if first > 2.0: warns['hook'].append(f"开场 {first:.1f}s 才出现第一个内容：前 1 秒就该有东西落地")
+    if first > HOOK_SEC: warns['hook'].append(f"开场 {first:.1f}s 才出现第一个内容：前 1 秒就该有东西落地")
     return fails, warns
 DEAD_DF = 0.12; MIN_PX = 32 if not VERT else 40   # 竖版在手机上整屏看，字再大一点
 
@@ -826,7 +832,7 @@ def cmd_beats(path):
     print('程序分不清快一倍还是慢一倍、也分不清哪一拍是小节的第一拍：听着不对就把 bpm 乘 2 或除以 2，beat_offset 加减几拍（一拍 = 60÷bpm 秒）。')
 
 # ---------- 动效 ----------
-STILL_MV = 0.0005; JUMP_MV = 0.03; JUMP_X = 6; SLOW_MS = 250   # 相邻两帧变了的像素不到万分之五算“没动”；超过 3% 且是这一句平常的 6 倍算“跳变”；一帧画超过 250 毫秒算慢
+STILL_MV = 0.0005; JUMP_MV = 0.10 if PROMO else 0.03; JUMP_X = 6; SLOW_MS = 250   # 相邻两帧变了的像素不到万分之五算“没动”；超过 3%（宣传线 10%：大字砸下来本来就是一下）且是这一句平常的 6 倍算“跳变”；一帧画超过 250 毫秒算慢
 def motion_stats(mo, tl):
     """按句子汇总：运动面积中位数、静止帧对占比、跳变。量法照 huashu-art-motion 的 qa.py：整片每一对相邻帧都量，不抽样。"""
     rows = []; fr = mo['frames']; BG = tl[0].get('_grid') if tl else None
@@ -859,6 +865,44 @@ def motion_check(mo, tl):
     for d in mo['det']:
         if not d['same']: warns['det'].append(f"{d['t']:6.1f}s 同一时刻画两遍，结果不一样：用了 Math.random、Date，或有跨帧累积的状态（比如画进一张不清空的离屏）。重渲、抽帧和回归样张都会和成片对不上")
     return rows, warns
+
+# ---------- 镜头节奏（宣传线） ----------
+CUT_MV = 0.25   # 相邻两帧有四分之一以上的画面变了，算一次换镜头
+def shot_cuts(mo):
+    """从逐帧运动量里找换镜头的时刻：大面积变化只持续半秒以内的算一次（硬切、闪切、很短的擦切）；持续更久的是运镜或慢转场，不算。"""
+    fr = mo['frames']; cuts = []; i = 0
+    while i < len(fr):
+        j = i
+        while j < len(fr) and fr[j]['mv'] > CUT_MV: j += 1
+        if j > i and j - i <= FPS * .5 and (not cuts or fr[i]['t'] + 1 / FPS - cuts[-1] >= .2): cuts.append(round(fr[i]['t'] + 1 / FPS, 3))   # 一道擦切中途画面变化会落一下，隔不到 0.2 秒的算同一次
+        i = max(j, i + 1)
+    return cuts
+def pace_stats(mo, tl):
+    BG = tl[0].get('_grid') if tl else None; a, b = tl[0]['t0'], tl[-1]['t1']; cuts = [c for c in shot_cuts(mo) if a + .1 < c < b - .1]
+    edges = [a] + cuts + [b]; shots = sorted(((y - x, x) for x, y in zip(edges, edges[1:])), reverse=True); ls = sorted(d for d, _ in shots); n = len(ls)
+    off = []
+    if BG:
+        for c in cuts:
+            k = (c - BG['t0']) / (BG['spb'] / 2)   # 半拍也算在点上
+            if abs(k - round(k)) * BG['spb'] / 2 > 1.6 / FPS: off.append(c)
+    return {'n': n, 'dur': b - a, 'avg': (b - a) / n, 'longest': shots[:3], 'p10': ls[int(n * .1)], 'p90': ls[min(n - 1, int(n * .9))], 'cuts': cuts, 'off': off, 'grid': bool(BG)}
+def pace_line(st): return f"镜头 {st['n']} 个，平均 {st['avg']:.1f} 秒，最长 {st['longest'][0][0]:.1f} 秒（{st['longest'][0][1]:.1f}s 起），短的约 {st['p10']:.1f} 秒、长的约 {st['p90']:.1f} 秒" + (f"；换镜头 {len(st['cuts'])} 次，{len(st['cuts']) - len(st['off'])} 次在拍点上" if st['grid'] and st['cuts'] else '')
+def pace_check(mo, tl, sc=None):
+    """宣传线才查：镜头够不够短、有没有快慢对比、换镜头在不在拍点上、口号最后有没有落在画面上。阈值是经验值，brief 里可改：shot_max、pace_avg。"""
+    st = pace_stats(mo, tl); fails = []; warns = []; smax = float(BRIEF.get('shot_max', 4)); pavg = float(BRIEF.get('pace_avg', 2.5))
+    if not st['grid']: warns.append('宣传片没写 bpm：先定音乐和拍点，再按拍子排镜头（用自己的音乐先跑 build.py beats 音乐文件）')
+    if st['avg'] > pavg: warns.append(f"平均一个镜头 {st['avg']:.1f} 秒（{st['dur']:.0f} 秒里只有 {st['n']} 个镜头）：宣传片读起来会拖，目标是平均 {pavg:g} 秒以内。检查只认得硬切和半秒内的擦切，慢叠化不算换镜头")
+    for d, t0 in st['longest']:
+        if d > smax: warns.append(f"{t0:6.1f}s 起一个镜头 {d:.1f} 秒，超过 {smax:g} 秒：切开，或者确认它是全片要“停下来”的那一拍（全片最多留一两处）")
+    if st['n'] >= 6 and st['p90'] < 2 * st['p10']: warns.append(f"镜头长短都差不多（短的 {st['p10']:.1f} 秒，长的 {st['p90']:.1f} 秒）：没有快慢对比，像节拍器。蓄力的地方放慢，爆点后连切")
+    if st['off'] and len(st['off']) > .15 * len(st['cuts']): warns.append(f"{len(st['off'])} 次换镜头不在拍点上（{'、'.join(f'{c:.2f}s' for c in st['off'][:6])}{'…' if len(st['off']) > 6 else ''}）：差几帧比不卡点还难受，时刻用 beatT / barT 取")
+    slogan = BRIEF.get('slogan')
+    if not slogan: warns.append('brief.json 没写 slogan：宣传片要有一句观众带得走的话，写进 brief，检查会看它最后有没有落在画面上')
+    elif sc:
+        step = sc['frames'][1]['t'] - sc['frames'][0]['t']; tail = st['dur'] * .7 + tl[0]['t0']; key = re.sub(r'[\s，。！？、,.!?]', '', slogan)
+        n = sum(1 for fr in sc['frames'] if fr['t'] >= tail and key in re.sub(r'[\s，。！？、,.!?]', '', ''.join(r[0] for r in fr['tx'] if r[5] >= .8)))
+        if n * step < 1.2: fails.append(f'口号「{slogan}」没有在片尾三成里清楚停留 1.2 秒以上：最后一个画面要把它和品牌名一起留住')
+    return st, fails, warns
 
 # ---------- 竖版 ----------
 def short_plan(tl):
@@ -916,6 +960,8 @@ if __name__ == '__main__':
         if '--no-motion' not in sys.argv:   # 动效：相邻帧量出来的运动、跳变、耗时，和“同一时刻画两遍是否一样”。都是提醒：数字是线索，要看帧才能下结论
             mo = get_motion(tl, cache='--fresh' not in sys.argv); rows, Mw = motion_check(mo, tl)
             rep['确定性'] = ([], Mw['det']); rep['跳变'] = ([], Mw['jump']); rep['逐帧不动'] = ([], Mw['still']); rep['渲染耗时'] = ([], Mw['slow'])
+            if PROMO: st, pf, pw = pace_check(mo, tl, sc); rep['镜头节奏'] = (pf, pw); print('  ', pace_line(st))
+        elif PROMO: rep['镜头节奏'] = ([], ['加了 --no-motion：镜头节奏没有查，宣传片出片前要查一遍'])
         for k, (f, w) in rep.items(): show(k, f, w)
         nf = sum(len(f) for f, _ in rep.values()); nw = sum(len(w) for _, w in rep.values())
         json.dump({'fails': nf, 'warns': nw, 'detail': {k: {'fails': f, 'warns': w} for k, (f, w) in rep.items()}}, open(P / 'check_report.json', 'w'), ensure_ascii=False, indent=1)
@@ -930,6 +976,8 @@ if __name__ == '__main__':
         print(f"全片：运动面积中位数 {mv[n // 2] * 100:.2f}%，静止帧对 {sum(v < STILL_MV for v in mv) / n * 100:.0f}%，确定性 {sum(d['same'] for d in mo['det'])}/{len(mo['det'])} 处一致")
         print('读法：运动面积多数好看的段落在 0.5%–8%；静止帧对超过四成读起来是“一卡一卡”；跳变先看帧再判断。数字是线索，不是结论。')
         for k, title in (('det', '确定性'), ('jump', '跳变'), ('still', '逐帧不动'), ('slow', '渲染耗时')): show(title, [], Mw[k])
+        print(pace_line(pace_stats(mo, tl)))
+        if PROMO: st, pf, pw = pace_check(mo, tl); show('镜头节奏', pf, [w for w in pw if 'slogan' not in w])
         sys.exit()
     if cmd == 'mix':
         sc = get_scan(tl); ev = list(sc['events']); seen = set()
@@ -947,7 +995,7 @@ if __name__ == '__main__':
         name = sys.argv[2]; r = P / 'check_report.json'
         ok = r.exists() and json.load(open(r))['fails'] == 0 and r.stat().st_mtime >= (P / 'scenes.js').stat().st_mtime
         if not ok and '--force' not in sys.argv: print('check 没通过或已过期：先运行 check；确实要出片就加 --force'); sys.exit(1)
-        if BRIEF.get('cover_lead') is False:   # 不在片头垫封面（无旁白的短片从黑场开始）。silent.mp4 是母版（crf 低、很大），这里压成能上传的大小：码率封顶 12M
+        if BRIEF.get('cover_lead', not PROMO) is False:   # 不在片头垫封面（无旁白的短片从黑场开始）。silent.mp4 是母版（crf 低、很大），这里压成能上传的大小：码率封顶 12M
             subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', 'silent.mp4', '-i', 'mix.wav', '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-crf', str(BRIEF.get('final_crf', 20)), '-maxrate', '12M', '-bufsize', '24M', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '256k', '-shortest', '-movflags', '+faststart', name + '.mp4'], check=True)
             srt([c for s in tl for c in s['chunks']], P / (name + '.srt'), 0); credits_file(name); print('已出', name + '.mp4', name + '.srt'); sys.exit()
         subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-loop', '1', '-framerate', '30', '-t', str(COVER), '-i', COVER_NAME, '-f', 'lavfi', '-t', str(COVER), '-i', 'anullsrc=r=44100:cl=stereo', '-i', 'silent.mp4', '-i', 'mix.wav', '-filter_complex', f"[0:v]scale={CW}:{CH},format=yuv420p,fade=t=out:st=1.6:d=0.4,setsar=1[c];[2:v]fps=30,format=yuv420p,setsar=1[m];[3:a]aresample=44100[ma];[c][1:a][m][ma]concat=n=2:v=1:a=1[v][a]", '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-crf', '24', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', name + '.mp4'], check=True)
