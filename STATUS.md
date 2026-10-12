@@ -1,5 +1,11 @@
 # 状态
 
+## 2026-10-12 · SKILL.md 改成启动器
+
+- 范围：`SKILL.md`（启动器）、新文件 `流程.md`、`templates/速查.md`、`templates/已知限制.md`；`workshop.py gallery` 和 `selftest.py` 认得省掉基线的克隆；自检加 SKILL 的五项约束；README 和几份模板里的引用。版本 `2026.10.12-3`。
+- 验证：旧 SKILL.md 399 行逐行对过，除了重写的版权、安全、克隆几段，其余都原样在新文件里；三份文档里提到的仓库文件都存在（自检查）。省基线的克隆命令在云端实测：3 秒、约 64 MB，`git sparse-checkout disable` 6 秒补全。把基线目录挪走模拟这种克隆，自检通过并说明跳过了什么，`gallery` 停下并给出补全命令。自检全部通过。
+- 边界：没有让一个没看过旧文档的 agent 只凭新 SKILL.md 从头做一条片；`流程.md` 本身还有约 35 KB，一条片读一次，没有再压缩。Claude 应用里装的那份要重新上传这一次，之后改流程不用再传。
+
 ## 2026-10-12 · 出片门禁按内容认版本
 
 - 范围：`build.py` 的版本指纹（`fingerprint`、`remember`、`stale`）、`final` 门禁和成片回读、`short render` 退出码、扫描缓存；`asr.py` 记音频指纹；`kit/tts_cache.py` 和两个配音脚本；`tools/test_gates.py`，接进 `selftest.py`；SKILL 第 7、8、12 步和已知限制；经验库 L-064。版本 `2026.10.12-2`。

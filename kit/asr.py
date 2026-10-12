@@ -5,7 +5,7 @@
 写 audio/words.json：{id:{heard, score, diffs, ct, wav, model, threshold}}   wav = 这次听的那份音频的 sha256，换了音频这条记录就作废   ct = 朗读文本每个字开始发音的秒数（相对该句音频开头）
 某句听起来没问题但识别总是差一点：在稿子那一句加 "asr_ok": true（表示人已经听过确认）。
 退出码：0 全部通过；1 有句子没通过；2 没法检查（模型或依赖缺失）。
-模型：<kit>/models/sherpa-onnx-paraformer-zh-2023-09-14（没有就按 SKILL.md 里的命令下载）。"""
+模型：<kit>/models/sherpa-onnx-paraformer-zh-2023-09-14（没有就按 流程.md「环境、依赖、密钥」里的命令下载）。"""
 import json, sys, re, difflib, hashlib
 from pathlib import Path
 KIT = Path(__file__).parent; P = Path.cwd()

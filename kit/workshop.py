@@ -69,6 +69,7 @@ def cmd_gallery():
     """每个条目渲染几张定格，和基线逐张比；差得多的列出来，人看过图再决定 --accept。"""
     from PIL import Image
     cfg = json.load(open(GAL / 'gallery.json', encoding='utf-8')); want = [a for a in sys.argv[2:] if not a.startswith('--')]; accept = '--accept' in sys.argv; run = GAL / '_run'; out = GAL / '_out'; base = GAL / 'baseline'; bad = []; new = []; n = 0
+    if not base.is_dir(): print('没有基线图：这份工坊是按 SKILL.md 省掉基线克隆的（sparse）。先在工坊里运行 git sparse-checkout disable 补全，再跑 gallery'); sys.exit(2)
     for e in cfg['entries']:
         for th in e.get('themes', [None]):
             name = e['name'] + (f'_{th}' if th else '')

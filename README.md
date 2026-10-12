@@ -199,7 +199,7 @@
 
 ## 安装
 
-这是一个标准的 Agent Skill：仓库根目录的 `SKILL.md` 是说明，`kit/`、`templates/` 是它要用的工具箱。任何能加载 `SKILL.md` 的 agent 都可以装。实际做过成片的只有 Claude（Claude Code 和 Claude 应用）；别的 agent 按同一规范应当能加载，但没有逐个试过，遇到问题欢迎提 issue。
+这是一个标准的 Agent Skill：仓库根目录的 `SKILL.md` 是启动器，`流程.md` 是操作手册，`kit/`、`templates/` 是它要用的工具箱。任何能加载 `SKILL.md` 的 agent 都可以装。实际做过成片的只有 Claude（Claude Code 和 Claude 应用）；别的 agent 按同一规范应当能加载，但没有逐个试过，遇到问题欢迎提 issue。
 
 ### 方式一：克隆到 agent 的 skill 目录（推荐，功能最全）
 
@@ -232,7 +232,7 @@ npx skills add chrisopal/narrated-video-studio -g -a claude-code -a codex -y
 
 ### 方式三：在 Claude 应用里上传（网页版、桌面版）
 
-1. 下载 [`dist/narrated-video-studio.zip`](dist/narrated-video-studio.zip)（里面只有一份 `SKILL.md`）。
+1. 下载 [`dist/narrated-video-studio.zip`](dist/narrated-video-studio.zip)（里面只有一份 `SKILL.md`，是个启动器：做片的流程在仓库的 `流程.md` 里，开工时克隆下来读，所以仓库更新后一般不用重新上传）。
 2. 在 Claude 里打开 **Customize → Skills**，点 **+** → **Create skill** → **Upload a skill**，上传这个 zip。需要先在设置里打开“代码执行和文件创建”。
 3. 对 Claude 说“做一条视频”。它会先把这个仓库克隆到自己的工作区再开工。
 
@@ -328,13 +328,14 @@ python3 ../kit/build.py final 样片            # 出 样片.mp4
 
 | 路径 | 是什么 |
 |---|---|
-| `SKILL.md` | skill 正文：流程、组件速查、规矩、已知的坑 |
+| `SKILL.md` | skill 的启动器：做什么、怎么拿到工坊、不能破的规矩；尽量不改，上传版就不会过期 |
+| `流程.md` | 操作手册：从立项到沉淀的十四步，跟仓库一起更新 |
 | `kit/` | 引擎：`build.py`（构建和检查）、`workshop.py`（台账、回归样张、复盘）、`kit.js` `components.js`（画面）、`asr.py`（回听）、`article.py`（文章转视频的取文和内容分析）、配音脚本、字体 |
 | `kit/packs/` | 风格包：水墨引擎、固定人物、行迹地图、石印画报、漆屏风（从旧片收进来），扁平发光、概念形变、白板手写、桌面拼贴、动态文字、等距沙盘、全息界面、活体录屏、简笔角色、讲解员、铜版画、木刻版画、案卷、产业图谱、口播版式（自己实现） |
 | `kit/gallery/` | 回归样张和基线图；也是最好的入门例子 |
-| `templates/` | 口播片（口播线的做法）、宣传片（宣传线的做法）、文章转视频、叙事与创意（拆提示词、三个方向、叙事手法库、逻辑线、声音）、竖版与平台、题材模板（二十三张卡）、风格模板、风格包用法、素材与剪辑、素材授权请求函、制造业隐形冠军选题库、拉片、台账、经验库、更新记录 |
+| `templates/` | 口播片（口播线的做法）、宣传片（宣传线的做法）、文章转视频、叙事与创意（拆提示词、三个方向、叙事手法库、逻辑线、声音）、竖版与平台、题材模板（二十三张卡）、风格模板、风格包用法、素材与剪辑、素材授权请求函、制造业隐形冠军选题库、拉片、台账、经验库、更新记录；`速查.md`（题材、brief 字段、组件三张速查表）、`已知限制.md` |
 | `kit/packs/art/` | 艺术引擎的各个库（改自 huashu-art-motion）和接合层；来历、改动和许可在这个目录的 `README.md`、`LICENSE` |
-| `tools/` | `selftest.py` 不开浏览器的自检；`make_skill_zip.sh` 生成上传用的 zip |
+| `tools/` | `selftest.py` 不开浏览器的自检（含 `test_gates.py` 出片门禁回归测试）；`make_skill_zip.sh` 生成上传用的 zip |
 | `docs/images/` | 本页用的效果图 |
 
 ## 致谢：参考和借鉴过的项目
@@ -394,7 +395,7 @@ python3 ../kit/build.py final 样片            # 出 样片.mp4
 - 配乐是程序合成的键盘铺底或五声拨弦，够做底；没有密钥时配音用免费的 edge-tts，声音不如付费接口自然。
 - 文档、注释和模板都是中文；主要在 macOS 和 Linux 上用过，Windows 没有试过。除 Claude 之外的 agent 没有实测。
 
-更完整的清单在 `SKILL.md` 末尾。
+更完整的清单在 `templates/已知限制.md`。
 
 ## 许可
 

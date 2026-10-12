@@ -646,7 +646,7 @@ def cmd_transcribe(arg):
         import sherpa_onnx
         if not (ASR_MODEL / 'model.int8.onnx').exists(): raise FileNotFoundError(f'缺少识别模型 {ASR_MODEL}')
     except Exception as e:
-        print('转写没法运行：', e); print('需要 pip install sherpa-onnx（云端加 --break-system-packages）和识别模型，下载命令见 SKILL.md「工坊在哪」一节，模型解压到 kit/models/。'); sys.exit(2)
+        print('转写没法运行：', e); print('需要 pip install sherpa-onnx（云端加 --break-system-packages）和识别模型，下载命令见 流程.md「环境、依赖、密钥」一节，模型解压到 kit/models/。'); sys.exit(2)
     m = ffprobe(src)
     if not m or not m['has_audio']: print('✗ 这条素材没有声音：', src.name); sys.exit(1)
     SRA = 16000; x = load_pcm(src, SRA); hop = int(.02 * SRA); nf = len(x) // hop

@@ -18,10 +18,12 @@ reg = json.load(open(R / 'templates/registry.json', encoding='utf-8')); gal = js
 ids = [i['id'] for i in reg['items']]; ok('台账编号不重复', len(ids) == len(set(ids)))
 ok('台账里的包都有文件', all((R / f'kit/packs/{p}.js').exists() for p in reg['packs']), str([p for p in reg['packs'] if not (R / f'kit/packs/{p}.js').exists()]))
 ok('包文件都进了台账', all(f.stem in reg['packs'] for f in (R / 'kit/packs').glob('*.js')))
+sparse = not (R / 'kit/gallery/baseline').is_dir()   # 按 SKILL.md 省掉基线的克隆：基线不查，要查先 git sparse-checkout disable
+if sparse: print('· 没有基线图（sparse 克隆），跳过“基线齐全”')
 for e in gal['entries']:
     src = R / 'kit/gallery' / e.get('src', e['name'])
     ok(f"样张 {e['name']} 的项目在", src.is_dir() and ((src / 'scenes.js').exists() or (src / 'scenes.tpl.js').exists()))
-    for th in e.get('themes', [None]):
+    for th in ([] if sparse else e.get('themes', [None])):
         n = e['name'] + (f'_{th}' if th else ''); have = len(list((R / 'kit/gallery/baseline' / n).glob('*.jpg')))
         ok(f'样张 {n} 的基线齐全', have == len(e['shots']), f"基线 {have} 张，清单 {len(e['shots'])} 张")
 # 入口文件里列的模块都在（art 这样分成多个文件的包）
@@ -49,6 +51,15 @@ with tempfile.TemporaryDirectory() as td:
         ok('  两个小标题、一处引文、三条列表、一段代码', [b['type'] for b in B if not b.get('boiler')].count('h') == 2 and sum(b['type'] == 'quote' for b in B) == 1 and sum(b['type'] == 'li' for b in B) == 3 and sum(b['type'] == 'code' for b in B) == 1)
         ok('  配图带图注，文首文末套话不算正文', any(b['type'] == 'img' and b.get('caption') for b in B) and B[0].get('boiler') and B[-1].get('boiler') and not any('往期' in b.get('text', '') for b in B if not b.get('boiler')))
         ok('  题材、强调色、出处署名、待核实清单', AN['genres'][0]['genre'] == '科普原理' and SG.get('themePatch', {}).get('a1') == '#d65a28' and SG['source_article']['basis'] == '?' and SG['must_show'] == [SG['source_article']['credit']] and len(FA) >= 3 and all(x['status'] == 'todo' for x in FA), json.dumps(SG, ensure_ascii=False)[:200])
+# SKILL.md 是启动器：要短、描述不超长、不写会变的数字；它和流程.md 里提到的仓库文件都要在
+sk = (R / 'SKILL.md').read_text(encoding='utf-8'); desc = re.search(r'^description: (.*)$', sk, re.M).group(1)
+ok('SKILL.md 是启动器：不超过 12 KB', len(sk.encode()) <= 12 * 1024, f'{len(sk.encode())} 字节：流程和速查放进 流程.md、templates/，别塞回 SKILL.md')
+ok('SKILL.md 的描述不超过 1024 字', len(desc) <= 1024, f'{len(desc)} 字')
+ok('SKILL.md 的描述里没有会过期的数目', not re.search(r'[一二三四五六七八九十百\d]+\s*(套|张|个|种)(风格|题材|组件|转场|包)', desc), desc[:80])
+ok('SKILL.md 让人去读 流程.md', '流程.md' in sk)
+for doc in ('SKILL.md', '流程.md', 'templates/速查.md', 'templates/已知限制.md'):
+    t = (R / doc).read_text(encoding='utf-8'); refs = set(re.findall(r'`((?:templates|kit|tools)/[^`*<>{}\s]+?\.(?:md|json|js|py|sh))`', t)) | ({'流程.md'} if '`流程.md`' in t else set())
+    miss = sorted(x for x in refs if not (R / x).exists()); ok(f'{doc} 提到的仓库文件都在', not miss, str(miss))
 # 出片门禁、回听指纹、配音缓存：2026-10-09 评审复现过的漏洞，每个一条用例（要 ffmpeg，十几秒）
 if shutil.which('ffmpeg'):
     r = subprocess.run([sys.executable, str(R / 'tools/test_gates.py')], capture_output=True, text=True)
