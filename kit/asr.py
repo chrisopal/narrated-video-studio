@@ -2,11 +2,11 @@
 """配音回听：离线语音识别把每句配音转成文字，按拼音和稿子比对，并写出逐字时间。
 在项目目录运行：python3 ../kit/asr.py [--threshold 0.92]
 读 script.json / short.json（朗读文本取 tts 字段，没有就取 vo），音频在 audio/<id>.wav
-写 audio/words.json：{id:{heard, score, diffs, ct}}   ct = 朗读文本每个字开始发音的秒数（相对该句音频开头）
+写 audio/words.json：{id:{heard, score, diffs, ct, wav, model, threshold}}   wav = 这次听的那份音频的 sha256，换了音频这条记录就作废   ct = 朗读文本每个字开始发音的秒数（相对该句音频开头）
 某句听起来没问题但识别总是差一点：在稿子那一句加 "asr_ok": true（表示人已经听过确认）。
 退出码：0 全部通过；1 有句子没通过；2 没法检查（模型或依赖缺失）。
 模型：<kit>/models/sherpa-onnx-paraformer-zh-2023-09-14（没有就按 SKILL.md 里的命令下载）。"""
-import json, sys, re, difflib
+import json, sys, re, difflib, hashlib
 from pathlib import Path
 KIT = Path(__file__).parent; P = Path.cwd()
 MODEL = KIT / 'models' / 'sherpa-onnx-paraformer-zh-2023-09-14'
@@ -48,7 +48,8 @@ if __name__ == '__main__':
     lines = [l for l in lines if not l.get('silent') and (l.get('tts') or l.get('vo'))]   # 无旁白段落不用回听
     out = {}; bad = 0
     for l in lines:
-        text = l.get('tts') or l['vo']; r = check(rec, text, P / 'audio' / f"{l['id']}.wav"); r['text'] = text
+        text = l.get('tts') or l['vo']; wav = P / 'audio' / f"{l['id']}.wav"; r = check(rec, text, wav); r['text'] = text
+        r['wav'] = hashlib.sha256(wav.read_bytes()).hexdigest(); r['model'] = MODEL.name; r['threshold'] = th   # 回听结论绑在这份音频上：同名文件换掉，build.py 就不认这条记录
         ok = r['score'] >= th or l.get('asr_ok'); r['ok'] = bool(ok); bad += not ok; out[l['id']] = r
         print(('通过 ' if r['score'] >= th else '人工确认 ' if ok else '不通过 ') + f"{l['id']:4} {r['score']:.2f}", '' if not r['diffs'] else '差异：' + '；'.join(f"{d['稿子'] or '∅'}→{d['听到'] or '∅'}" for d in r['diffs']))
     json.dump(out, open(P / 'audio' / 'words.json', 'w'), ensure_ascii=False, indent=1)

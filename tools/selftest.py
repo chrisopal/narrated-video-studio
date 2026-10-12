@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""不开浏览器的自检：改完 kit、风格包、台账之后先跑这个，几秒钟。它查不了画面，画面看 `python3 kit/workshop.py gallery`。
+"""不开浏览器的自检：改完 kit、风格包、台账之后先跑这个，半分钟内。它查不了画面，画面看 `python3 kit/workshop.py gallery`。
     python3 tools/selftest.py
 """
 import json, py_compile, shutil, subprocess, sys
@@ -49,4 +49,9 @@ with tempfile.TemporaryDirectory() as td:
         ok('  两个小标题、一处引文、三条列表、一段代码', [b['type'] for b in B if not b.get('boiler')].count('h') == 2 and sum(b['type'] == 'quote' for b in B) == 1 and sum(b['type'] == 'li' for b in B) == 3 and sum(b['type'] == 'code' for b in B) == 1)
         ok('  配图带图注，文首文末套话不算正文', any(b['type'] == 'img' and b.get('caption') for b in B) and B[0].get('boiler') and B[-1].get('boiler') and not any('往期' in b.get('text', '') for b in B if not b.get('boiler')))
         ok('  题材、强调色、出处署名、待核实清单', AN['genres'][0]['genre'] == '科普原理' and SG.get('themePatch', {}).get('a1') == '#d65a28' and SG['source_article']['basis'] == '?' and SG['must_show'] == [SG['source_article']['credit']] and len(FA) >= 3 and all(x['status'] == 'todo' for x in FA), json.dumps(SG, ensure_ascii=False)[:200])
+# 出片门禁、回听指纹、配音缓存：2026-10-09 评审复现过的漏洞，每个一条用例（要 ffmpeg，十几秒）
+if shutil.which('ffmpeg'):
+    r = subprocess.run([sys.executable, str(R / 'tools/test_gates.py')], capture_output=True, text=True)
+    ok('出片门禁回归测试（tools/test_gates.py）', r.returncode == 0, '\n'.join(l for l in r.stdout.split('\n') if l.startswith('✗'))[:600] or r.stderr[-300:])
+else: print('· 没有 ffmpeg，跳过出片门禁测试')
 print(f'\n{len(bad)} 项不通过' if bad else '\n全部通过'); sys.exit(1 if bad else 0)

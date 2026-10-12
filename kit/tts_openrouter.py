@@ -7,13 +7,14 @@
   python3 tts_openrouter.py audition "每一秒，都有六百五十亿个看不见的小粒子，穿过你的指甲盖。"
 指定模型试几个声音：
   python3 tts_openrouter.py voices google/gemini-3.8-flash-tts Charon,Kore "一句话"
-整期配音（lines.txt 每行 id|文字[|语气提示]，输出 <id>.mp3 到当前目录；已经有 mp3 的句子跳过，加 --redo 全部重配）：
+整期配音（lines.txt 每行 id|文字[|语气提示]，输出 <id>.mp3 到当前目录；文字、声音、语速、语气都没变的句子跳过（记录在 tts_cache.json），加 --redo 全部重配）：
   python3 tts_openrouter.py run lines.txt microsoft/mai-voice-2.1 zh-CN-Wei:MAI-Voice-2.1 [语速]
 语气提示走接口的 instructions 字段（2026-10 用 Gemini Charon 实测：语气会变，提示本身不会被读出来）。
 不要把提示写进朗读文本前面，那样会被原样念出来。不支持 instructions 的模型会忽略它，回听照样能查出问题。
 试语气：python3 tts_openrouter.py voices google/gemini-3.8-flash-tts Charon,Kore "一句话" "用低沉、缓慢、带悬念的语气"
 """
 import json, os, sys, urllib.request, urllib.error
+import tts_cache   # 同目录：按文字+模型+声音+语速+语气判断要不要重配
 from pathlib import Path
 KIT = Path(__file__).resolve().parent
 URL = 'https://openrouter.ai/api/v1/audio/speech'
@@ -73,11 +74,16 @@ if __name__ == '__main__':
             name = (model.split('/')[1] + '__' + v + ('__语气' if style else '')).replace('.', '_') + '.mp3'; ok, msg = speak(k, model, v, text, od / name, style=style); print(('成功 ' if ok else '失败 ') + name, '|', msg, flush=True)
     elif sys.argv[1] == 'run':
         args = [a for a in sys.argv if a != '--redo']; redo = '--redo' in sys.argv
-        lines, model, voice = args[2], args[3], (args[4] if len(args) > 4 and args[4] != '-' else None); speed = args[5] if len(args) > 5 and args[5] else None; n = 0; bad = []
+        cache = tts_cache.load(); lines, model, voice = args[2], args[3], (args[4] if len(args) > 4 and args[4] != '-' else None); speed = args[5] if len(args) > 5 and args[5] else None; n = 0; bad = []
         for line in Path(lines).read_text().splitlines():
             if '|' not in line: continue
             i, text, *rest = line.split('|', 2); style = rest[0] if rest else None
-            if not redo and Path(i + '.mp3').exists() and Path(i + '.mp3').stat().st_size > 2000: print('跳过', i, '（已有）', flush=True); continue
-            ok, msg = speak(k, model, voice, text, i + '.mp3', speed, style); n += len(text); bad += [] if ok else [i]; print(('成功 ' if ok else '失败 ') + i, '|', msg + ('　语气：' + style if style else ''), flush=True)
+            ck = tts_cache.key('openrouter', model, voice, speed, style, text); need, why = tts_cache.decide(cache, i, ck)
+            if not redo and not need: print('跳过', i, '（' + why + '）', flush=True); continue
+            if why: print('重配', i, '：' + why, flush=True)
+            ok, msg = speak(k, model, voice, text, str(tts_cache.part(i)), speed, style); n += len(text)
+            if ok: tts_cache.commit(cache, i, ck)
+            else: tts_cache.drop(i); bad.append(i)
+            print(('成功 ' if ok else '失败 ') + i, '|', msg + ('　语气：' + style if style else ''), flush=True)
         print('合计字符数', n)
         if bad: print('失败', len(bad), '句：', ' '.join(bad)); sys.exit(1)   # 有失败就非零退出，别让后面的步骤当成配完了

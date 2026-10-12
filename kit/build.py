@@ -100,11 +100,13 @@ def measure(path):
 
 def words():
     f = P / 'audio' / 'words.json'; return json.load(open(f)) if f.exists() else {}
+def wav_sha(i):
+    f = P / 'audio' / f'{i}.wav'; return sha(f) if f.is_file() else None
 
 def char_times(line, W):
     """这一句显示文本每个字的发音时间；回听结果过期（稿子改了）就不用。"""
     w = W.get(line['id']); spoken = line.get('tts') or line['vo']
-    if not w or w.get('text') != spoken: return None
+    if not w or w.get('text') != spoken or w.get('wav') != wav_sha(line['id']): return None   # 音频换过：逐字时间是旧音频的，不能用
     ct = w['ct']; n = len(line['vo'])
     return ct if spoken == line['vo'] else [ct[round(i * (len(ct) - 1) / max(1, n - 1))] for i in range(n)]
 
@@ -500,6 +502,55 @@ def sha(path):
     with open(path, 'rb') as f:
         for blk in iter(lambda: f.read(1 << 20), b''): h.update(blk)
     return h.hexdigest()
+
+# ---------- 版本指纹：check、render、mix、cover 各记下用的是哪一版输入，final 核对是同一版（2026-10-09 评审 P1） ----------
+# 只比文件内容，不比修改时间：拷贝、git checkout、同步盘都会改时间而内容不变；反过来，换掉一个同名文件时间可能还更早
+STATE = P / '_build_state.json'
+def _engine():
+    fs = [KIT / x for x in ('kit.js', 'components.js', 'film.html')]
+    for k in BRIEF.get('packs', []): fs += [KIT / 'packs' / f'{k}.js'] + sorted((KIT / 'packs' / k).glob('*.js'))
+    return fs
+def fp_files(kind):
+    """kind：pic 画面（render、cover、整片扫描）/ snd 声音（mix）/ all 检查（全部输入，含稿子、台账、配音、引擎和检查脚本本身）。"""
+    A = jload('assets.json', []) or []; meta = jload('clips/meta.json', {}) or {}
+    pic = [P / x for x in ('brief.json', 'scenes.js', 'timeline.json', 'assets.json', 'clips/meta.json')] + _engine() + [P / a['file'] for a in A if a.get('type') != 'video' and a.get('file')]
+    mu = BRIEF.get('music'); snd = [P / x for x in ('brief.json', 'scenes.js', 'timeline.json', 'vo.wav', 'assets.json', 'clips/meta.json')] + [P / m['audio'] for m in meta.values() if m.get('audio')] + ([P / mu] if isinstance(mu, str) and ('/' in mu or '.' in mu) else [])
+    if kind == 'pic': return pic
+    if kind == 'snd': return snd
+    return list(dict.fromkeys(pic + snd + [P / x for x in ('script.json', 'short.json', 'facts.json', 'audio/words.json', 'article/article.md', '校对单.md')] + sorted((P / 'audio').glob('*.wav')) + [KIT / 'build.py']))
+def fingerprint(kind):
+    """返回 (总指纹, {文件: 内容哈希})；不存在的文件记成 '-'，所以“删掉一个文件”也算改动。"""
+    m = {}
+    for f in fp_files(kind):
+        k = ('kit/' + str(f.relative_to(KIT))) if f.is_relative_to(KIT) else str(f.relative_to(P)) if f.is_relative_to(P) else str(f)
+        m[k] = sha(f) if f.is_file() else '-'
+    return hashlib.sha256(json.dumps(m, sort_keys=True).encode()).hexdigest()[:16], m
+def fp_diff(old, new):
+    """两份文件哈希表之间改了哪些，给人看的短名单。"""
+    ch = sorted(k for k in set(old) | set(new) if old.get(k) != new.get(k))
+    return '、'.join(ch[:6]) + (f' 等 {len(ch)} 个文件' if len(ch) > 6 else '') if ch else '（文件表一样，指纹算法变了）'
+def state(): return jload('_build_state.json', {}) or {}
+def remember(out, kind):
+    """记下一个产物（silent.mp4、mix.wav、封面）是用哪一版输入做出来的，以及它自己的内容哈希。"""
+    S = state(); fp, m = fingerprint(kind); S[Path(out).name] = {'kind': kind, 'fp': fp, 'files': m, 'sha': sha(P / out)}
+    STATE.write_text(json.dumps(S, ensure_ascii=False, indent=1), encoding='utf-8')
+def stale(out):
+    """产物还能不能用：没记录、文件被换过、或输入改过，都返回一句原因；能用返回 None。"""
+    e = state().get(Path(out).name); f = P / out
+    if not f.is_file(): return f'没有 {out}'
+    if not e: return f'{out} 没有版本记录（旧版引擎做的，或不是 build.py 做的），重新生成'
+    if sha(f) != e['sha']: return f'{out} 在生成之后被换过或改过'
+    fp, m = fingerprint(e['kind'])
+    return None if fp == e['fp'] else f'{out} 生成之后输入改过：{fp_diff(e["files"], m)}'
+def verify_out(out, dur, w=None, h=None, tol=.6):
+    """出完的成片回读一遍：有画面有声音、尺寸对、画面和声音各自的时长都对；不对就退出码 1，不报“已出”。
+    按流量时长，不按容器时长：容器时长取最长的那条流，画面短了一截时它照样是对的。"""
+    w = w or CW; h = h or CH; d = {}
+    r = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,width,height,duration', '-of', 'json', str(P / out)], capture_output=True, text=True)
+    for st in json.loads(r.stdout or '{}').get('streams', []): d.setdefault(st['codec_type'], st)
+    v, a = d.get('video'), d.get('audio'); vd = float(v.get('duration') or 0) if v else 0; ad = float(a.get('duration') or 0) if a else 0
+    bad = '读不出画面' if not v else '没有声音' if not a else f"尺寸是 {v['width']}x{v['height']}，应为 {w}x{h}" if (v['width'], v['height']) != (w, h) else f"画面 {vd:.2f}s，应约 {dur:.2f}s" if abs(vd - dur) > tol else f"声音 {ad:.2f}s，应约 {dur:.2f}s" if abs(ad - dur) > tol else None
+    if bad: print(f'✗ {out} 回读不对：{bad}，不能交付'); sys.exit(1)
 def scene_cuts(path, th=0.3):
     r = subprocess.run(['ffmpeg', '-hide_banner', '-i', str(path), '-an', '-vf', f"scale=320:-2,select='gt(scene,{th})',showinfo", '-f', 'null', '-'], capture_output=True, text=True)
     return [round(float(x), 2) for x in re.findall(r'pts_time:([\d.]+)', r.stderr)]
@@ -758,7 +809,7 @@ def cmd_talk(arg=None):
         sf.write(P / 'audio' / f"{l['id']}.wav", y, SR); s_ = SS[l['src']]; spoken = l.get('tts') or l['vo']
         if len(s_['ct']) != len(spoken): print(f"△ {l['id']} 的 tts 被改过（{len(spoken)} 字，识别原文 {len(s_['ct'])} 字）：逐字时间按比例估。校对错字请只改 vo")
         ct = [round(max(0, s_['ct'][min(len(s_['ct']) - 1, round(k * (len(s_['ct']) - 1) / max(1, len(spoken) - 1)))] - a), 3) for k in range(len(spoken))]
-        W[l['id']] = {'text': spoken, 'ct': ct, 'ok': True, 'score': 1.0, 'diffs': [], 'talk': True}
+        W[l['id']] = {'text': spoken, 'ct': ct, 'ok': True, 'score': 1.0, 'diffs': [], 'talk': True, 'wav': wav_sha(l['id'])}   # 原声剪出来的音频，记下指纹，之后被换掉会被查出来
     json.dump(W, open(P / 'audio' / 'words.json', 'w', encoding='utf-8'), ensure_ascii=False)
     A = jload('assets.json', []) or []; A = [a for a in A if a.get('id') != 'talk']; k = min(1, 960 / max(m['width'], m['height'])); size = [int(m['width'] * k) // 2 * 2, int(m['height'] * k) // 2 * 2]
     A.insert(0, {'id': 'talk', 'type': 'video', 'file': 'footage/_talk.mp4', 'usage_basis': 'own', 'creator': TK.get('speaker') or '出镜人本人', 'source': f"自己录制的口播：{src.name}", 'in': 0, 'out': round(kept, 3), 'size': size, 'fit': 'cover'})
@@ -868,6 +919,8 @@ def asr_check(tl):
     for l in lines:
         w = W.get(l['id'])
         if not w or w.get('text') != (l.get('tts') or l['vo']): fails.append(f"{l['id']} 的稿子或配音改过，要重新回听"); continue
+        if not w.get('wav'): fails.append(f"{l['id']} 的回听记录没有音频指纹（旧版 asr.py 写的），重跑 python3 ../kit/asr.py"); continue
+        if w['wav'] != wav_sha(l['id']): fails.append(f"{l['id']} 的音频在回听之后换过（audio/{l['id']}.wav 和听过的那份不是同一个文件），重跑 python3 ../kit/asr.py"); continue
         d = '；'.join(f"{x['稿子'] or '∅'}→{x['听到'] or '∅'}" for x in w['diffs'])
         if not (w['ok'] or l.get('asr_ok')): fails.append(f"{l['id']} 回听不符（{w['score']}）：{d}")
         elif d and not l.get('asr_ok'): warns.append(f"{l['id']} 有个别字识别不同，请人听一下：{d}")
@@ -954,12 +1007,16 @@ def pipe(out, crf=None):
     return subprocess.Popen(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', str(FPS), '-c:v', 'mjpeg', '-i', '-', '-c:v', 'libx264', '-crf', str(crf), '-preset', 'medium', '-pix_fmt', 'yuv420p', str(out)], stdin=subprocess.PIPE)
 def page_pass(tl, name, expr, cache=True):
     """在页面里跑一遍整片的量测（expr），结果存成 <name>；场景、时间轴、素材、引擎都没动过就直接用上次的。"""
-    f = P / name
-    if cache and f.exists() and f.stat().st_mtime > max((P / x).stat().st_mtime for x in ('scenes.js', 'timeline.json', 'assets.json', 'clips/meta.json', 'brief.json') if (P / x).exists()) and f.stat().st_mtime > max((KIT / x).stat().st_mtime for x in ['kit.js', 'components.js'] + [f'packs/{k}.js' for k in BRIEF.get('packs', [])] + [str(x.relative_to(KIT)) for k in BRIEF.get('packs', []) for x in (KIT / 'packs' / k).glob('*.js')]): return json.load(open(f))
+    f = P / name; fp = fingerprint('pic')[0]   # 缓存按画面输入的内容指纹认，不按修改时间（时间会被拷贝、checkout 弄乱）
+    if cache and f.exists():
+        try: old = json.load(open(f))
+        except Exception: old = None
+        if isinstance(old, dict) and old.get('_fp') == fp: return old
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         b, pg, total, errs = browser(p, tl); sc = pg.evaluate(expr); b.close()
         if errs: print('页面报错', errs[:5]); sys.exit(1)
+    if isinstance(sc, dict): sc['_fp'] = fp
     json.dump(sc, open(f, 'w'), ensure_ascii=False); return sc
 def get_scan(tl, cache=True): return page_pass(tl, '_scan.json', '()=>window.scan(0.1)', cache)
 def get_motion(tl, cache=True): return page_pass(tl, '_motion.json', '()=>window.motionScan(%d)' % FPS, cache)
@@ -1173,7 +1230,8 @@ if __name__ == '__main__':
         elif PROMO: rep['镜头节奏'] = ([], ['加了 --no-motion：镜头节奏没有查，宣传片出片前要查一遍'])
         for k, (f, w) in rep.items(): show(k, f, w)
         nf = sum(len(f) for f, _ in rep.values()); nw = sum(len(w) for _, w in rep.values())
-        json.dump({'fails': nf, 'warns': nw, 'detail': {k: {'fails': f, 'warns': w} for k, (f, w) in rep.items()}}, open(P / 'check_report.json', 'w'), ensure_ascii=False, indent=1)
+        fp, fm = fingerprint('all')   # 这份报告认的是哪一版输入：稿子、台账、配音、画面、引擎任何一样改了，final 都不认它
+        json.dump({'fails': nf, 'warns': nw, 'fp': fp, 'files': fm, 'detail':{k: {'fails': f, 'warns': w} for k, (f, w) in rep.items()}}, open(P / 'check_report.json', 'w'), ensure_ascii=False, indent=1)
         import datetime
         with open(P / 'check_history.jsonl', 'a', encoding='utf-8') as fh: fh.write(json.dumps({'time': datetime.datetime.now().isoformat(timespec='seconds'), 'fails': nf, 'warns': nw, 'by': {k: len(f) + len(w) for k, (f, w) in rep.items()}}, ensure_ascii=False) + '\n')   # 复盘时统计“检查拦下了什么”
         print(f'总计：{nf} 项不通过，{nw} 项提醒（提醒要逐条看帧确认，不能直接忽略）'); sys.exit(1 if nf else 0)
@@ -1199,15 +1257,27 @@ if __name__ == '__main__':
         else:
             n = sfx_track(ev, total); no, sec = orig_track(clipev, total, tl, duck=duck); print('音效', n, '个', f'素材原声 {no} 段（单独一轨，旁白下压低 {duck} dB，共 {sec:.1f} 秒）')
             if no: orig = 'orig.wav'
-        music(total, tl=tl); mixdown('vo.wav', 'music.wav', 'mix.wav', 'sfx.wav', mu_db=MU_DB() + 15 * sum(s['dur'] for s in tl if silent(s)) / max(1, sum(s['dur'] for s in tl)), orig=orig); sys.exit()
+        music(total, tl=tl); mixdown('vo.wav', 'music.wav', 'mix.wav', 'sfx.wav', mu_db=MU_DB() + 15 * sum(s['dur'] for s in tl if silent(s)) / max(1, sum(s['dur'] for s in tl)), orig=orig); remember('mix.wav', 'snd'); sys.exit()
     if cmd == 'final':
-        name = sys.argv[2]; r = P / 'check_report.json'
-        ok = r.exists() and json.load(open(r))['fails'] == 0 and r.stat().st_mtime >= (P / 'scenes.js').stat().st_mtime
-        if not ok and '--force' not in sys.argv: print('check 没通过或已过期：先运行 check；确实要出片就加 --force'); sys.exit(1)
+        name = sys.argv[2]; r = jload('check_report.json'); why = []
+        if not r: why.append('还没跑 check')
+        elif r['fails']: why.append(f"check 有 {r['fails']} 项不通过")
+        elif 'fp' not in r: why.append('check 报告没有版本指纹（旧版引擎写的），重跑 check')
+        else:
+            fp, fm = fingerprint('all')
+            if fp != r['fp']: why.append('check 之后输入改过：' + fp_diff(r.get('files', {}), fm) + '，重跑 check')
+        lead = BRIEF.get('cover_lead', not (PROMO or TALK)) is not False
+        for out, how in [('silent.mp4', 'render'), ('mix.wav', 'mix')] + ([(COVER_NAME, 'cover')] if lead else []):
+            s = stale(out)
+            if s: why.append(f'{s}（重跑 {how}）')
+        if why:
+            print('不能出片：'); [print('    ✗', w) for w in why]
+            if '--force' not in sys.argv: print('都处理完再 final；确实要出片就加 --force（交付时要说明哪一项没过）'); sys.exit(1)
+            print('    加了 --force，照样出片：交付说明里要写明上面这几项')
         if BRIEF.get('cover_lead', not (PROMO or TALK)) is False:   # 不在片头垫封面（无旁白的短片从黑场开始）。silent.mp4 是母版（crf 低、很大），这里压成能上传的大小：码率封顶 12M
-            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', 'silent.mp4', '-i', 'mix.wav', '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-crf', str(BRIEF.get('final_crf', 20)), '-maxrate', '12M', '-bufsize', '24M', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '256k', '-shortest', '-movflags', '+faststart', name + '.mp4'], check=True)
+            subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', 'silent.mp4', '-i', 'mix.wav', '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-crf', str(BRIEF.get('final_crf', 20)), '-maxrate', '12M', '-bufsize', '24M', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '256k', '-shortest', '-movflags', '+faststart', name + '.mp4'], check=True); verify_out(name + '.mp4', total)
             srt([c for s in tl for c in s['chunks']], P / (name + '.srt'), 0); credits_file(name); print('已出', name + '.mp4', name + '.srt'); sys.exit()
-        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-loop', '1', '-framerate', '30', '-t', str(COVER), '-i', COVER_NAME, '-f', 'lavfi', '-t', str(COVER), '-i', 'anullsrc=r=44100:cl=stereo', '-i', 'silent.mp4', '-i', 'mix.wav', '-filter_complex', f"[0:v]scale={CW}:{CH},format=yuv420p,fade=t=out:st=1.6:d=0.4,setsar=1[c];[2:v]fps=30,format=yuv420p,setsar=1[m];[3:a]aresample=44100[ma];[c][1:a][m][ma]concat=n=2:v=1:a=1[v][a]", '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-crf', '24', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', name + '.mp4'], check=True)
+        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-loop', '1', '-framerate', '30', '-t', str(COVER), '-i', COVER_NAME, '-f', 'lavfi', '-t', str(COVER), '-i', 'anullsrc=r=44100:cl=stereo', '-i', 'silent.mp4', '-i', 'mix.wav', '-filter_complex', f"[0:v]scale={CW}:{CH},format=yuv420p,fade=t=out:st=1.6:d=0.4,setsar=1[c];[2:v]fps=30,format=yuv420p,setsar=1[m];[3:a]aresample=44100[ma];[c][1:a][m][ma]concat=n=2:v=1:a=1[v][a]", '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-crf', '24', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', name + '.mp4'], check=True); verify_out(name + '.mp4', COVER + total)
         srt([c for s in tl for c in s['chunks']], P / (name + '.srt'), COVER); credits_file(name); print('已出', name + '.mp4', name + '.srt'); print('交付后做复盘，把这条片记进模板台账：python3 ../kit/workshop.py retro --delivered'); sys.exit()
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
@@ -1236,10 +1306,12 @@ if __name__ == '__main__':
             if rc: print(f'编码失败：ffmpeg 退出码 {rc}，{out.name} 不能用', flush=True); sys.exit(1)
             pr = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-count_packets', '-show_entries', 'stream=width,height,nb_read_packets', '-of', 'csv=p=0', str(out)], capture_output=True, text=True).stdout.strip().split(',')
             if len(pr) < 3 or (int(pr[0]), int(pr[1])) != (CW, CH) or abs(int(pr[2]) - n) > 2: print(f'输出不对：{out.name} 是 {pr}，应为 {CW}x{CH}、{n} 帧', flush=True); sys.exit(1)
-            print('done', n, flush=True)
+            if errs: print('页面报错，', out.name, '不能用：', errs[:5], flush=True); sys.exit(1)
+            remember(out.name, 'pic'); print('done', n, flush=True)
         elif cmd == 'cover':
             for v, name in ([('wide', '封面_横版.png'), ('tall', '封面_竖版.png')] if not VERT else [('vert', '封面_9x16.png'), ('tall', '封面_3x4.png')]):
                 (P / name).write_bytes(base64.b64decode(pg.evaluate('v=>window.coverFrame(v)', v).split(',')[1]))
+                if not errs: remember(name, 'pic')   # 页面报错时画出来的封面不算数，final 会拦
         elif cmd == 'short' and VERT: print('这条片本身就是竖版，不需要 short；横版片才用 short 另出竖版'); sys.exit(1)
         elif cmd == 'short':
             segs, stot = short_plan(tl); print('短片时长', round(stot, 2)); vf = lambda t: base64.b64decode(pg.evaluate('([t,s,p])=>window.vertFrameA(t,s,p)', [*short_at(segs, t), t / stot]).split(',')[1])
@@ -1248,8 +1320,11 @@ if __name__ == '__main__':
             else:
                 ff = pipe(P / 'short_silent.mp4', 20)
                 for i in range(round(stot * FPS)): ff.stdin.write(vf(i / FPS))
-                ff.stdin.close(); ff.wait(); music(stot, 'short_music.wav'); mixdown('short_vo.wav', 'short_music.wav', 'short_mix.wav', mu_db=MU_DB())
+                ff.stdin.close(); rc = ff.wait(); nf = round(stot * FPS)
+                if rc or errs: print(f'✗ 竖版短片画面没出好：' + (f'ffmpeg 退出码 {rc}' if rc else f'页面报错 {errs[:3]}')); sys.exit(1)
+                music(stot, 'short_music.wav'); mixdown('short_vo.wav', 'short_music.wav', 'short_mix.wav', mu_db=MU_DB())
                 subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', 'short_silent.mp4', '-i', 'short_mix.wav', '-loop', '1', '-framerate', '30', '-t', '2.5', '-i', '封面_竖版.png', '-f', 'lavfi', '-t', '2.5', '-i', 'anullsrc=r=44100:cl=stereo', '-filter_complex', "[0:v]fps=30,format=yuv420p,setsar=1[m];[1:a]aresample=44100[ma];[2:v]scale=1080:1440,pad=1080:1920:0:240:color=0x061230,format=yuv420p,fade=t=in:st=0:d=0.3,setsar=1[e];[m][ma][e][3:a]concat=n=2:v=1:a=1[v][a]", '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-crf', '22', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', sys.argv[3] + '.mp4'], check=True)
+                verify_out(sys.argv[3] + '.mp4', stot + 2.5, 1080, 1920)   # 片尾垫 2.5 秒竖版封面
                 srt([c for s in segs for c in s['chunks']], P / (sys.argv[3] + '.srt')); print('已出', sys.argv[3] + '.mp4')
         if errs: print('页面报错', errs[:5]); sys.exit(1)
         b.close()

@@ -207,14 +207,14 @@ python3 <工坊>/kit/tts_openrouter.py run lines.txt google/gemini-3.8-flash-tts
 python3 <工坊>/kit/tts_openrouter.py voices google/gemini-3.8-flash-tts Charon,Kore,Puck,Sulafat "最有情绪的那一句" "语气提示"   # 试音
 ```
 
-**声音跟着方向走，不要每条都一个声音一个速度。** 先定人设（`brief.voice.persona`），再试几个声音，用户听过再定；Charon、Kore、Puck、Sulafat 2026-10 实测都能用。`lines.txt` 第三栏是语气提示（来自句子的 `tone` 或 `brief.voice.style`），配音脚本走接口的 `instructions` 字段：实测 Gemini 会照提示变低、变慢，提示本身不会被读出来。**不要把语气提示写进朗读文本前面**，那样会被原样念出来。已经有 mp3 的句子自动跳过，要全部重配加 `--redo`。
+**声音跟着方向走，不要每条都一个声音一个速度。** 先定人设（`brief.voice.persona`），再试几个声音，用户听过再定；Charon、Kore、Puck、Sulafat 2026-10 实测都能用。`lines.txt` 第三栏是语气提示（来自句子的 `tone` 或 `brief.voice.style`），配音脚本走接口的 `instructions` 字段：实测 Gemini 会照提示变低、变慢，提示本身不会被读出来。**不要把语气提示写进朗读文本前面**，那样会被原样念出来。文字、模型、声音、语速、语气都没变的句子自动跳过（记录在项目的 `tts_cache.json`），改了哪样就重配哪句；要全部重配加 `--redo`。
 第一批配音回来先量每秒字数（旁白 3.6–4.5 字/秒比较自然）。“温和、平静”这类语气会让 Gemini 读得很慢：用 `ffmpeg -af silenceremove=stop_periods=-1:stop_duration=0.32:stop_threshold=-45dB:stop_silence=0.28,atempo=1.15` 压停顿、提速，或者在语气里写明语速；改完重跑回听（L-049）。多个角色时按 `who` 分成几份 `lines.txt`，各用一个声音。
 
-用户另有选定的声音就用他的。没有密钥用 `tts_edge.py`（edge-tts）。在用户电脑上跑时要在前台按批跑（每次调用 170 秒以内，大约二十句），不要放后台：命令一结束后台进程就会被收掉；每批开始前把已经有 mp3 的句子跳过。音频取回后转成 `audio/<id>.wav`（`ffmpeg -i x.mp3 -ar 44100 -ac 1`）；给成年观众时 Charon 偏慢，可以加 `-af atempo=1.1`，转完照样跑回听。只改了几句就只重配那几句。新闻、企业这类题材如果用户想换声音，先用 `voices` 模式试音。
+用户另有选定的声音就用他的。没有密钥用 `tts_edge.py`（edge-tts）。在用户电脑上跑时要在前台按批跑（每次调用 170 秒以内，大约二十句），不要放后台：命令一结束后台进程就会被收掉；已经配好且没改过的句子脚本自己会跳过，分批重跑同一条命令即可。音频取回后转成 `audio/<id>.wav`（`ffmpeg -i x.mp3 -ar 44100 -ac 1`）；给成年观众时 Charon 偏慢，可以加 `-af atempo=1.1`，转完照样跑回听。只改了几句就只重配那几句。新闻、企业这类题材如果用户想换声音，先用 `voices` 模式试音。
 
 ### 8. 回听 `python3 ../kit/asr.py`
 
-把配音转回文字，按拼音和稿子比对，并写出每个字的发音时间。不通过的句子重配或改写；只差个别字的，把具体的字告诉用户请他听，确认后在那一句加 `"asr_ok": true`。它查读错、漏读、多读，查不了语气。
+把配音转回文字，按拼音和稿子比对，并写出每个字的发音时间。回听记录绑定在那份音频的内容上：`audio/<id>.wav` 之后被换掉（哪怕文字没变），`check` 会要求重听，逐字时间也不再用。不通过的句子重配或改写；只差个别字的，把具体的字告诉用户请他听，确认后在那一句加 `"asr_ok": true`。它查读错、漏读、多读，查不了语气。
 
 ### 9. 分场 `scenes.js`
 
@@ -311,6 +311,8 @@ python3 ../kit/build.py short stills        # 横版片另出竖版摘要：先�
 python3 ../kit/build.py short render 名字_竖版短片
 ```
 
+`check`、`render`、`mix`、`cover` 各自记下用的是哪一版输入（按文件内容，存在 `check_report.json` 和 `_build_state.json`）；`final` 核对它们和当前文件是同一版，哪样过期就说哪个文件改过、该重跑哪一步，出完再回读成片的尺寸和画面、声音时长。改了稿子、台账、配音、画面里任何一样，都要把受影响的步骤重跑。
+
 后台渲染用日志判断结束（`grep -q '^done' render.log`）。要中途停掉：`kill $(cat render.pid)`。不要用 `pkill -f`、`pgrep -f` 或 `ps | grep` 找 `build.py`，会匹配到发命令的那个 shell 自己。
 
 ### 13. 交付
@@ -343,7 +345,7 @@ python3 ../kit/build.py short render 名字_竖版短片
    - **试用的候选和收件箱条目**：留（`promote`）、改、还是丢。
 3. 用户改了我的稿子或画面：对比他的终版和我的提案，把差异记进经验库；同一类差异出现三次升级成模板默认值。
 4. 从参考片（`study`）或别的 skill 看到想试的做法：`workshop.py inbox "做法" --source 出处`。用自己的话写，在 `来源与许可.md` 记来源和许可；AGPL、非商用、保留所有权利的项目只借思路，不搬代码和文字。
-5. 只要动过 `kit/` 或风格包，先运行 `python3 tools/selftest.py`（几秒，不开浏览器：语法、台账、样张清单、art 包与上游一致），再运行 `python3 kit/workshop.py gallery`。它把所有样张重渲一遍和基线比，哪张变了会列出来。**先看图**：是想要的变化才 `--accept`；不是，说明这次改动弄坏了别的模板，回去修。
+5. 只要动过 `kit/` 或风格包，先运行 `python3 tools/selftest.py`（半分钟内，不开浏览器：语法、台账、样张清单、art 包与上游一致，外加 `tools/test_gates.py` 的出片门禁、回听指纹、配音缓存回归测试），再运行 `python3 kit/workshop.py gallery`。它把所有样张重渲一遍和基线比，哪张变了会列出来。**先看图**：是想要的变化才 `--accept`；不是，说明这次改动弄坏了别的模板，回去修。
 6. 该晋级的晋级：`workshop.py promote 编号`（条件不够会拒绝）。`kit/VERSION` 加一，更新记录写一行。
 7. 把改动提交回仓库：在工坊里 `git add -A && git commit`（提交说明写清因为哪条片改了什么）`&& git push`。没有写权限就把补丁（`git format-patch`）交给用户。推完告诉用户在他电脑上的那份工坊里 `git pull`。仓库是唯一的源头：不要用拷文件的办法在两处各改各的。
 
@@ -393,4 +395,5 @@ python3 ../kit/build.py short render 名字_竖版短片
 - edge-tts 偶尔对个别短语返回空音频，换个说法即可。
 - 封面 `tagline` 不会自动缩字，控制在 16 字内。
 - 改了 `hold` 或句子顺序后，`short.json` 的 `src` 窗口要重看。
-- 改了 `scenes.js` 之后 `check` 结果过期，`final` 会拒绝出片，重跑即可。
+- 改了任何输入（不只是 `scenes.js`）之后 `check` 结果和母版、混音、封面都可能过期，`final` 会列出过期的是哪个、因为哪个文件，照提示重跑那几步即可。用旧版引擎做到一半的项目，第一次 `final` 会要求重跑 `asr.py`、`check`、`render`、`mix`、`cover`（旧记录没有指纹）。
+- 这个云端工作区（2026-10-12）连不上 edge-tts 的服务（握手 403）；云端配音不了就在用户电脑上跑。

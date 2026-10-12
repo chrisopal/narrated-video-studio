@@ -1,5 +1,11 @@
 # 状态
 
+## 2026-10-12 · 出片门禁按内容认版本
+
+- 范围：`build.py` 的版本指纹（`fingerprint`、`remember`、`stale`）、`final` 门禁和成片回读、`short render` 退出码、扫描缓存；`asr.py` 记音频指纹；`kit/tts_cache.py` 和两个配音脚本；`tools/test_gates.py`，接进 `selftest.py`；SKILL 第 7、8、12 步和已知限制；经验库 L-064。版本 `2026.10.12-2`。
+- 验证：`test_gates.py` 13 条全部通过（测试用到新函数，没法原样拿旧代码跑一遍对照）；用样片 kinetic 的拷贝在云端完整走了一遍 `check → render → mix → cover → final`，出片成功，再改 `scenes.js` 里一个字并重跑 `check`，`final` 拦下并列出母版、混音、封面三项过期（旧门禁这里会放行）；真实的 `asr.py`（paraformer 模型）跑通并写入音频指纹。全图库 296 张与基线逐张相同；自检全部通过。
+- 边界：edge-tts 在这个云端工作区连不上（握手 403），配音缓存只用单元测试和失败路径验证过，没有真的配出一句；OpenRouter 那条没有密钥，没跑。竖版短片仍然没有自己的检查门禁（评审 P2）。用旧版引擎做到一半的项目，第一次 `final` 会要求重跑回听和各步。
+
 ## 2026-10-12 · 宣传片的五种样子
 
 - 范围：风格包 `promo`（五种样子）、`build.py` 的 `music_band`（四种配乐）、`cmd_look`、`look` 带出的缺省值、镜头节奏认声明的换屏、`KIT` 路径修正；`templates/promo_looks.json`；题材卡 17、`宣传片.md`、SKILL、README；样片 `kit/gallery/looks` 及四个变体。版本 `2026.10.12-1`，分支 `promo-looks`。
