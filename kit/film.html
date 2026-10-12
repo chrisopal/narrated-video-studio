@@ -13,7 +13,7 @@ html,body{margin:0;background:#000}canvas{display:block}
 <link rel="stylesheet" href="/kit/fonts/brush/brush.css">
 </head><body><canvas id="c" width="1920" height="1080"></canvas>
 <script>/* 画幅和平台安全区：构建脚本通过 ?w=&h=&safe=上,右,下,左 传进来；不传就是 1920×1080 横版 */
-(()=>{const q=new URLSearchParams(location.search),c=document.getElementById('c');c.width=+(q.get('w')||1920);c.height=+(q.get('h')||1080);window.SAFE_=(q.get('safe')||'0,0,0,0').split(',').map(Number)})();</script>
+(()=>{const q=new URLSearchParams(location.search),c=document.getElementById('c');c.width=+(q.get('w')||1920);c.height=+(q.get('h')||1080);window.SAFE_=(q.get('safe')||'0,0,0,0').split(',').map(Number);window.LOOK_=q.get('look')||''})();</script>
 <script src="/kit/kit.js"></script><script src="/kit/components.js"></script>
 <script>/* 风格包：brief.json 里写 "packs":["ink","figures","map"]，构建脚本通过 ?packs= 传进来 */
 (new URLSearchParams(location.search).get('packs')||'').split(',').filter(Boolean).forEach(p=>document.write('<script src="/kit/packs/'+p+'.js"><\/script>'));</script>

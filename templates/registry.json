@@ -352,10 +352,9 @@
   "产品宣传": {
    "mode": "promo",
    "styles": [
+    "promo",
     "kinetic",
-    "keynote",
-    "ui",
-    "holo"
+    "keynote"
    ],
    "chrome": "none",
    "components": [
@@ -365,6 +364,7 @@
     "bigNumber"
    ],
    "packs_optional": [
+    "promo",
     "kinetic",
     "ui",
     "holo"
@@ -505,7 +505,8 @@
   "dossier",
   "industry",
   "void",
-  "talk"
+  "talk",
+  "promo"
  ],
  "packs": [
   "ink",
@@ -529,7 +530,8 @@
   "industry",
   "art",
   "gen",
-  "talk"
+  "talk",
+  "promo"
  ],
  "films": [
   {
@@ -2776,6 +2778,48 @@
    "name": "宣传线的两个小件收进 kinetic 包：still(图, t, t0, 时长) 铺满的定格慢推；point(序号, 四字卖点, 一句话) 题卡",
    "status": "inbox",
    "from": "成片《视频工坊》发布短片",
+   "since": "2026-10-12",
+   "used_in": []
+  },
+  {
+   "id": "pack.promo",
+   "kind": "pack",
+   "name": "宣传片的五种样子（bold、glass、studio、grid、pop）：字的进场、换屏、画框跟着样子换",
+   "pack": "promo",
+   "from": "用户要求宣传片风格多样、按产品特性选",
+   "demo": "looks",
+   "status": "candidate",
+   "since": "2026-10-12",
+   "used_in": []
+  },
+  {
+   "id": "style.promo",
+   "kind": "style",
+   "name": "宣传片主题 promo（五种样子的配色）",
+   "pack": "promo",
+   "from": "同上",
+   "demo": "looks",
+   "status": "candidate",
+   "since": "2026-10-12",
+   "used_in": []
+  },
+  {
+   "id": "flow.promo_look",
+   "kind": "flow",
+   "name": "按产品选样子：brief.product、build.py look、promo_looks.json；样子带出配乐、拍速、镜头节奏的缺省值",
+   "from": "同上",
+   "demo": "looks",
+   "status": "candidate",
+   "since": "2026-10-12",
+   "used_in": []
+  },
+  {
+   "id": "flow.music_band",
+   "kind": "flow",
+   "name": "四种有鼓有低音的合成配乐 drive、pulse、warm、bright，按章节强弱起落",
+   "from": "同上",
+   "demo": "looks",
+   "status": "candidate",
    "since": "2026-10-12",
    "used_in": []
   }

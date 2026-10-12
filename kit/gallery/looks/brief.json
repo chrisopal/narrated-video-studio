@@ -1,0 +1,3 @@
+{"title": "样片·宣传片的五种样子（同一副骨架，五个虚构产品）", "genre": "产品宣传", "style": "promo", "packs": ["promo"], "mode": "promo", "look": "bold", "music": "drive", "bpm": 120, "meter": 4,
+ "product": {"kind": "tool", "traits": ["效率", "直接"]}, "slogan": "乱表，三秒理顺",
+ "direction": {"logline": "同一副骨架换五种样子：样子跟着产品的特性走", "angle": "替用的人说话", "structure": "痛点—亮相—两个卖点—证明—口号", "hook_type": "一句日常的烦恼", "alternatives": ["五个产品各写一份场景（弃：看不出是同一副骨架）", "一个产品换五种样子（弃：样子和产品不配，示范了错的用法）"]}}
