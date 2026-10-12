@@ -112,7 +112,7 @@ mkdir -p ../kit/models && cd ../kit/models && curl -sL -o m.tar.bz2 https://gith
 | 诗意影像：无旁白或极少旁白的短片，可以卡点（一首诗、四时、器物、片头片尾） | songink / sky / woodcut，可加包 art | none | 节拍网格 beatT barT beatN pulse；art 的 look、post、trans |
 | 数学影像：用规则画的生成艺术短片，无旁白，多语言（宇宙、生命、智能、时间；片头片尾）。先读 `templates/生成艺术短片.md` | void + 包 gen | none | stage F mix frame draw end CAM say code eqn |
 | 谣言核查、“几条说法哪条是真的” | dossier + 包 dossier | none | folder card verdict tally halftone redact |
-| **宣传线**（以下六张，`"mode":"promo"`，先读 `templates/宣传片.md`）：产品宣传与发布 | kinetic + 包 kinetic ui（科技感用 keynote + holo） | none | screens slam sub countBig；ui 的 shot win；clipFull callout highlight |
+| **宣传线**（以下六张，`"mode":"promo"`，先读 `templates/宣传片.md`）：产品宣传与发布 | promo + 包 promo，五种样子按产品选（`build.py look`）：bold 大字撞色、glass 暗场光感、studio 影棚留白、grid 工程网格、pop 彩块弹跳；纯大字快切也可用 kinetic | none | promo 的 scenes hero feature media stat end note；clipFull callout highlight |
 | **口播线**（`"mode":"talk"`，先读 `templates/口播片.md`）：口播讲解（录好的口播配画面） | talk + 包 talk | none | stage swap big tiles rows steps3 verdict caption；通用图表画进卡片 |
 | 发布会用片（开场片、演示段、大屏循环片） | keynote + 包 kinetic art | none | slam；art 的 trans；clipFull |
 | 城市形象 | swiss / kinetic，靠实拍 | none | clipFull xfade dipTo lowerThird bigNumber sourceTag |
@@ -126,7 +126,7 @@ mkdir -p ../kit/models && cd ../kit/models && curl -sL -o m.tar.bz2 https://gith
  "voice":{"model":"google/gemini-3.8-flash-tts","voice":"Charon","style":"清楚、平稳，像耐心的老师","persona":"讲解员"}}
 ```
 
-宣传线写 `"mode":"promo"`，再加 `"slogan":"一句观众带得走的话"`（检查会看它有没有在片尾留够时间），`bpm` 必写；`"shot_max":4`、`"pace_avg":2.5` 是单个镜头和平均镜头的上限秒数，要改写明理由。
+宣传线写 `"mode":"promo"`、`"product":{"kind":"virtual|physical|tool|ai","traits":["特性词"]}`，运行 `build.py look` 看建议后写 `"look":"bold|glass|studio|grid|pop"`、`"packs":["promo"]`（配乐和拍速不写就用这套样子的缺省；合成配乐另有 `drive`、`pulse`、`warm`、`bright` 四种，有鼓有低音，按章节强弱起落）。再加 `"slogan":"一句观众带得走的话"`（检查会看它有没有在片尾留够时间），`bpm` 必写；`"shot_max":4`、`"pace_avg":2.5` 是单个镜头和平均镜头的上限秒数，要改写明理由。
 
 口播线写 `"mode":"talk"`、`"talk":{"file":"footage/口播.mp4","speaker":"出镜人","max_pause":0.7}`（停顿超过几秒就收紧），`"packs":["talk"]`；竖版另写 `"safe":[110,48,290,48]`。
 
@@ -365,7 +365,8 @@ python3 ../kit/build.py short render 名字_竖版短片
 
 - 口播线：只用一段合成的口播（合成声音、占位画面）跑通过，还没有用真人录的口播试过；真实录音的口音、语气词、噪声、改口会让识别和断句变差。版面只有“人在角上”这一套。复核识别只抓得到识别不稳的字，稳定错成同音字的专有名词要靠查证和用户确认。剪辑点是硬切，删句子多了人像会跳。读懂内容、决定配什么图靠 Claude 读转写，没有自动生成画面的脚本。十分钟以上的口播没试过。
 
-- 宣传线：只有一条虚构产品的样片（`kit/gallery/promo`），还没有成片；六张题材卡里只有“产品宣传”有样片，另外五张没做过片子。没有用真实音乐、真实录屏、实拍素材跑过整片。合成配乐没有旋律和鼓组，撑不起宣传片，要用户提供有授权的音乐。镜头节奏检查只认得硬切和半秒内的擦切，阈值是经验值；它数得出镜头多不多，判断不了好不好看。城市、场景、生产这三张卡靠实拍，没有素材时只能做文字、地图和数据。云端没有显卡，三维和真实运动模糊做不了。
+- 宣传片的五种样子和四种合成配乐（2026-10-12 新做）：只有虚构产品的样片，没有成片；配乐没有人听过；实体产品只用简笔示意图试过，没有用真实的产品照片和视频。
+- 宣传线：做过一条成片（给这个 skill 自己做的发布短片），样片 `kit/gallery/promo`；六张题材卡里只有“产品宣传”有样片，另外五张没做过片子。没有用真实音乐、真实录屏、实拍素材跑过整片。合成配乐没有旋律和鼓组，撑不起宣传片，要用户提供有授权的音乐。镜头节奏检查只认得硬切和半秒内的擦切，阈值是经验值；它数得出镜头多不多，判断不了好不好看。城市、场景、生产这三张卡靠实拍，没有素材时只能做文字、地图和数据。云端没有显卡，三维和真实运动模糊做不了。
 
 - 生成艺术短片（`gen` 包）：只做过一条成片《一个点》。画面是规则的示意，不是物理或神经网络的模拟，片尾要写明。渲染慢（七万点一帧 0.3–0.5 秒）；`check` 的动效扫描要把全片逐帧过一遍，两分钟的片子要等十几分钟，放后台跑。多语言只有字分语言，没有做过多语言旁白。`cosmos` 配乐是合成的，没有旋律，想要有记忆点的音乐得用自己的文件。
 

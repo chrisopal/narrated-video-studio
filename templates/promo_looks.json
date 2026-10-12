@@ -1,0 +1,21 @@
+{
+ "说明": "宣传片的五种样子（风格包 promo）。build.py look 按 brief.json 的 product 给建议；写了 look 之后，配乐、拍速、镜头节奏的缺省值跟着这张表走，brief 里写了的以 brief 为准。",
+ "looks": {
+  "bold":   {"name": "大字撞色", "motion": "大词砸下来、硬切、每屏底下一根色条往右长", "music": "drive", "bpm": 120, "bpm_range": [112, 128], "pace_avg": 2.5, "shot_max": 4, "dead_sec": 2,
+             "kinds": ["tool", "virtual"], "traits": ["效率", "直接", "年轻", "大胆", "省时间", "快"], "needs": "一句痛点、三个四字卖点；界面录屏或重画的演示画面", "avoid": "要讲质感、材质、安全感的东西"},
+  "glass":  {"name": "暗场光感", "motion": "字一个个浮上来带光晕、玻璃画框缓缓升起、换镜头时扫过一道光", "music": "pulse", "bpm": 104, "bpm_range": [96, 112], "pace_avg": 3, "shot_max": 5, "dead_sec": 3,
+             "kinds": ["ai", "virtual"], "traits": ["智能", "科技", "高端", "未来", "自动", "数据", "省人"], "needs": "真实的对话、生成过程或数据变化的录屏；没有就重画并标演示画面", "avoid": "便宜亲民的消费品；机器人、蓝色大脑这类没有信息的科技图"},
+  "studio": {"name": "影棚留白", "motion": "镜头慢慢往里推、引线标注、叠化", "music": "warm", "bpm": 92, "bpm_range": [84, 100], "pace_avg": 4, "shot_max": 7, "dead_sec": 4,
+             "kinds": ["physical"], "traits": ["质感", "材质", "工艺", "耐用", "简洁", "家居", "礼物"], "needs": "实物的照片或视频（纯底、多角度、细节特写）；只有示意图时要标示意图", "avoid": "快切；一屏很多字；拿渲染图冒充实拍"},
+  "grid":   {"name": "工程网格", "motion": "字是打出来的、带光标，画框先描边再从上往下显出来，按栏擦切", "music": "pulse", "bpm": 112, "bpm_range": [104, 120], "pace_avg": 3, "shot_max": 5, "dead_sec": 3,
+             "kinds": ["tool"], "traits": ["开发者", "精确", "流程", "自动化", "命令行", "可靠", "工程"], "needs": "真实的终端、编辑器、流水线录屏；命令和输出要是真的", "avoid": "面向普通消费者的东西；编造的命令和输出"},
+  "pop":    {"name": "彩块弹跳", "motion": "字一个个弹出来、手机从下面蹦上来、一个圆从中间涨开换屏", "music": "bright", "bpm": 116, "bpm_range": [108, 124], "pace_avg": 2.5, "shot_max": 4.5, "dead_sec": 2,
+             "kinds": ["virtual", "physical"], "traits": ["亲切", "生活", "轻松", "年轻", "好玩", "课程", "会员", "内容", "孩子"], "needs": "App 界面或内容本身的画面；真实用户的原话（确认可公开）", "avoid": "金融、医疗、企业软件这类要显得稳重的东西"}
+ },
+ "kinds": {
+  "virtual":  {"name": "虚拟产品（App、课程、会员、数字内容、线上服务）", "order": ["pop", "glass", "bold"], "frame": "phone 或 window", "prove": "多少人在用、多少内容、一句用户原话", "hook": "一个日常的小烦恼"},
+  "physical": {"name": "实体产品（看得见摸得着的东西）", "order": ["studio", "pop"], "frame": "plinth（台面）或全屏实拍", "prove": "参数（写单位和测试条件）、材质、认证", "hook": "一个用它的瞬间"},
+  "tool":     {"name": "工具类（效率工具、开发者工具、办公软件）", "order": ["grid", "bold"], "frame": "window", "prove": "省掉几步、快了多少（同一口径的前后对比）", "hook": "一件重复做的麻烦事"},
+  "ai":       {"name": "智能化产品（AI 应用、智能硬件、自动化服务）", "order": ["glass", "grid"], "frame": "window", "prove": "一次真实的输入和输出；它不能做什么也说一句", "hook": "一件原来必须人来做的事"}
+ }
+}

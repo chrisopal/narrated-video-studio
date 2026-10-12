@@ -352,10 +352,9 @@
   "产品宣传": {
    "mode": "promo",
    "styles": [
+    "promo",
     "kinetic",
-    "keynote",
-    "ui",
-    "holo"
+    "keynote"
    ],
    "chrome": "none",
    "components": [
@@ -365,6 +364,7 @@
     "bigNumber"
    ],
    "packs_optional": [
+    "promo",
     "kinetic",
     "ui",
     "holo"
@@ -505,7 +505,8 @@
   "dossier",
   "industry",
   "void",
-  "talk"
+  "talk",
+  "promo"
  ],
  "packs": [
   "ink",
@@ -529,7 +530,8 @@
   "industry",
   "art",
   "gen",
-  "talk"
+  "talk",
+  "promo"
  ],
  "films": [
   {
@@ -666,6 +668,21 @@
    "structure": "回环：始于一个点，终于一个点；中间每一场是一条规则",
    "angle": "没有叙述者，字是问题自己",
    "hook": "一个问题",
+   "voice": null,
+   "platform": null,
+   "aspect": "16:9"
+  },
+  {
+   "title": "视频工坊（给这个 skill 自己做的发布短片）",
+   "date": "2026-10-12",
+   "genre": "产品宣传",
+   "style": "kinetic",
+   "packs": [
+    "kinetic"
+   ],
+   "structure": "痛点—亮相—三条线—证明—口号",
+   "hook": "一拍一个词的连切",
+   "angle": "替想做视频的人说话，产品第 4 秒后出场",
    "voice": null,
    "platform": null,
    "aspect": "16:9"
@@ -1909,7 +1926,9 @@
    "pack": "kinetic",
    "from": "自己实现（参考其他 skill 的风格规则）",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "视频工坊（给这个 skill 自己做的发布短片）"
+   ],
    "demo": "kinetic"
   },
   {
@@ -1920,7 +1939,9 @@
    "pack": "kinetic",
    "from": "自己实现（参考其他 skill 的风格规则）",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "视频工坊（给这个 skill 自己做的发布短片）"
+   ],
    "demo": "kinetic"
   },
   {
@@ -2523,7 +2544,9 @@
    "demo": "beat",
    "status": "candidate",
    "since": "2026-10-10",
-   "used_in": []
+   "used_in": [
+    "视频工坊（给这个 skill 自己做的发布短片）"
+   ]
   },
   {
    "id": "flow.article",
@@ -2625,7 +2648,9 @@
    "status": "candidate",
    "from": "题材模板第 17–22 张卡，宣传片.md；样片《青梧》",
    "since": "2026-10-11",
-   "used_in": [],
+   "used_in": [
+    "视频工坊（给这个 skill 自己做的发布短片）"
+   ],
    "demo": "promo"
   },
   {
@@ -2680,7 +2705,9 @@
    "status": "candidate",
    "from": "宣传线，样片《青梧》",
    "since": "2026-10-11",
-   "used_in": [],
+   "used_in": [
+    "视频工坊（给这个 skill 自己做的发布短片）"
+   ],
    "demo": "promo"
   },
   {
@@ -2690,7 +2717,9 @@
    "status": "candidate",
    "from": "宣传线，样片《青梧》",
    "since": "2026-10-11",
-   "used_in": [],
+   "used_in": [
+    "视频工坊（给这个 skill 自己做的发布短片）"
+   ],
    "demo": "promo"
   },
   {
@@ -2741,6 +2770,57 @@
    "from": "《春节的来历和习俗》：用户指出识别出来的字会错",
    "status": "candidate",
    "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "inbox-031",
+   "kind": "component",
+   "name": "宣传线的两个小件收进 kinetic 包：still(图, t, t0, 时长) 铺满的定格慢推；point(序号, 四字卖点, 一句话) 题卡",
+   "status": "inbox",
+   "from": "成片《视频工坊》发布短片",
+   "since": "2026-10-12",
+   "used_in": []
+  },
+  {
+   "id": "pack.promo",
+   "kind": "pack",
+   "name": "宣传片的五种样子（bold、glass、studio、grid、pop）：字的进场、换屏、画框跟着样子换",
+   "pack": "promo",
+   "from": "用户要求宣传片风格多样、按产品特性选",
+   "demo": "looks",
+   "status": "candidate",
+   "since": "2026-10-12",
+   "used_in": []
+  },
+  {
+   "id": "style.promo",
+   "kind": "style",
+   "name": "宣传片主题 promo（五种样子的配色）",
+   "pack": "promo",
+   "from": "同上",
+   "demo": "looks",
+   "status": "candidate",
+   "since": "2026-10-12",
+   "used_in": []
+  },
+  {
+   "id": "flow.promo_look",
+   "kind": "flow",
+   "name": "按产品选样子：brief.product、build.py look、promo_looks.json；样子带出配乐、拍速、镜头节奏的缺省值",
+   "from": "同上",
+   "demo": "looks",
+   "status": "candidate",
+   "since": "2026-10-12",
+   "used_in": []
+  },
+  {
+   "id": "flow.music_band",
+   "kind": "flow",
+   "name": "四种有鼓有低音的合成配乐 drive、pulse、warm、bright，按章节强弱起落",
+   "from": "同上",
+   "demo": "looks",
+   "status": "candidate",
+   "since": "2026-10-12",
    "used_in": []
   }
  ]

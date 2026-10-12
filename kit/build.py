@@ -6,6 +6,7 @@
   study 参考片.mp4 [阈值]   拉片：切点、镜头时长、节奏数据、联系表 → study/<名字>/（只学结构，不进成片）
   probe                    看素材：footage/ 里每条视频的时长/尺寸/切点/静音段 + 带时间码的联系表 → footage/_index.json
   transcribe 文件名或素材id  把素材里的讲话转成带时间的句子 → footage/<名字>.transcript.json；assets.json 的 in/out 可写 "@s3"/"@s5"
+  look                     宣传片：按 brief.json 的 product（产品类型和特性词）给样子、动效、配乐、拍速的建议
   talk [口播视频]          口播线：转写一条录好的口播，写出 script.json 草稿，按留下的句子剪好（收紧长停顿），生成逐字时间和 talk 片段；brief 要写 "mode":"talk"
   pick 文件名 [个数]        挑镜头：按清晰度、亮度、运动量、时长给镜头打分，列出候选入出点 + 联系表 footage/_sheets/<名字>_pick.jpg（只建议，不改台账）
   clips                    按 assets.json 里的入出点切片、统一成 30 帧、拆帧 → clips/<id>/
@@ -36,7 +37,7 @@ script.json 里一句可以写 "silent":true,"dur":秒数 表示无旁白段落�
 import json, re, sys, os, math, base64, subprocess, threading, http.server, socketserver, hashlib, shutil
 from pathlib import Path
 import numpy as np, soundfile as sf
-KIT = Path(__file__).parent; P = Path.cwd(); FPS = 30; LEAD = 0.9; GAP = 0.55; COVER = 2.0
+KIT = Path(__file__).resolve().parent; P = Path.cwd(); FPS = 30; LEAD = 0.9; GAP = 0.55; COVER = 2.0
 SPLIT = r'(?<=[，。：；？！])'; END = ('。', '？', '；', '！'); LUFS = -14
 def jload(name, default=None):
     f = P / name; return json.load(open(f, encoding='utf-8')) if f.exists() else default
@@ -58,9 +59,16 @@ COVER_NAME = {'16:9': '封面_横版.png', '9:16': '封面_9x16.png', '3:4': '�
 MODE = BRIEF.get('mode', 'explain')
 if MODE not in ('explain', 'promo', 'talk'): sys.exit('brief 的 mode 只能是 explain（讲解线，缺省）、promo（宣传线）或 talk（口播线）')
 PROMO = MODE == 'promo'; TALK = MODE == 'talk'
+# 宣传片的样子（brief.json 的 "look"，风格包 promo）：配乐、拍速、镜头节奏的缺省值跟着样子走，brief 里写了的以 brief 为准
+try: LOOKS = json.load(open(KIT.parent / 'templates' / 'promo_looks.json', encoding='utf-8'))
+except Exception: LOOKS = {'looks': {}, 'kinds': {}}
+LOOK = LOOKS['looks'].get(BRIEF.get('look') or '', {}) if PROMO else {}
+if BRIEF.get('look') and PROMO and not LOOK: sys.exit(f"brief 的 look 只能是 {' / '.join(LOOKS['looks'])}")
+for _k in ('music', 'bpm'):
+    if LOOK and _k not in BRIEF: BRIEF[_k] = LOOK[_k]
 if TALK: LEAD = 0.0; GAP = 0.0   # 口播线：声音是录好的原声，时间轴就是剪好的那条口播，句子之间不另加停顿（做法见 templates/口播片.md）
 READ_CPS = BRIEF.get('read_cps', 10 if PROMO else 6 if TALK else 4.5); READ_PAD = BRIEF.get('read_pad', .1 if PROMO else .2 if TALK else 1.5)   # 阅读速度：给孩子看用 4.5 字/秒；成年观众可以调到 6；宣传线是扫一眼的大字，10 字/秒（120 拍时一拍一屏最多三个字）
-READ_MIN = .4 if PROMO else .8 if TALK else 1.5; DEAD_SEC = 2 if PROMO else 8 if TALK else 4;   # 口播线：字是边听边看的，人像一直在动，阈值都放宽
+READ_MIN = .4 if PROMO else .8 if TALK else 1.5; DEAD_SEC = float(BRIEF.get('dead_sec', LOOK.get('dead_sec', 2))) if PROMO else 8 if TALK else 4;   # 口播线：字是边听边看的，人像一直在动，阈值都放宽
 HOOK_SEC = 1.0 if PROMO else 2.0
 SUPERLATIVE = re.compile(r'最[大小高低强快早好先多新佳优]|国家级|世界级|第一(?![步层次个件项章节条点种类阶段轮批期天年])|唯一|领先|顶级|顶尖|首[个家创]|独家|全球[首最]|国内[首最]|100%|百分之百|绝对|完美')
 # 允许进成片的素材依据。授权不明的素材只能进参考片单（study），不能进 assets.json
@@ -234,11 +242,79 @@ def music_cosmos(total, tl, name):
     for dly, gdb in ((.137, .32), (.251, .26), (.389, .2), (.613, .15), (.977, .1)): k = int(dly * SR); wet[k:] += out[:-k] * gdb   # 几道延迟当混响
     out = wet / (np.sqrt((wet ** 2).mean()) + 1e-9) * 10 ** (-20 / 20); out = np.tanh(out * 1.3) / 1.3
     d = int(.019 * SR); sf.write(P / name, np.stack([out + .3 * np.roll(out, d), out + .3 * np.roll(out, d * 3)], 1), SR)
+BAND = {   # 宣传线的四种合成配乐：有鼓、有低音、有和弦，按每章的强弱起落。都是合成的，够定节奏和气质，替不了真音乐
+    'drive':  dict(bpm=122, prog=[[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]], kick='four', hat='off', clap='clap', bass='eighth', lead='stab'),      # 利落的电子：四拍底鼓、八分低音、反拍和弦
+    'pulse':  dict(bpm=104, prog=[[50, 57, 60, 64], [46, 53, 57, 62], [53, 57, 60, 65], [48, 55, 60, 64]], kick='one3', hat='six', clap='', bass='sub', lead='arp'),  # 冷静的科技感：十六分琶音、长低音，鼓很少
+    'warm':   dict(bpm=92,  prog=[[60, 64, 67, 71], [57, 60, 64, 67], [53, 57, 60, 64], [55, 59, 62, 64]], kick='one3', hat='shaker', clap='rim', bass='half', lead='ep'),  # 温和的原声感：电钢琴和弦、沙锤、边击
+    'bright': dict(bpm=116, prog=[[60, 64, 67], [55, 59, 62], [57, 60, 64], [53, 57, 60]], kick='bounce', hat='off', clap='clap', bass='bounce', lead='mallet'),   # 轻快：木琴拨动、拍手、跳着走的低音
+}
+BEAT_E = {'钩子': .6, '铺垫': .45, '推进': .75, '转折': .3, '揭示': .9, '高潮': 1.0, '回扣': .6, '收束': .5}
+def music_band(total, tl, name, style):
+    """有鼓有低音的配乐。强弱一章一个数（brief.music_energy，不写就按每章第一句的 beat 定）：弱的章只留和弦（蓄力），变强之前的一小节有一道上扬的气流，强的章开头砸一下。"""
+    S = BAND[style]; BG = (tl or [{}])[0].get('_grid'); spb = BG['spb'] if BG else 60 / S['bpm']; g0 = BG['t0'] if BG else .5; bar = spb * 4; n = int(SR * total); out = np.zeros(n + SR * 6); r = np.random.default_rng(11)
+    N = lambda m: 440 * 2 ** ((m - 69) / 12); T = lambda d: np.arange(int(SR * d)) / SR
+    starts = []; first = []; last = None
+    for s_ in (tl or []):
+        if s_['ch'] != last: starts.append(s_['t0']); first.append(s_.get('beat')); last = s_['ch']
+    starts = starts or [0]; first = first or [None]; E = BRIEF.get('music_energy') or [BEAT_E.get(b, .6) for b in first]; E = (list(E) + [E[-1]] * len(starts))[:len(starts)]
+    def put(x, at_, gain=1.0):
+        i = int(at_ * SR)
+        if 0 <= i < len(out): out[i:i + len(x)] += x[:len(out) - i] * gain
+    def noise(d, lo, hi):   # 一段只留 lo–hi 赫兹的噪声
+        m = int(SR * d); F = np.fft.rfft(r.standard_normal(m)); k = np.fft.rfftfreq(m, 1 / SR); F *= (k > lo) * (k < hi); x = np.fft.irfft(F, m); return x / (np.abs(x).max() + 1e-9)
+    t_ = T(.34); KICK = np.sin(2 * np.pi * np.cumsum(46 + 120 * np.exp(-t_ * 36)) / SR) * np.exp(-t_ * 9) * np.clip(t_ / .002, 0, 1)
+    HAT = noise(.06, 6500, 14000) * np.exp(-T(.06) * 85); SHK = noise(.1, 4000, 10000) * np.sin(np.pi * T(.1) / .1) ** 2
+    tc_ = T(.2); CLAP = noise(.2, 900, 4200) * (np.exp(-tc_ * 22) + .7 * np.exp(-np.abs(tc_ - .012) * 300) + .7 * np.exp(-np.abs(tc_ - .024) * 300)); RIM = (np.sin(2 * np.pi * 1750 * T(.05)) + .5 * noise(.05, 2000, 6000)) * np.exp(-T(.05) * 110)
+    def bass(f, d):
+        t = T(d); return sum(np.sin(2 * np.pi * k * f * t) / k * np.exp(-t * k * 2.2) for k in range(1, 6)) * np.clip(t / .006, 0, 1) * np.clip((d - t) / .03, 0, 1)
+    def ep(f, d, bright=1.1):
+        t = T(d); return np.sin(2 * np.pi * f * t + bright * np.exp(-t * 9) * np.sin(2 * np.pi * 2 * f * t)) * np.exp(-t * 3.2) * np.clip(t / .004, 0, 1)
+    def mallet(f, d=.9):
+        t = T(d); return (np.sin(2 * np.pi * f * t) * np.exp(-t * 7) + .35 * np.sin(2 * np.pi * 4 * f * t) * np.exp(-t * 22)) * np.clip(t / .002, 0, 1)
+    def padc(ms, d):
+        t = T(d); env = np.clip(t / (d * .3), 0, 1) * np.clip((d - t) / (d * .35), 0, 1); return sum(np.sin(2 * np.pi * N(m) * (1 + .0015 * k) * t) + .2 * np.sin(2 * np.pi * 2 * N(m) * t) for k, m in enumerate(ms)) * env
+    def riser(d):
+        m = int(SR * d); x = noise(d, 1500, 9000) * (np.arange(m) / m) ** 2.4; return x + .25 * np.sin(2 * np.pi * np.cumsum(np.linspace(240, 1300, m)) / SR) * (np.arange(m) / m) ** 2
+    IMPACT = np.concatenate([KICK * 1.2, np.zeros(int(SR * .9))])[:int(SR * 1.2)]; IMPACT = IMPACT + .5 * noise(1.2, 300, 6000) * np.exp(-T(1.2) * 5)
+    eat = lambda tt: E[max(0, sum(1 for x in starts if x <= tt + .01) - 1)]
+    nb = int((total - 3 - g0) / bar) + 1
+    for b in range(nb):
+        tb = g0 + b * bar; e = eat(tb); en = eat(tb + bar); ch = S['prog'][b % 4]; root = N(ch[0] - 24)
+        put(padc([m + 12 for m in ch], bar * 1.25), tb, .04 + .04 * e)                                   # 和弦长音一直在
+        if en - e >= .2: put(riser(bar), tb, .16)                                       # 变强之前：一小节上扬的气流
+        if e - eat(tb - bar) >= .2 and b: put(IMPACT, tb, .5)                           # 变强的那一下
+        for k in range(16):                                                            # 一小节十六个十六分
+            tk = tb + k * spb / 4; q, on8, on4 = k % 4, k % 2 == 0, k % 4 == 0
+            if e >= .5 and ((S['kick'] == 'four' and on4) or (S['kick'] == 'one3' and k in (0, 8)) or (S['kick'] == 'bounce' and k in (0, 6, 8))): put(KICK, tk, .3 if S['kick'] != 'one3' else .22)
+            if e >= .4:
+                if S['hat'] == 'off' and k % 4 == 2: put(HAT, tk, .22)
+                if S['hat'] == 'off' and e >= .9 and k % 2 == 1: put(HAT, tk, .07)
+                if S['hat'] == 'six' and (on8 or e >= .8): put(HAT, tk, .05 + .05 * (k % 4 == 2))
+                if S['hat'] == 'shaker' and on8: put(SHK, tk, .05 + .04 * (k % 4 == 2))
+            if e >= .65 and k in (4, 12):
+                if S['clap'] == 'clap': put(CLAP, tk, .3)
+                if S['clap'] == 'rim': put(RIM, tk, .16)
+            if e >= .45:
+                if S['bass'] == 'eighth' and on8: put(bass(root * (4 if k in (6, 14) else 2), spb * .45), tk, .13)
+                if S['bass'] == 'sub' and k == 0: put(bass(root * 2, bar * .95), tk, .12)
+                if S['bass'] == 'half' and k in (0, 8): put(bass(root * (3 if k == 8 else 2), spb * 1.8), tk, .11)
+                if S['bass'] == 'bounce' and k in (0, 6, 10): put(bass(root * (4 if k == 10 else 2), spb * .6), tk, .13)
+            if e >= .3:
+                if S['lead'] == 'stab' and k in (2, 6, 10, 14) and e >= .6: put(sum(ep(N(m + 12), .35, 2.2) for m in ch), tk, .12)
+                if S['lead'] == 'arp' and (on8 or e >= .7): put(mallet(N(ch[(k * 3) % len(ch)] + (24 if k % 8 >= 4 else 12)), .5), tk, .05 + .03 * e)
+                if S['lead'] == 'ep' and k in (0, 6, 10): put(sum(ep(N(m), 2.6) for m in ch), tk, .055 if k else .08)
+                if S['lead'] == 'mallet' and on8 and not (k == 14 and r.random() < .5): put(mallet(N(ch[[0, 2, 1, 2, 0, 1, 2, 1][k // 2]] + 12)), tk, .2 if on4 else .14)
+    out = out[:n]; t = np.arange(n) / SR; out *= np.clip(t / .6, 0, 1) * np.clip((total - t) / 3.0, 0, 1)
+    wet = out.copy()
+    for dly, gd in ((.119, .16), (.233, .11), (.371, .07)): k = int(dly * SR); wet[k:] += out[:-k] * gd
+    out = wet / (np.sqrt((wet ** 2).mean()) + 1e-9) * 10 ** (-20 / 20); out = np.tanh(out * 1.4) / 1.4
+    d = int(.013 * SR); sf.write(P / name, np.stack([out + .18 * np.roll(out, d), out + .18 * np.roll(out, d * 2)], 1), SR)
 def music(total, name='music.wav', tl=None):
     """brief.json 的 music：缺省 'keys' 是合成的键盘铺底（中音区，小喇叭听得见）；'pad' 是低沉的长音；'guqin' 是五声拨弦（每章换调）；写成文件路径就用那条音乐（要进素材台账）。"""
     kind = BRIEF.get('music', 'keys')
     if kind == 'keys': return music_keys(total, tl, name)
     if kind == 'cosmos': return music_cosmos(total, tl, name)
+    if kind in BAND: return music_band(total, tl, name, kind)
     if kind == 'guqin': return music_guqin(total, tl, name)
     if kind not in ('pad', '') and (P / kind).exists():
         subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-stream_loop', '-1', '-i', str(P / kind), '-t', f'{total:.2f}', '-af', f'afade=t=in:d=1.5,afade=t=out:st={total - 3:.2f}:d=3', '-ar', str(SR), '-ac', '2', str(P / name)], check=True); return
@@ -277,6 +353,7 @@ def sfx_track(events, total, name='sfx.wav', clips=()):
         if e['gain'] <= 0 or not m.get('audio'): continue
         x, sr = sf.read(P / m['audio'], dtype='float32'); x = x[int(float(frm) * sr):] * e['gain'] * 2.2; i = int(e['t'] * SR); x = x[:max(0, len(buf) - i)]; buf[i:i + len(x)] += x
     for e in sorted(events, key=lambda e: e['t']):
+        if e['type'].startswith('_'): continue   # 下划线开头的是给检查看的记号（如 _cut 换屏），不出声
         if e['t'] < 0 or e['t'] > total or e['t'] - last.get(e['type'], -9) < .18: continue   # 同类音效太密就丢掉
         x = synth(e['type']) * GAIN.get(e['type'], .5) * e.get('gain', 1); i = int(e['t'] * SR); buf[i:i + len(x)] += x; last[e['type']] = e['t']; n += 1
     sf.write(P / name, buf[:int(total * SR)], SR); return n
@@ -314,7 +391,7 @@ def loudness(path):
     return json.loads(r.stderr[r.stderr.rindex('{'):r.stderr.rindex('}') + 1])
 
 # 配乐压到旁白下面多少：键盘铺底的平均音量是定好的（-20 dB），再压 17 dB，大约比旁白低 14 dB；别的配乐沿用 -21。brief.json 的 music_gain 可以整体加减几分贝
-MU_DB = lambda: (-17 if BRIEF.get('music', 'keys') in ('keys', 'cosmos') else -21) + float(BRIEF.get('music_gain', 0))
+MU_DB = lambda: (-17 if BRIEF.get('music', 'keys') in ('keys', 'cosmos', 'drive', 'pulse', 'warm', 'bright') else -21) + float(BRIEF.get('music_gain', 0))
 def mixdown(vo, mu, out, sfx=None, mu_db=-21, orig=None):
     """配音压缩后和配乐、音效（、素材原声轨）相加，再两遍响度归一到 -14 LUFS，限幅保证真峰值不过 -1.5 dBTP。"""
     ins = ['-i', vo, '-i', mu] + (['-i', sfx] if sfx else []) + (['-i', orig] if orig else [])
@@ -868,7 +945,7 @@ def browser(p, tl):
     srv = socketserver.TCPServer(('127.0.0.1', 0), Q); threading.Thread(target=srv.serve_forever, daemon=True).start()
     b = p.chromium.launch(args=['--enable-gpu-rasterization', '--ignore-gpu-blocklist']); pg = b.new_page(viewport={'width': CW, 'height': CH}); errs = []
     pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('console', lambda m: m.type == 'error' and errs.append(m.text))
-    pg.goto(f'http://127.0.0.1:{srv.server_address[1]}/kit/film.html?packs=' + ','.join(BRIEF.get('packs', [])) + f'&w={CW}&h={CH}&lang={BRIEF.get("lang", "zh")}&safe=' + ','.join(map(str, SAFE)))   # lang：画面上的字出哪种语言（zh / en / bi），目前 gen 包的 say() 认它
+    pg.goto(f'http://127.0.0.1:{srv.server_address[1]}/kit/film.html?packs=' + ','.join(BRIEF.get('packs', [])) + f'&w={CW}&h={CH}&lang={BRIEF.get("lang", "zh")}&look={BRIEF.get("look", "")}&safe=' + ','.join(map(str, SAFE)))   # lang：画面上的字出哪种语言（zh / en / bi），目前 gen 包的 say() 认它
     try: total = pg.evaluate('([tl,a])=>window.init(tl,a)', [tl, assets()])
     except Exception as e: print('页面没能启动：', '；'.join(errs[:5]) or str(e).split('\n')[0]); b.close(); sys.exit(1)
     return b, pg, total, errs
@@ -878,7 +955,7 @@ def pipe(out, crf=None):
 def page_pass(tl, name, expr, cache=True):
     """在页面里跑一遍整片的量测（expr），结果存成 <name>；场景、时间轴、素材、引擎都没动过就直接用上次的。"""
     f = P / name
-    if cache and f.exists() and f.stat().st_mtime > max((P / x).stat().st_mtime for x in ('scenes.js', 'timeline.json', 'assets.json', 'clips/meta.json') if (P / x).exists()) and f.stat().st_mtime > max((KIT / x).stat().st_mtime for x in ['kit.js', 'components.js'] + [f'packs/{k}.js' for k in BRIEF.get('packs', [])] + [str(x.relative_to(KIT)) for k in BRIEF.get('packs', []) for x in (KIT / 'packs' / k).glob('*.js')]): return json.load(open(f))
+    if cache and f.exists() and f.stat().st_mtime > max((P / x).stat().st_mtime for x in ('scenes.js', 'timeline.json', 'assets.json', 'clips/meta.json', 'brief.json') if (P / x).exists()) and f.stat().st_mtime > max((KIT / x).stat().st_mtime for x in ['kit.js', 'components.js'] + [f'packs/{k}.js' for k in BRIEF.get('packs', [])] + [str(x.relative_to(KIT)) for k in BRIEF.get('packs', []) for x in (KIT / 'packs' / k).glob('*.js')]): return json.load(open(f))
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         b, pg, total, errs = browser(p, tl); sc = pg.evaluate(expr); b.close()
@@ -976,6 +1053,19 @@ def motion_check(mo, tl):
         if not d['same']: warns['det'].append(f"{d['t']:6.1f}s 同一时刻画两遍，结果不一样：用了 Math.random、Date，或有跨帧累积的状态（比如画进一张不清空的离屏）。重渲、抽帧和回归样张都会和成片对不上")
     return rows, warns
 
+# ---------- 宣传片：按产品的特性选样子 ----------
+def cmd_look():
+    """按 brief.json 的 product（kind 产品类型，traits 特性词）给宣传片的样子排个序，并说出每种样子的动效、配乐、拍速、要准备的真东西。只建议，不改 brief。"""
+    PR = BRIEF.get('product') or {}; K = LOOKS['kinds']; kind = PR.get('kind'); tr = PR.get('traits') or []
+    if kind not in K: print('brief.json 里先写 "product":{"kind":"…","traits":["…"]}。kind 四选一：'); [print(f'  {k:9s}{v["name"]}') for k, v in K.items()]; print('traits 写这个产品的三五个特性词（如：效率、质感、智能、亲切），用来在同一类里挑样子'); return
+    rows = []
+    for i, (lid, L_) in enumerate(LOOKS['looks'].items()):
+        base = (len(K[kind]['order']) - K[kind]['order'].index(lid)) * 2 if lid in K[kind]['order'] else 0; hit = [w for w in tr if any(w in x or x in w for x in L_['traits'])]; rows.append((base + 1.5 * len(hit), -i, lid, L_, hit))
+    rows.sort(reverse=True); print(f"产品类型：{K[kind]['name']}　特性：{'、'.join(tr) or '（没写）'}"); print(f"这一类片子：钩子用{K[kind]['hook']}；画框用 {K[kind]['frame']}；证明放{K[kind]['prove']}\n")
+    for n, (sc_, _, lid, L_, hit) in enumerate(rows):
+        print(f"{'推荐' if n == 0 else '备选' if sc_ > 0 else '不配'}  {lid:7s}{L_['name']}" + (f"（对上的特性：{'、'.join(hit)}）" if hit else '')); print(f"        动效：{L_['motion']}"); print(f"        配乐 {L_['music']}，{L_['bpm_range'][0]}–{L_['bpm_range'][1]} 拍；平均镜头 {L_['pace_avg']:g} 秒以内，单个不超过 {L_['shot_max']:g} 秒"); print(f"        要准备：{L_['needs']}"); print(f"        别用在：{L_['avoid']}")
+    b = rows[0]; print(f'\n选定后在 brief.json 写："look":"{b[2]}","packs":["promo"]（配乐和拍速不写就用这套样子的缺省：{b[3]["music"]}、{b[3]["bpm"]} 拍）。用户有授权的音乐时 music 写文件路径，bpm 用 build.py beats 量。')
+
 # ---------- 镜头节奏（宣传线） ----------
 CUT_MV = 0.25   # 相邻两帧有四分之一以上的画面变了，算一次换镜头
 def shot_cuts(mo):
@@ -987,8 +1077,10 @@ def shot_cuts(mo):
         if j > i and j - i <= FPS * .5 and (not cuts or fr[i]['t'] + 1 / FPS - cuts[-1] >= .2): cuts.append(round(fr[i]['t'] + 1 / FPS, 3))   # 一道擦切中途画面变化会落一下，隔不到 0.2 秒的算同一次
         i = max(j, i + 1)
     return cuts
-def pace_stats(mo, tl):
+def pace_stats(mo, tl, sc=None):
     BG = tl[0].get('_grid') if tl else None; a, b = tl[0]['t0'], tl[-1]['t1']; cuts = [c for c in shot_cuts(mo) if a + .1 < c < b - .1]
+    told = sorted(e['t'] for e in (sc or {}).get('events', []) if e['type'] == '_cut' and a + .1 < e['t'] < b - .1)   # 场景自己声明的换屏时刻（叠化、暗底上的擦切，量画面量不出来）
+    cuts = sorted(told + [c for c in cuts if not any(-.1 <= c - x <= .7 for x in told)])
     edges = [a] + cuts + [b]; shots = sorted(((y - x, x) for x, y in zip(edges, edges[1:])), reverse=True); ls = sorted(d for d, _ in shots); n = len(ls)
     off = []
     if BG:
@@ -999,7 +1091,7 @@ def pace_stats(mo, tl):
 def pace_line(st): return f"镜头 {st['n']} 个，平均 {st['avg']:.1f} 秒，最长 {st['longest'][0][0]:.1f} 秒（{st['longest'][0][1]:.1f}s 起），短的约 {st['p10']:.1f} 秒、长的约 {st['p90']:.1f} 秒" + (f"；换镜头 {len(st['cuts'])} 次，{len(st['cuts']) - len(st['off'])} 次在拍点上" if st['grid'] and st['cuts'] else '')
 def pace_check(mo, tl, sc=None):
     """宣传线才查：镜头够不够短、有没有快慢对比、换镜头在不在拍点上、口号最后有没有落在画面上。阈值是经验值，brief 里可改：shot_max、pace_avg。"""
-    st = pace_stats(mo, tl); fails = []; warns = []; smax = float(BRIEF.get('shot_max', 4)); pavg = float(BRIEF.get('pace_avg', 2.5))
+    st = pace_stats(mo, tl, sc); fails = []; warns = []; smax = float(BRIEF.get('shot_max', LOOK.get('shot_max', 4))); pavg = float(BRIEF.get('pace_avg', LOOK.get('pace_avg', 2.5)))
     if not st['grid']: warns.append('宣传片没写 bpm：先定音乐和拍点，再按拍子排镜头（用自己的音乐先跑 build.py beats 音乐文件）')
     if st['avg'] > pavg: warns.append(f"平均一个镜头 {st['avg']:.1f} 秒（{st['dur']:.0f} 秒里只有 {st['n']} 个镜头）：宣传片读起来会拖，目标是平均 {pavg:g} 秒以内。检查只认得硬切和半秒内的擦切，慢叠化不算换镜头")
     for d, t0 in st['longest']:
@@ -1007,6 +1099,10 @@ def pace_check(mo, tl, sc=None):
     if st['n'] >= 6 and st['p90'] < 2 * st['p10']: warns.append(f"镜头长短都差不多（短的 {st['p10']:.1f} 秒，长的 {st['p90']:.1f} 秒）：没有快慢对比，像节拍器。蓄力的地方放慢，爆点后连切")
     if st['off'] and len(st['off']) > .15 * len(st['cuts']): warns.append(f"{len(st['off'])} 次换镜头不在拍点上（{'、'.join(f'{c:.2f}s' for c in st['off'][:6])}{'…' if len(st['off']) > 6 else ''}）：差几帧比不卡点还难受，时刻用 beatT / barT 取")
     slogan = BRIEF.get('slogan')
+    PR = BRIEF.get('product') or {}
+    if PR.get('kind') not in LOOKS['kinds']: warns.append(f"brief.json 没写 product.kind（{' / '.join(LOOKS['kinds'])}）：先分清是哪一类产品，再选样子、动效和配乐（build.py look 会给建议）")
+    elif 'promo' in BRIEF.get('packs', []) and not LOOK: warns.append('用了风格包 promo 但没写 look：build.py look 看建议')
+    elif LOOK and PR['kind'] not in LOOK['kinds']: warns.append(f"样子「{LOOK['name']}」一般不配{LOOKS['kinds'][PR['kind']]['name'].split('（')[0]}（它适合：{'、'.join(LOOKS['kinds'][k]['name'].split('（')[0] for k in LOOK['kinds'])}）。确认是有意的，在导演阐述里写理由")
     if not slogan: warns.append('brief.json 没写 slogan：宣传片要有一句观众带得走的话，写进 brief，检查会看它最后有没有落在画面上')
     elif sc:
         step = sc['frames'][1]['t'] - sc['frames'][0]['t']; tail = st['dur'] * .7 + tl[0]['t0']; key = re.sub(r'[\s，。！？、,.!?]', '', slogan)
@@ -1042,6 +1138,7 @@ if __name__ == '__main__':
     if cmd == 'beats': cmd_beats(sys.argv[2]); sys.exit()
     if cmd == 'clips': cmd_clips(); sys.exit()
     if cmd == 'transcribe': cmd_transcribe(sys.argv[2]); sys.exit()
+    if cmd == 'look': cmd_look(); sys.exit()
     if cmd == 'talk': cmd_talk(sys.argv[2] if len(sys.argv) > 2 else None); sys.exit()
     if cmd == 'pick': cmd_pick(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 8); sys.exit()
     if cmd == 'study': cmd_study(sys.argv[2], float(sys.argv[3]) if len(sys.argv) > 3 else 0.3); sys.exit()
@@ -1088,8 +1185,8 @@ if __name__ == '__main__':
         print(f"全片：运动面积中位数 {mv[n // 2] * 100:.2f}%，静止帧对 {sum(v < STILL_MV for v in mv) / n * 100:.0f}%，确定性 {sum(d['same'] for d in mo['det'])}/{len(mo['det'])} 处一致")
         print('读法：运动面积多数好看的段落在 0.5%–8%；静止帧对超过四成读起来是“一卡一卡”；跳变先看帧再判断。数字是线索，不是结论。')
         for k, title in (('det', '确定性'), ('jump', '跳变'), ('still', '逐帧不动'), ('slow', '渲染耗时')): show(title, [], Mw[k])
-        print(pace_line(pace_stats(mo, tl)))
-        if PROMO: st, pf, pw = pace_check(mo, tl); show('镜头节奏', pf, [w for w in pw if 'slogan' not in w])
+        sc_ = get_scan(tl); print(pace_line(pace_stats(mo, tl, sc_)))
+        if PROMO: st, pf, pw = pace_check(mo, tl, sc_); show('镜头节奏', pf, [w for w in pw if 'slogan' not in w])
         sys.exit()
     if cmd == 'mix':
         sc = get_scan(tl); ev = list(sc['events']); seen = set()
