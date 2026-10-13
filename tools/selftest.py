@@ -60,9 +60,10 @@ ok('SKILL.md 让人去读 流程.md', '流程.md' in sk)
 for doc in ('SKILL.md', '流程.md', 'templates/速查.md', 'templates/已知限制.md'):
     t = (R / doc).read_text(encoding='utf-8'); refs = set(re.findall(r'`((?:templates|kit|tools)/[^`*<>{}\s]+?\.(?:md|json|js|py|sh))`', t)) | ({'流程.md'} if '`流程.md`' in t else set())
     miss = sorted(x for x in refs if not (R / x).exists()); ok(f'{doc} 提到的仓库文件都在', not miss, str(miss))
-# 出片门禁、回听指纹、配音缓存：2026-10-09 评审复现过的漏洞，每个一条用例（要 ffmpeg，十几秒）
+# 出片门禁、回听指纹、配音缓存（test_gates），每项检查该拦的拦、该放的放（test_checks）：要 ffmpeg，共半分钟
 if shutil.which('ffmpeg'):
-    r = subprocess.run([sys.executable, str(R / 'tools/test_gates.py')], capture_output=True, text=True)
-    ok('出片门禁回归测试（tools/test_gates.py）', r.returncode == 0, '\n'.join(l for l in r.stdout.split('\n') if l.startswith('✗'))[:600] or r.stderr[-300:])
+    for t, name in (('test_gates.py', '出片门禁回归测试'), ('test_checks.py', '检查逻辑回归测试')):
+        r = subprocess.run([sys.executable, str(R / 'tools' / t)], capture_output=True, text=True)
+        ok(f'{name}（tools/{t}）', r.returncode == 0, '\n'.join(l for l in r.stdout.split('\n') if l.startswith('✗'))[:600] or r.stderr[-300:])
 else: print('· 没有 ffmpeg，跳过出片门禁测试')
 print(f'\n{len(bad)} 项不通过' if bad else '\n全部通过'); sys.exit(1 if bad else 0)

@@ -1,5 +1,11 @@
 # 状态
 
+## 2026-10-13 · 竖版短片的检查门禁、检查逻辑的回归测试
+
+- 范围：`build.py` 的 `short check`（`short_lint`、`short_check`）和 `short render` 门禁；断言台账的数字和极限词识别、叙事线对 null 的容错；`tools/test_checks.py`，接进 `selftest.py`；`流程.md` 第 5、10、12、14 步，`templates/已知限制.md`；经验库 L-065。版本 `2026.10.13-1`。
+- 验证：`test_checks.py` 50 条全部通过；故意把四项检查改坏（todo 不拦、声明不查、阅读时长不拦、字幕长度不查），每次都有对应用例报错。用样片 kinetic 的拷贝配了一份五句的 `short.json`（配音是占位的正弦音，回听靠 `asr_ok`），在云端跑通 `short check → cover → short render`：没有竖版封面时 render 拦下；出片 1080×1920、21.6 秒，抽一帧看过，画面在竖框正中、字幕在下方。全图库 296 张与基线相同；自检全部通过。
+- 边界：`short check` 按正片的整片扫描换算，竖框上方的标题、下方的字幕和固定字样没有扫；阈值（24 像素、1.8 倍、30–90 秒）是按通常的做法定的，没有用一条真实的竖版摘要校过。竖版摘要仍然是横版缩进竖框，检查只能把读不清的报出来，改不了版式。
+
 ## 2026-10-12 · SKILL.md 改成启动器
 
 - 范围：`SKILL.md`（启动器）、新文件 `流程.md`、`templates/速查.md`、`templates/已知限制.md`；`workshop.py gallery` 和 `selftest.py` 认得省掉基线的克隆；自检加 SKILL 的五项约束；README 和几份模板里的引用。版本 `2026.10.12-3`。
