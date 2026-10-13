@@ -369,12 +369,17 @@ def scan_check(sc):
                 )
             quiet = None
     first = min([t for t in seen.values()] + [e['t'] for e in sc['events']] + [99])
+    S = jload('script.json', []) or []
+    if S and all(silent(x) for x in S):
+        # 整条无旁白的片子：开场的内容可以就是画面本身（点、粒子、镜头在走），画面明显在变就算落地。有旁白的片子还是只认字和音效
+        first = min([first] + [f['t'] for f in sc['frames'][1:] if f['df'] > MOVING_DF][:1])
     if first > HOOK_SEC:
         warns['hook'].append(f"开场 {first:.1f}s 才出现第一个内容：前 1 秒就该有东西落地")
     return fails, warns
 
 
 DEAD_DF = 0.12
+MOVING_DF = 1.0  # 相邻两张缩略图平均每个通道差 1 以上：画面明显在动（开场检查对无旁白的片子用）
 MIN_PX = 32 if not VERT else 40  # 竖版在手机上整屏看，字再大一点
 
 # ---------- 文章转视频：原文依据 ----------

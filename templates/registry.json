@@ -699,6 +699,21 @@
    "voice": null,
    "platform": null,
    "aspect": "16:9"
+  },
+  {
+   "title": "点成一座城",
+   "date": "2026-10-13",
+   "genre": "诗意影像",
+   "style": "space",
+   "packs": [
+    "art"
+   ],
+   "structure": "起承转合（点聚成城 → 点彩里的黄昏到夜 → 钻进一扇窗 → 散成星点）",
+   "hook": "画面的反常：散乱的点自己排成了城",
+   "angle": "旁观，不出人；最后一段推近一扇窗",
+   "voice": null,
+   "platform": null,
+   "aspect": "16:9"
   }
  ],
  "items": [
@@ -841,7 +856,9 @@
    "status": "candidate",
    "from": "风格预设整理",
    "since": "2026-10-08",
-   "used_in": [],
+   "used_in": [
+    "点成一座城"
+   ],
    "demo": "components_space"
   },
   {
@@ -2522,7 +2539,9 @@
    "demo": "art",
    "status": "candidate",
    "since": "2026-10-10",
-   "used_in": []
+   "used_in": [
+    "点成一座城"
+   ]
   },
   {
    "id": "check.motion",
@@ -2540,7 +2559,9 @@
    "kind": "genre",
    "name": "诗意影像（无旁白，可卡点）",
    "from": "题材模板第 15 张卡",
-   "used_in": [],
+   "used_in": [
+    "点成一座城"
+   ],
    "status": "candidate",
    "since": "2026-10-10"
   },
@@ -2557,11 +2578,13 @@
     "pulse"
    ],
    "demo": "beat",
-   "status": "candidate",
+   "status": "stable",
    "since": "2026-10-10",
    "used_in": [
-    "视频工坊（给这个 skill 自己做的发布短片）"
-   ]
+    "视频工坊（给这个 skill 自己做的发布短片）",
+    "点成一座城"
+   ],
+   "changed": "2026-10-13"
   },
   {
    "id": "flow.article",
@@ -2640,7 +2663,8 @@
    "name": "数学影像（生成艺术短片）",
    "from": "题材模板第 16 张卡，出自《一个点》",
    "used_in": [
-    "一个点"
+    "一个点",
+    "一个点 A POINT"
    ],
    "status": "candidate",
    "since": "2026-10-10"
@@ -2901,7 +2925,122 @@
    "film": null,
    "kind": "full",
    "note": "分档之前，每条片都做的是完整复盘；从这里开始数"
+  },
+  {
+   "date": "2026-10-13",
+   "film": "点成一座城",
+   "kind": "light"
   }
  ],
- "pending": []
+ "pending": [
+  {
+   "type": "func",
+   "film": "点成一座城",
+   "name": "rng",
+   "calls": 3,
+   "head": "function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let x = s; x = Math.imul(x"
+  },
+  {
+   "type": "func",
+   "film": "点成一座城",
+   "name": "top",
+   "calls": 0,
+   "head": "const top = x => Math.max(0, ...[...NEAR, ...FAR].filter(([bx, w]) => x >= bx && x < bx + w).map(b => b[2])); "
+  },
+  {
+   "type": "func",
+   "film": "点成一座城",
+   "name": "mix",
+   "calls": 6,
+   "head": "const mix = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));"
+  },
+  {
+   "type": "func",
+   "film": "点成一座城",
+   "name": "rgb",
+   "calls": 7,
+   "head": "const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;"
+  },
+  {
+   "type": "func",
+   "film": "点成一座城",
+   "name": "city",
+   "calls": 3,
+   "head": "function city(c, k, lit) {"
+  },
+  {
+   "type": "func",
+   "film": "点成一座城",
+   "name": "LIT",
+   "calls": 0,
+   "head": "const LIT = q => q < A[1] ? 0.02 : Math.min(0.9, 0.02 + (beatN(q) - beatN(A[1])) * 0.04);"
+  },
+  {
+   "type": "func",
+   "film": "点成一座城",
+   "name": "DUSK",
+   "calls": 2,
+   "head": "const DUSK = q => cl((q - A[1]) / (A[3] - A[1]));   // 承的六小节：黄昏走到夜"
+  },
+  {
+   "type": "func",
+   "film": "点成一座城",
+   "name": "CAM1",
+   "calls": 3,
+   "head": "const CAM1 = u => ({ s: 1 + 0.07 * u, ox: W * 0.6, oy: H * 0.55, dx: -50 * u });"
+  },
+  {
+   "type": "func",
+   "film": "点成一座城",
+   "name": "onScreen1",
+   "calls": 2,
+   "head": "const onScreen1 = ([x, y], u) => { const c = CAM1(u); return [c.ox + (x - c.ox) * c.s + c.dx, c.oy + (y - c.oy"
+  },
+  {
+   "type": "func",
+   "film": "点成一座城",
+   "name": "dots",
+   "calls": 2,
+   "head": "function dots(name, k, lit) {"
+  },
+  {
+   "type": "func",
+   "film": "点成一座城",
+   "name": "dot",
+   "calls": 5,
+   "head": "function dot(x, y, rad, col, a) { if (a <= 0.01 || rad <= 0.2) return; g.globalAlpha = a; g.fillStyle = rgb(co"
+  },
+  {
+   "type": "func",
+   "film": "点成一座城",
+   "name": "glow",
+   "calls": 5,
+   "head": "function glow(x, y, r, a) { if (a <= 0.01) return; const gl = g.createRadialGradient(x, y, 2, x, y, r); gl.add"
+  },
+  {
+   "type": "func",
+   "film": "点成一座城",
+   "name": "line",
+   "calls": 3,
+   "head": "function line(t0, t1, s) {"
+  },
+  {
+   "type": "trial",
+   "film": "点成一座城",
+   "id": "style.space",
+   "name": "科普·宇宙"
+  },
+  {
+   "type": "trial",
+   "film": "点成一座城",
+   "id": "pack.art",
+   "name": "艺术引擎（重绘、后期、转场、绘画与动效库）"
+  },
+  {
+   "type": "trial",
+   "film": "点成一座城",
+   "id": "comp.beatgrid",
+   "name": "节拍网格：brief.bpm、段落按 bars/beats 定长、beatT/barT/beatAt/beatN/pulse、合成配乐跟拍、build.py beats 量速度"
+  }
+ ]
 }

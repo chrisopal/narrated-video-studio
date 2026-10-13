@@ -76,15 +76,15 @@ r = check(project(assets=[A(file='nope.png')]), 'assets_check', 'set()'); ok('�
 r = check(project(assets=[A()], files=IMG), 'assets_check', "{'p1'}"); ok('素材：自有图片、台账齐全，通过', r.get('f') == [], r)
 
 # ---------- 整片扫描（假数据：每 0.1 秒一帧，tx 是 [字, x0, y0, x1, y1, 透明度, 字号]） ----------
-def scan(texts, total=12, still=False, W=1920, H=1080):
+def scan(texts, total=12, still=False, W=1920, H=1080, moving=None):
     """texts：[(字, t0, t1, 框, 字号)]。还原 window.scan 的返回格式。"""
     fr = []
     for i in range(int(total * 10)):
         t = round(i * .1, 2); tx = [[s, *b, 1.0, px] for s, a, z, b, px in texts if a <= t < z]
-        fr.append({'t': t, 'tx': tx, 'df': 0.0 if still else (.5 if i % 3 else .3)})
+        fr.append({'t': t, 'tx': tx, 'df': moving if moving is not None else 0.0 if still else (.5 if i % 3 else .3)})
     return {'frames': fr, 'events': [], 'used': {}, 'miss': [], 'W': W, 'H': H, 'total': total}
-def scan_case(texts, **k):
-    P = project(); (P / 'sc.json').write_text(json.dumps(scan(texts, **k), ensure_ascii=False), encoding='utf-8')
+def scan_case(texts, script=None, **k):
+    P = project(script=script); (P / 'sc.json').write_text(json.dumps(scan(texts, **k), ensure_ascii=False), encoding='utf-8')
     return run(P, "F, W = B.scan_check(json.load(open('sc.json'))); out({'f': F, 'w': W})")
 BOX = [200, 300, 900, 360]
 r = scan_case([('滚动比滑动省力得多', .2, .7, BOX, 56)]); ok('扫描：一行字只停 0.5 秒，阅读时长不通过', has(r.get('f', {}).get('read', []), '滚动比滑动'), r)
@@ -94,6 +94,10 @@ r = scan_case([('字幕带里的说明', .2, 8, [700, 980, 1200, 1030], 40)]); o
 r = scan_case([('甲乙丙丁', .2, 8, BOX, 56), ('戊己庚辛', .2, 8, [400, 310, 1000, 370], 56)]); ok('扫描：两段字压在一起，提醒', has(r.get('w', {}).get('overlap', []), '甲乙丙丁'), r)
 r = scan_case([('滚动比滑动省力得多', .2, 11, BOX, 56)], still=True); ok('扫描：画面 4 秒以上不动，提醒', len(r.get('w', {}).get('dead', [])) > 0, r)
 r = scan_case([('滚动比滑动省力得多', 3, 11, BOX, 56)]); ok('扫描：3 秒才出第一个内容，开场提醒', len(r.get('w', {}).get('hook', [])) > 0, r)
+MUTE = [{'id': 'p0', 'ch': '一', 'silent': True, 'dur': 12}]
+r = scan_case([('一句画上的字', 6, 11, BOX, 56)], script=MUTE, moving=5.0); ok('扫描：无旁白的片子开场就是满屏在动的画面，不报开场', not r.get('w', {}).get('hook'), r)
+r = scan_case([('一句画上的字', 6, 11, BOX, 56)], script=MUTE, moving=0.0); ok('扫描：无旁白的片子开场画面不动、也没有字，照样报开场', len(r.get('w', {}).get('hook', [])) > 0, r)
+r = scan_case([('一句画上的字', 6, 11, BOX, 56)], moving=5.0); ok('扫描：有旁白的片子画面在动但 6 秒才有内容，照样报开场', len(r.get('w', {}).get('hook', [])) > 0, r)
 r = scan_case([('滚动比滑动省力得多', .2, 8, BOX, 56)]); ok('扫描：大字、停够、在画面里，通过', not any(r.get('f', {'x': 1}).values()) and not any(r.get('w', {}).get(k) for k in ('small', 'subzone', 'overlap', 'hook')), r)
 
 # ---------- 宣传线的镜头节奏（假的逐帧运动量：mv 是相邻两帧变了多少） ----------

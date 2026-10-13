@@ -778,7 +778,7 @@ Object.assign(T, {
 // 解说片的转场原则和艺术速通相反：不抢戏、保持空间连续（观众知道「镜头去了哪」）——多数是相机运动和共享元素。
 // 相机运动在场景里按时间算好（CAM），转场只负责「A、B 怎么合」。这些段一般写 punch: 0 或片级 window.PUNCH = 0（关掉拍点冲击）。
 Object.assign(T, {
-  // 【同一世界】same：A、B 本来是同一幅画（同一世界画布、相机连续运动），直接用 B。Vox 桌面快摇、白板平移都走它。
+  // 【同一世界】same：A、B 本来是同一幅画（同一世界画布、相机连续运动），直接用 B——注意它是硬切，不是淡入淡出。Vox 桌面快摇、白板平移都走它。
   same(c, A, B) { c.drawImage(B, 0, 0); },
   // 【Kurzgesagt】lensReveal 钻进镜头：A 里相机正指数推进某个圆（眼睛/镜头），B 只露在这个圆里，圆随推进长大到盖满屏，圆边一圈光环。
   //   o.lens(t) → {x, y, r} 屏幕上的圆（由上一镜的相机算，必须和 A 的推进同步）；o.ring 光环色。圆要盖满屏：推进倍数 ≥ CAM.coverZoom(r)。
@@ -893,6 +893,12 @@ Object.assign(T, {
     if (o.bar) { c.fillStyle = o.bar; c.fillRect(dx + W - 14, 0, 14, H); }
   },
   // 【3b1b】fadeShift 淡出上移 / 淡入上移（manim FadeOut(shift=UP) + FadeIn(shift=UP)），o.shift 位移像素
+  // 【本项目加】dissolve 溶解：A 渐隐、B 渐显，整段时长都在交叉（缓入缓出）。两场画面不一样、又不想要“特效感”时用；o.dip 给一个颜色就是先压到这个色再起来（如 '#000' 是黑场过渡）
+  dissolve(c, A, B, p, o) {
+    const e = ease.inOut(p);
+    if (o.dip) { c.fillStyle = o.dip; c.fillRect(0, 0, W, H); c.globalAlpha = clamp(1 - e * 2); c.drawImage(A, 0, 0); c.globalAlpha = clamp(e * 2 - 1); c.drawImage(B, 0, 0); c.globalAlpha = 1; return; }
+    c.drawImage(A, 0, 0); c.globalAlpha = e; c.drawImage(B, 0, 0); c.globalAlpha = 1;
+  },
   fadeShift(c, A, B, p, o) {
     const d = o.shift || 60, a = MO.smooth(seg(p, 0, 0.6)), b = MO.smooth(seg(p, 0.4, 1));
     c.fillStyle = o.bg || '#000'; c.fillRect(0, 0, W, H);

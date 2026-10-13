@@ -21,7 +21,7 @@
    三、转场 trans：两场之间不只是淡入淡出
      trans('名字', t, 切点, 时长, 画A, 画B, {…})   和通用的 xfade 一样的用法：切点前后各占一半时长；画A、画B 是两个函数，各画一场完整的画面
        写在 scenes(t) 的最外层，不要放进 scn() 里（转场自己管两场的进出）。两场各自的 scn 起止要盖过转场窗口。
-       通用（任何画面都合适）：push 推页 · slidePush 横推（{bar:'#色'}）· whip 甩镜 · smash 砸镜 · blurPush 模糊推进 · fadeShift 淡出上移
+       通用（任何画面都合适）：dissolve 溶解（{dip:'#000'} 先压黑；same 是硬切，不是溶解）· push 推页 · slidePush 横推（{bar:'#色'}）· whip 甩镜 · smash 砸镜 · blurPush 模糊推进 · fadeShift 淡出上移
              bands 色带擦除（{colors:[…]}）· fillZoom 冲进色块（{cx,cy,fill}）· zoomThrough 镜头穿越（{cx,cy,zoom}）· expandRect 卡片展开成全屏（{rect:{x,y,w,h}}，不给就是画面正中一张卡）
              lensReveal 从一个圆里钻进下一场（{cx,cy}，或 lens:t=>({x,y,r}) 自己给圆）· matchCut 同色硬接 · same 两场本是同一幅画
              iris 圈入 · pageTurn 翻页 · tiles 石块砌入 · cube 立方体翻转 · wave 水波 · ripple 涟漪（{cx,cy}）· pixelate 像素化 · zigzag 锯齿 · shards 碎片

@@ -137,7 +137,7 @@ def scan_project(R, P):
     for i in R['items']:
         if i['status'] in ('inbox', 'retired') or i['id'].startswith('inbox-'): continue
         hit = False
-        if i['kind'] == 'genre': hit = brief.get('genre') == i['name']
+        if i['kind'] == 'genre': gn = brief.get('genre') or '\0'; hit = gn == i['name'] or i['name'].startswith(gn + '（') or i['id'] == 'genre.' + gn   # 卡名常带括号说明：“诗意影像（无旁白，可卡点）”
         elif i['kind'] == 'style': hit = bool(re.search(r"theme:\s*['\"]" + re.escape(i['id'].split('.', 1)[1]) + r"['\"]", src))
         elif i['kind'] == 'pack': hit = bool(re.search(r'PACK\.' + re.escape(i['id'].split('.', 1)[1]) + r'\b', src))   # 真的取用了才算，光写在 brief 里不算
         else: hit = any(s not in mine and re.search(r'(?<![\w$.])' + re.escape(s) + r'\s*\(', src) for s in i.get('symbols', []))
