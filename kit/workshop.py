@@ -216,7 +216,7 @@ def cmd_retro():
         films = R.setdefault('films', [])
         if not any(x['title'] == title for x in films): films.append({'title': title, 'date': TODAY, 'genre': brief.get('genre'), 'style': brief.get('style'), 'packs': brief.get('packs', []),
             'structure': (brief.get('direction') or {}).get('structure'), 'hook': (brief.get('direction') or {}).get('hook_type'), 'angle': (brief.get('direction') or {}).get('angle'),
-            'voice': (brief.get('voice') or {}).get('voice'), 'platform': brief.get('platform'), 'aspect': brief.get('aspect') or {'douyin': '9:16', 'channels': '9:16', 'xhs': '3:4'}.get(brief.get('platform', ''), '16:9')})
+            'voice': (brief.get('voice') or {}).get('voice'), 'platform': brief.get('platform'), 'aspect': brief.get('aspect') or {'douyin': '9:16', 'channels': '9:16', 'xhs': '3:4', 'xhs_full': '9:16'}.get(brief.get('platform', ''), '16:9')})
         for u in used:
             if title not in by[u].setdefault('used_in', []): by[u]['used_in'].append(title)
         rs = R.setdefault('retros', [])

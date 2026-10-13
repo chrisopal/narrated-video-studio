@@ -40,6 +40,8 @@ PLATFORMS = {
     'douyin': {'name': '抖音', 'aspect': '9:16', 'safe': [288, 162, 576, 108]},
     'channels': {'name': '视频号', 'aspect': '9:16', 'safe': [288, 162, 576, 108]},
     'xhs': {'name': '小红书', 'aspect': '3:4', 'safe': [144, 108, 288, 86]},
+    # 小红书全屏竖版：上面是顶部标签，下面是作者、标题、文案和互动栏（互动按钮在底栏，右侧不用让太多）；保守估计，发布前在 App 里预览
+    'xhs_full': {'name': '小红书全屏', 'aspect': '9:16', 'safe': [192, 86, 480, 86]},
     'bilibili': {'name': 'B 站', 'aspect': '16:9', 'safe': [0, 0, 0, 0]},
     'youtube': {'name': 'YouTube', 'aspect': '16:9', 'safe': [0, 0, 0, 0]},
 }

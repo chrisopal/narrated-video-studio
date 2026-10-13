@@ -305,6 +305,8 @@ def scan_check(sc):
             key(s) for s, x0, y0, x1, y1, a, *_ in fr['tx'] if len(CJK.findall(s)) > 1 and (y1 - y0) > 1.6 * (x1 - x0)
         }
         boxes = [x for x in allb if re.search(r'[A-Za-z一-鿿]', x[0])]
+        # brand() 里画的品牌字（账号名、口号）：不算阅读时长、允许在平台遮挡区和字幕带以外的边角；小字、出画、重叠照查
+        brandk = {key(r[0]) for r in fr['tx'] if len(r) > 7 and r[7] == 'brand'}
         for k, b, a in boxes:
             if a >= 0.8:
                 seen.setdefault(k, t)
@@ -312,11 +314,12 @@ def scan_check(sc):
                 if px < MIN_PX - 1.5:
                     small.setdefault(k, (t, px))
                 if b[0] >= -2 and b[1] >= -2 and b[2] <= W + 2 and b[3] <= H + 2:
-                    vis.add(k)
+                    if k not in brandk:
+                        vis.add(k)
                     inside.add(k)
             if a >= 0.6 and hit(b, zone):
                 zrun.setdefault(k, []).append(t)
-            if VERT and a >= 0.6 and not safe_ok(b):
+            if VERT and a >= 0.6 and not safe_ok(b) and k not in brandk:
                 urun.setdefault(k, []).append(t)
         for i in range(len(allb)):  # 重叠检查把纯数字也算上
             for j in range(i + 1, len(allb)):

@@ -475,6 +475,31 @@
    "packs": [
     "talk"
    ]
+  },
+  "人物小传·竖屏": {
+   "styles": [
+    "liubai"
+   ],
+   "packs": [
+    "liubai"
+   ],
+   "chrome": "none",
+   "components": [
+    "masthead",
+    "timebar",
+    "place",
+    "stage",
+    "slip",
+    "calendar",
+    "counter",
+    "figure",
+    "route",
+    "seal",
+    "tablet",
+    "slogan"
+   ],
+   "narration": "旁白",
+   "platform": "xhs_full"
   }
  },
  "themes": [
@@ -506,7 +531,8 @@
   "industry",
   "void",
   "talk",
-  "promo"
+  "promo",
+  "liubai"
  ],
  "packs": [
   "ink",
@@ -531,7 +557,8 @@
   "art",
   "gen",
   "talk",
-  "promo"
+  "promo",
+  "liubai"
  ],
  "films": [
   {
@@ -714,6 +741,21 @@
    "voice": null,
    "platform": null,
    "aspect": "16:9"
+  },
+  {
+   "title": "师饶的一年",
+   "date": "2026-10-13",
+   "genre": "人物小传·竖屏",
+   "style": "liubai",
+   "packs": [
+    "liubai"
+   ],
+   "structure": "日记书信体·数字串",
+   "hook": "原文四个字",
+   "angle": "今人翻看他自己写下的日历，旁观者讲述",
+   "voice": "Algenib",
+   "platform": "xhs_full",
+   "aspect": "9:16"
   }
  ],
  "items": [
@@ -1547,7 +1589,8 @@
    "from": "河海昆仑录",
    "since": "2026-10-08",
    "used_in": [
-    "河海昆仑录"
+    "河海昆仑录",
+    "师饶的一年"
    ],
    "symbols": [
     "counter"
@@ -2917,6 +2960,57 @@
    "from": "青岛：海拔的零点",
    "since": "2026-10-11",
    "used_in": []
+  },
+  {
+   "id": "pack.liubai",
+   "kind": "pack",
+   "name": "史书留白（竖屏人物小传）",
+   "status": "candidate",
+   "from": "师饶的一年",
+   "since": "2026-10-13",
+   "used_in": [
+    "师饶的一年"
+   ],
+   "pack": "liubai",
+   "demo": "liubai"
+  },
+  {
+   "id": "style.liubai",
+   "kind": "style",
+   "name": "史书留白",
+   "status": "candidate",
+   "from": "师饶的一年",
+   "since": "2026-10-13",
+   "used_in": [
+    "师饶的一年"
+   ],
+   "pack": "liubai",
+   "demo": "liubai"
+  },
+  {
+   "id": "genre.人物小传竖屏",
+   "kind": "genre",
+   "name": "人物小传·竖屏（史书留白）",
+   "status": "candidate",
+   "from": "师饶的一年",
+   "since": "2026-10-13",
+   "used_in": [
+    "师饶的一年"
+   ]
+  },
+  {
+   "id": "comp.brand",
+   "kind": "component",
+   "name": "brand() 品牌字",
+   "status": "candidate",
+   "from": "师饶的一年",
+   "since": "2026-10-13",
+   "used_in": [
+    "师饶的一年"
+   ],
+   "symbols": [
+    "brand"
+   ]
   }
  ],
  "retros": [
@@ -2930,117 +3024,12 @@
    "date": "2026-10-13",
    "film": "点成一座城",
    "kind": "light"
+  },
+  {
+   "date": "2026-10-13",
+   "film": "师饶的一年",
+   "kind": "full"
   }
  ],
- "pending": [
-  {
-   "type": "func",
-   "film": "点成一座城",
-   "name": "rng",
-   "calls": 3,
-   "head": "function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let x = s; x = Math.imul(x"
-  },
-  {
-   "type": "func",
-   "film": "点成一座城",
-   "name": "top",
-   "calls": 0,
-   "head": "const top = x => Math.max(0, ...[...NEAR, ...FAR].filter(([bx, w]) => x >= bx && x < bx + w).map(b => b[2])); "
-  },
-  {
-   "type": "func",
-   "film": "点成一座城",
-   "name": "mix",
-   "calls": 6,
-   "head": "const mix = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));"
-  },
-  {
-   "type": "func",
-   "film": "点成一座城",
-   "name": "rgb",
-   "calls": 7,
-   "head": "const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;"
-  },
-  {
-   "type": "func",
-   "film": "点成一座城",
-   "name": "city",
-   "calls": 3,
-   "head": "function city(c, k, lit) {"
-  },
-  {
-   "type": "func",
-   "film": "点成一座城",
-   "name": "LIT",
-   "calls": 0,
-   "head": "const LIT = q => q < A[1] ? 0.02 : Math.min(0.9, 0.02 + (beatN(q) - beatN(A[1])) * 0.04);"
-  },
-  {
-   "type": "func",
-   "film": "点成一座城",
-   "name": "DUSK",
-   "calls": 2,
-   "head": "const DUSK = q => cl((q - A[1]) / (A[3] - A[1]));   // 承的六小节：黄昏走到夜"
-  },
-  {
-   "type": "func",
-   "film": "点成一座城",
-   "name": "CAM1",
-   "calls": 3,
-   "head": "const CAM1 = u => ({ s: 1 + 0.07 * u, ox: W * 0.6, oy: H * 0.55, dx: -50 * u });"
-  },
-  {
-   "type": "func",
-   "film": "点成一座城",
-   "name": "onScreen1",
-   "calls": 2,
-   "head": "const onScreen1 = ([x, y], u) => { const c = CAM1(u); return [c.ox + (x - c.ox) * c.s + c.dx, c.oy + (y - c.oy"
-  },
-  {
-   "type": "func",
-   "film": "点成一座城",
-   "name": "dots",
-   "calls": 2,
-   "head": "function dots(name, k, lit) {"
-  },
-  {
-   "type": "func",
-   "film": "点成一座城",
-   "name": "dot",
-   "calls": 5,
-   "head": "function dot(x, y, rad, col, a) { if (a <= 0.01 || rad <= 0.2) return; g.globalAlpha = a; g.fillStyle = rgb(co"
-  },
-  {
-   "type": "func",
-   "film": "点成一座城",
-   "name": "glow",
-   "calls": 5,
-   "head": "function glow(x, y, r, a) { if (a <= 0.01) return; const gl = g.createRadialGradient(x, y, 2, x, y, r); gl.add"
-  },
-  {
-   "type": "func",
-   "film": "点成一座城",
-   "name": "line",
-   "calls": 3,
-   "head": "function line(t0, t1, s) {"
-  },
-  {
-   "type": "trial",
-   "film": "点成一座城",
-   "id": "style.space",
-   "name": "科普·宇宙"
-  },
-  {
-   "type": "trial",
-   "film": "点成一座城",
-   "id": "pack.art",
-   "name": "艺术引擎（重绘、后期、转场、绘画与动效库）"
-  },
-  {
-   "type": "trial",
-   "film": "点成一座城",
-   "id": "comp.beatgrid",
-   "name": "节拍网格：brief.bpm、段落按 bars/beats 定长、beatT/barT/beatAt/beatN/pulse、合成配乐跟拍、build.py beats 量速度"
-  }
- ]
+ "pending": []
 }

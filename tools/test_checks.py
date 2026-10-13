@@ -80,15 +80,21 @@ def scan(texts, total=12, still=False, W=1920, H=1080, moving=None):
     """texts：[(字, t0, t1, 框, 字号)]。还原 window.scan 的返回格式。"""
     fr = []
     for i in range(int(total * 10)):
-        t = round(i * .1, 2); tx = [[s, *b, 1.0, px] for s, a, z, b, px in texts if a <= t < z]
+        t = round(i * .1, 2); tx = [[s, *b, 1.0, px, *rest] for s, a, z, b, px, *rest in texts if a <= t < z]   # 第六项写 'brand' 表示品牌字
         fr.append({'t': t, 'tx': tx, 'df': moving if moving is not None else 0.0 if still else (.5 if i % 3 else .3)})
     return {'frames': fr, 'events': [], 'used': {}, 'miss': [], 'W': W, 'H': H, 'total': total}
-def scan_case(texts, script=None, **k):
-    P = project(script=script); (P / 'sc.json').write_text(json.dumps(scan(texts, **k), ensure_ascii=False), encoding='utf-8')
+def scan_case(texts, script=None, brief=None, **k):
+    P = project(script=script, brief=brief); (P / 'sc.json').write_text(json.dumps(scan(texts, **k), ensure_ascii=False), encoding='utf-8')
     return run(P, "F, W = B.scan_check(json.load(open('sc.json'))); out({'f': F, 'w': W})")
 BOX = [200, 300, 900, 360]
 r = scan_case([('滚动比滑动省力得多', .2, .7, BOX, 56)]); ok('扫描：一行字只停 0.5 秒，阅读时长不通过', has(r.get('f', {}).get('read', []), '滚动比滑动'), r)
 r = scan_case([('滚动比滑动省力得多', .2, 8, [1700, 300, 2300, 360], 56)]); ok('扫描：字一直被裁在画面外，出画不通过', has(r.get('f', {}).get('frame', []), '滚动比滑动'), r)
+# 品牌字（brand()）：竖版里放在平台遮挡区、一直挂着的账号口号不拦；同样位置的普通字照拦
+VB = {'title': 't', 'genre': '测试', 'platform': 'douyin', 'direction': DIRECTION}
+r = scan_case([('史书寥寥几笔，人间却是一生', 0, 12, [180, 1560, 900, 1620], 58, 'brand')], brief=VB, W=1080, H=1920)
+ok('扫描：竖版遮挡区里的品牌字不算遮挡、不算阅读时长', not has(r.get('f', {}).get('unsafe', []), '史书寥寥') and not has(r.get('f', {}).get('read', []), '史书寥寥'), r)
+r = scan_case([('史书寥寥几笔，人间却是一生', 0, 12, [180, 1560, 900, 1620], 58)], brief=VB, W=1080, H=1920)
+ok('扫描：同样位置的普通字照样报平台遮挡区', has(r.get('f', {}).get('unsafe', []), '史书寥寥'), r)
 r = scan_case([('注：示意图', .2, 8, BOX, 22)]); ok('扫描：22 像素的小字，提醒', has(r.get('w', {}).get('small', []), '示意图'), r)
 r = scan_case([('字幕带里的说明', .2, 8, [700, 980, 1200, 1030], 40)]); ok('扫描：别的字进了底部字幕带，提醒', has(r.get('w', {}).get('subzone', []), '字幕带里'), r)
 r = scan_case([('甲乙丙丁', .2, 8, BOX, 56), ('戊己庚辛', .2, 8, [400, 310, 1000, 370], 56)]); ok('扫描：两段字压在一起，提醒', has(r.get('w', {}).get('overlap', []), '甲乙丙丁'), r)
