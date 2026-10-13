@@ -26,6 +26,10 @@ for e in gal['entries']:
     for th in ([] if sparse else e.get('themes', [None])):
         n = e['name'] + (f'_{th}' if th else ''); have = len(list((R / 'kit/gallery/baseline' / n).glob('*.jpg')))
         ok(f'样张 {n} 的基线齐全', have == len(e['shots']), f"基线 {have} 张，清单 {len(e['shots'])} 张")
+if not sparse:   # 每个样张的基线都要记着是在什么环境里渲染的，跨机器时才分得清是改坏了还是环境不同
+    envs = json.load(open(R / 'kit/gallery/baseline/_env.json', encoding='utf-8')) if (R / 'kit/gallery/baseline/_env.json').exists() else {}
+    names = [e['name'] + (f'_{th}' if th else '') for e in gal['entries'] for th in e.get('themes', [None])]
+    ok('每个样张的基线都有环境记录', all(n in envs for n in names), str([n for n in names if n not in envs][:6]))
 # 入口文件里列的模块都在（art 这样分成多个文件的包）
 import re
 for f in sorted((R / 'kit/packs').glob('*.js')):

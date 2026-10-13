@@ -996,7 +996,7 @@ class Q(http.server.SimpleHTTPRequestHandler):
         return f
 def browser(p, tl):
     srv = socketserver.TCPServer(('127.0.0.1', 0), Q); threading.Thread(target=srv.serve_forever, daemon=True).start()
-    b = p.chromium.launch(args=['--enable-gpu-rasterization', '--ignore-gpu-blocklist']); pg = b.new_page(viewport={'width': CW, 'height': CH}); errs = []
+    b = p.chromium.launch(args=['--enable-gpu-rasterization', '--ignore-gpu-blocklist'] + os.environ.get('NVS_CHROMIUM_ARGS', '').split()); pg = b.new_page(viewport={'width': CW, 'height': CH}); errs = []   # NVS_CHROMIUM_ARGS：额外的浏览器参数，只在排查跨环境差异时用
     pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('console', lambda m: m.type == 'error' and errs.append(m.text))
     pg.goto(f'http://127.0.0.1:{srv.server_address[1]}/kit/film.html?packs=' + ','.join(BRIEF.get('packs', [])) + f'&w={CW}&h={CH}&lang={BRIEF.get("lang", "zh")}&look={BRIEF.get("look", "")}&safe=' + ','.join(map(str, SAFE)))   # lang：画面上的字出哪种语言（zh / en / bi），目前 gen 包的 say() 认它
     try: total = pg.evaluate('([tl,a])=>window.init(tl,a)', [tl, assets()])

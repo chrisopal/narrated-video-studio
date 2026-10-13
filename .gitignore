@@ -9,4 +9,6 @@ kit/models/
 # 回归样张的临时输出
 kit/gallery/_out/
 kit/gallery/_run/
+# 本机回归基线（gallery --local），各台机器自己的
+kit/gallery/baseline_local/
 *.bak*

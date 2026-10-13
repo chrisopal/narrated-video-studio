@@ -4,7 +4,8 @@
 状态阶梯：inbox 收件箱（只是点子或别人的做法） → candidate 候选（已经写成代码、有样张，在一条片里试过） → stable 稳定（两条成片用过 + 回归样张在） → retired 退役
 
   python3 kit/workshop.py status                      台账总览：谁该晋级、谁在收件箱里放久了、哪些经验还只是提醒
-  python3 kit/workshop.py gallery [名字…] [--accept]  回归样张：改了 kit 或风格包之后必须跑；--accept 表示看过图、确认是有意的改动，更新基线
+  python3 kit/workshop.py gallery [名字…] [--accept] [--local]  回归样张：改了 kit 或风格包之后必须跑；--accept 表示看过图、确认是有意的改动，更新基线；
+                                                      --local 用本机基线（自己电脑上改代码前先 --local --accept 建一套，严格比对用它）
   python3 kit/workshop.py retro [--delivered]         在项目目录里运行：自动收集这条片用了什么、新写了什么、检查拦下了什么 → 复盘.md；
                                                       --delivered 表示已交付：把这条片记进台账（used_in），并给出晋级建议
   python3 kit/workshop.py inbox "点子" --source 出处 [--kind component|style|genre|check]      记一条待试的做法
@@ -65,15 +66,35 @@ def diff(a, b):
     A = Image.open(a).convert('L').resize((960, 540)); B = Image.open(b).convert('L').resize((960, 540))
     return max(ImageChops.difference(A, B).resize((32, 18), Image.BOX).tobytes())
 
+def gallery_env():
+    """这台机器渲染样张的环境：浏览器版本、系统、宋体从哪个文件来。基线只在同一个环境里严格可比（2026-10-09 评审：换机器 148 张里 125 张报差异）。"""
+    import platform, hashlib
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        b = p.chromium.launch(); ver = b.version; b.close()
+    song = '-'
+    try:
+        f = subprocess.run(['fc-match', 'Noto Serif CJK SC', 'file'], capture_output=True, text=True).stdout.split('file=')[-1].strip()
+        if f and Path(f).is_file(): song = Path(f).name + ':' + hashlib.sha256(Path(f).read_bytes()).hexdigest()[:12]
+    except Exception: pass   # 没有 fontconfig（如 macOS）：宋体按系统字体走，记成 '-'
+    return {'browser': ver, 'os': platform.system() + ' ' + platform.machine(), 'song': song}
+
 def cmd_gallery():
-    """每个条目渲染几张定格，和基线逐张比；差得多的列出来，人看过图再决定 --accept。"""
+    """每个条目渲染几张定格，和基线逐张比；差得多的列出来，人看过图再决定 --accept。
+    基线带环境记录（baseline/_env.json，每个条目一条）。环境不同时差异多半是字形渲染，不是改坏了：列成“跨环境，仅参考”，也不许 --accept 盖掉。
+    在自己电脑上要严格比对：改代码之前先 gallery --local --accept 建一套本机基线（kit/gallery/baseline_local/，不进仓库），改完 gallery --local。"""
     from PIL import Image
-    cfg = json.load(open(GAL / 'gallery.json', encoding='utf-8')); want = [a for a in sys.argv[2:] if not a.startswith('--')]; accept = '--accept' in sys.argv; run = GAL / '_run'; out = GAL / '_out'; base = GAL / 'baseline'; bad = []; new = []; n = 0
-    if not base.is_dir(): print('没有基线图：这份工坊是按 SKILL.md 省掉基线克隆的（sparse）。先在工坊里运行 git sparse-checkout disable 补全，再跑 gallery'); sys.exit(2)
+    cfg = json.load(open(GAL / 'gallery.json', encoding='utf-8')); want = [a for a in sys.argv[2:] if not a.startswith('--')]; accept = '--accept' in sys.argv; local = '--local' in sys.argv
+    run = GAL / '_run'; out = GAL / '_out'; base = GAL / ('baseline_local' if local else 'baseline'); bad = []; cross = []; new = []; n = 0
+    if not base.is_dir() and not (local and accept): print('没有本机基线：先在改代码之前运行 gallery --local --accept' if local else '没有基线图：这份工坊是按 SKILL.md 省掉基线克隆的（sparse）。先在工坊里运行 git sparse-checkout disable 补全，再跑 gallery'); sys.exit(2)
+    base.mkdir(exist_ok=True); envf = base / '_env.json'; envs = json.load(open(envf, encoding='utf-8')) if envf.exists() else {}; me = gallery_env(); touched = False
+    print('本机环境：', '，'.join(f'{k} {v}' for k, v in me.items()), '（本机基线）' if local else '')
     for e in cfg['entries']:
         for th in e.get('themes', [None]):
             name = e['name'] + (f'_{th}' if th else '')
             if want and e['name'] not in want and name not in want: continue
+            other = envs.get(name) and envs[name] != me   # 这个条目的基线是在别的环境里渲染的
+            if accept and other and not local and '--rebase-env' not in sys.argv: print(f'✗ {name} 的基线是在另一个环境渲染的（{envs[name]}），不能用这台机器的结果覆盖：要严格比对就用 --local；确实要整体换环境重建基线加 --rebase-env'); sys.exit(1)
             d = run / name; shutil.rmtree(d, ignore_errors=True); shutil.copytree(GAL / e.get('src', e['name']), d)
             if e.get('brief'): bj = json.load(open(d / 'brief.json', encoding='utf-8')); bj.update(e['brief']); (d / 'brief.json').write_text(json.dumps(bj, ensure_ascii=False), encoding='utf-8')   # 同一条样片换平台、画幅再出一组
             if th:
@@ -84,19 +105,24 @@ def cmd_gallery():
             shots = sorted(od.glob('*.jpg'))
             if r.returncode or len(shots) != len(e['shots']): bad.append(f'{name}：渲染失败　' + (r.stdout + r.stderr).strip().split('\n')[-1][:160]); continue
             w0, h0 = Image.open(shots[0]).size; sw, sh = (480, 270) if w0 >= h0 else (270, round(270 * h0 / w0)); sheet = Image.new('RGB', (sw * len(shots), sh)); [sheet.paste(Image.open(s).resize((sw, sh)), (sw * i, 0)) for i, s in enumerate(shots)]; sheet.save(out / f'{name}.jpg', quality=85)
+            same = True
             for s in shots:
                 n += 1; b = base / name / s.name
-                if not b.exists(): new.append(f'{name}/{s.name}')
+                if not b.exists(): new.append(f'{name}/{s.name}'); same = False
                 else:
                     v = diff(s, b)
-                    if v > 8: bad.append(f'{name}/{s.name}：有一块和基线差 {v:.0f}/255（看 gallery/_out/{name}.jpg 对比 gallery/baseline/{name}/）')
-            if accept: shutil.rmtree(base / name, ignore_errors=True); shutil.copytree(od, base / name); shutil.copy(out / f'{name}.jpg', base / f'{name}.jpg')
-            print(('·' if not accept else '✓'), name, flush=True)
+                    if v > 8: (cross if other else bad).append(f'{name}/{s.name}：有一块和基线差 {v:.0f}/255（看 gallery/_out/{name}.jpg 对比 gallery/{base.name}/{name}/）'); same = False
+            if accept: shutil.rmtree(base / name, ignore_errors=True); shutil.copytree(od, base / name); shutil.copy(out / f'{name}.jpg', base / f'{name}.jpg'); envs[name] = me; touched = True
+            elif same and not envs.get(name): envs[name] = me; touched = True   # 旧基线没有环境记录：这台机器逐张对得上，就记下它是在这种环境里可复现的
+            print(('·' if not accept else '✓'), name + ('（跨环境）' if other and not accept else ''), flush=True)
+    if touched: envf.write_text(json.dumps(envs, ensure_ascii=False, indent=1, sort_keys=True), encoding='utf-8')
     shutil.rmtree(run, ignore_errors=True)
-    print(f'样张 {n} 张；' + (f'已更新基线' if accept else f'和基线不同 {len(bad)} 处，新样张（没有基线）{len(new)} 张'))
+    print(f'样张 {n} 张；' + (f'已更新基线' if accept else f'和基线不同 {len(bad)} 处，新样张（没有基线）{len(new)} 张' + (f'，跨环境的差异 {len(cross)} 处（仅参考）' if cross else '')))
     for x in bad: print('  ✗', x)
-    for x in new[:12]: print('  ＋', x)
+    for x in ([] if accept else new[:12]): print('  ＋', x)
+    if cross and not accept: print(f'  跨环境：{len(cross)} 处差异来自基线和这台机器的环境不同（浏览器、系统、字体），多半不是改坏了，不能据此 --accept。要在这台机器上严格比对：改代码之前 gallery --local --accept，改完 gallery --local。')
     if (bad or new) and not accept: print('先看图：是这次改动想要的变化就加 --accept；不是就说明改坏了别的模板，回去修。'); sys.exit(1)
+    if cross and not accept: sys.exit(3)
 
 def scan_project(R, P):
     """这条片的 scenes.js 里用到了台账里的哪些条目；自己新写了哪些函数。"""
