@@ -72,7 +72,7 @@ for doc in ('SKILL.md', '流程.md', 'templates/速查.md', 'templates/已知限
     miss = sorted(x for x in refs if not (R / x).exists()); ok(f'{doc} 提到的仓库文件都在', not miss, str(miss))
 # 出片门禁、回听指纹、配音缓存（test_gates），每项检查该拦的拦、该放的放（test_checks）：要 ffmpeg，共半分钟
 if shutil.which('ffmpeg'):
-    for t, name in (('test_gates.py', '出片门禁回归测试'), ('test_checks.py', '检查逻辑回归测试')):
+    for t, name in (('test_gates.py', '出片门禁回归测试'), ('test_checks.py', '检查逻辑回归测试'), ('test_retro.py', '复盘分档测试')):
         r = subprocess.run([sys.executable, str(R / 'tools' / t)], capture_output=True, text=True)
         ok(f'{name}（tools/{t}）', r.returncode == 0, '\n'.join(l for l in r.stdout.split('\n') if l.startswith('✗'))[:600] or r.stderr[-300:])
 else: print('· 没有 ffmpeg，跳过出片门禁测试')

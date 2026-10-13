@@ -6,8 +6,10 @@
   python3 kit/workshop.py status                      台账总览：谁该晋级、谁在收件箱里放久了、哪些经验还只是提醒
   python3 kit/workshop.py gallery [名字…] [--accept] [--local]  回归样张：改了 kit 或风格包之后必须跑；--accept 表示看过图、确认是有意的改动，更新基线；
                                                       --local 用本机基线（自己电脑上改代码前先 --local --accept 建一套，严格比对用它）
-  python3 kit/workshop.py retro [--delivered]         在项目目录里运行：自动收集这条片用了什么、新写了什么、检查拦下了什么 → 复盘.md；
-                                                      --delivered 表示已交付：把这条片记进台账（used_in），并给出晋级建议
+  python3 kit/workshop.py retro [--delivered] [--full] 在项目目录里运行：写出 复盘.md。每条片做轻复盘（统计 + 检查没拦下的问题当场记），
+                                                      每三条片或待整理攒到十项时自动换成完整复盘（攒下的函数、试用、别扭处逐条定去向 + 台账体检）；
+                                                      --delivered 表示已交付：记进台账（used_in、复盘记录、待整理）
+  python3 kit/workshop.py todo "哪里别扭" --from 片名     轻复盘时把不急的事记进待整理
   python3 kit/workshop.py inbox "点子" --source 出处 [--kind component|style|genre|check]      记一条待试的做法
   python3 kit/workshop.py add 编号 --kind … --name … --from 片名 [--symbols a,b] [--pack 包]   登记一条候选（已经有代码）
   python3 kit/workshop.py promote 编号 [stable|candidate|retired] [--force] [--why 理由]        改状态（晋级 stable 会检查条件）
@@ -56,6 +58,8 @@ def cmd_status():
     films = [f['title'] for f in R.get('films', [])]; recent = set(films[-6:])
     cold = [i for i in I if i['status'] == 'stable' and len(films) >= 6 and not (set(i.get('used_in', [])) & recent)]
     if cold: print('\n最近六条片都没用到的稳定项（考虑合并或退役）：'); [print(f"  {i['id']}　{i['name']}") for i in cold]
+    k, why = retro_due(R); print(f"\n复盘：下一条片交付时做{'完整' if k == 'full' else '轻'}复盘（{why}）")
+    for x in R.get('pending', [])[:12]: print('  待整理：' + {'func': f"新写的函数 {x.get('name')}", 'trial': f"试用 {x.get('name')}", 'note': x.get('text', '')}[x['type']] + f"（{x['film']}）")
     L = lessons(); note = [l for l in L if l['state'] == 'note']
     print(f"\n经验库 {len(L)} 条：已变成检查 {sum(l['state'] == 'check' for l in L)}，写进模板 {sum(l['state'] == 'template' for l in L)}，写进流程 {sum(l['state'] == 'flow' for l in L)}，只是提醒 {len(note)}")
     if note: print('只是提醒的（同一类问题再出现一次，就必须变成检查或模板默认值）：'); [print(f"  {l['id']} {l['lesson'][:40]}") for l in note]
@@ -146,29 +150,68 @@ def scan_project(R, P):
         local.append((nm, calls, body[:end if end > 0 else 120].strip()[:110]))
     return brief, used, local
 
+FULL_EVERY = 3; PENDING_MAX = 10   # 每三条片做一次完整复盘；待整理的东西攒到十项也要做
+def retro_due(R):
+    """这次该做轻复盘还是完整复盘，和理由。台账里 retros 记着每次复盘，pending 是轻复盘攒下、等完整复盘处理的东西。"""
+    rs = R.get('retros', []); last = max([k for k, r in enumerate(rs) if r['kind'] == 'full'], default=-1); light = len(rs) - last - 1; pend = len(R.get('pending', []))
+    if '--full' in sys.argv: return 'full', '指定了 --full'
+    if light >= FULL_EVERY - 1: return 'full', f'上次完整复盘之后已经做了 {light} 次轻复盘'
+    if pend >= PENDING_MAX: return 'full', f'待整理的东西攒了 {pend} 项'
+    return 'light', f'上次完整复盘之后做了 {light} 次轻复盘，第 {FULL_EVERY} 条片交付时做完整复盘；待整理 {pend} 项'
+
 def cmd_retro():
+    """复盘分两档（2026-10-13）。轻复盘每条片都做：自动统计、检查没拦下的问题当场记进经验库（同类问题第二次出现就要升级，拖不得）、提交推送；
+    新写的函数、试用的候选、模板哪里别扭，只记进“待整理”，不用当场决定。完整复盘每三条片一次（或待整理攒到十项）：把攒下的逐条定去向，再给台账做一次体检。"""
     P = Path.cwd(); R = load(); brief, used, local = scan_project(R, P); title = brief.get('title') or P.name; by = {i['id']: i for i in R['items']}
+    kind, why = retro_due(R); full = kind == 'full'; pend = R.get('pending', [])
     H = [json.loads(l) for l in (P / 'check_history.jsonl').read_text(encoding='utf-8').split('\n') if l.strip()] if (P / 'check_history.jsonl').exists() else []
     caught = {}
     for h in H:
         for k, v in h.get('by', {}).items(): caught[k] = max(caught.get(k, 0), v)
-    L = [f'# 复盘 ·《{title}》', '', f'日期 {TODAY}　题材 {brief.get("genre", "?")}　风格 {brief.get("style", "?")}　风格包 {"、".join(brief.get("packs", [])) or "无"}', '',
+    trials = [u for u in used if by[u]['status'] != 'stable']
+    mine = [{'type': 'func', 'film': title, 'name': n, 'calls': c, 'head': h} for n, c, h in local] + [{'type': 'trial', 'film': title, 'id': u, 'name': by[u]['name']} for u in trials]
+    L = [f'# {"完整复盘" if full else "轻复盘"} ·《{title}》', '', f'日期 {TODAY}　题材 {brief.get("genre", "?")}　风格 {brief.get("style", "?")}　风格包 {"、".join(brief.get("packs", [])) or "无"}',
+         '', f'> 这次做{"完整" if full else "轻"}复盘：{why}。' + ('' if full else '轻复盘只要写完第三节；新写的函数、试用的东西已自动记进“待整理”，等完整复盘一起定去向。'), '',
          '## 一、用了哪些现成的（自动统计）', '']
     for k, name in KINDS.items():
         xs = [by[u] for u in used if by[u]['kind'] == k]
         if xs: L.append(f"- {name}：" + '、'.join(f"{x['name']}（{CN[x['status']]}）" for x in xs))
-    L += ['', '## 二、这条片自己新写的（自动列出，逐条决定去向）', '', '去向只有三种：沉淀（写成通用组件，登记为候选）／留在本片（说明为什么不通用）／并入已有组件（说明并到哪个）。', '', '| 函数 | 本片调用次数 | 开头 | 去向和理由 |', '|---|---|---|---|']
-    L += [f'| {n} | {c} | `{h.replace("|", "¦")}` |  |' for n, c, h in local] or ['| （没有新写的函数） | | | |']
-    L += ['', '## 三、检查拦下了什么（自动统计：每项检查历次运行里报过的最多条数）', '']
+    L += ['', '## 二、检查拦下了什么（自动统计：每项检查历次运行里报过的最多条数）', '']
     L += [f'- {k}：{v}' for k, v in caught.items() if v] or ['- 没有检查记录（check 没跑过，或一次就全过）']
     L += [f'- check 共运行 {len(H)} 次，最后一次：{H[-1]["fails"]} 项不通过，{H[-1]["warns"]} 项提醒'] if H else []
-    L += ['', '## 四、检查没拦下、靠审片或用户指出来的问题（手写；每条都要有去向）', '', '| 问题 | 谁发现的 | 去向：新检查／改模板默认值／改流程／只记提醒 |', '|---|---|---|', '|  |  |  |',
-          '', '## 五、模板本身哪里别扭（手写）', '', '- 题材卡的结构哪一段没用上、哪一段是临时加的：', '- 风格和组件的默认值哪些每次都要改：', '- 从参考片或别的 skill 看到、想试但这次没试的做法（记进收件箱）：',
-          '', '## 六、这次试用的候选和收件箱条目（手写：留、改、还是丢）', '']
-    L += [f"- {by[u]['name']}（{CN[by[u]['status']]}）：" for u in used if by[u]['status'] != 'stable'] or ['- 这条片没有试用新东西：下一条片从收件箱里挑一两条试']
+    L += ['', '## 三、检查没拦下、靠审片或用户指出来的问题（手写；每条当场定去向，轻复盘也不能拖）', '',
+          '先翻经验库有没有同类的：同一类问题第二次出现，就不能再只记提醒，必须变成检查、模板默认值或流程里的一步。用户改了稿子或画面，把差异也记在这里。', '',
+          '| 问题 | 谁发现的 | 去向：新检查／改模板默认值／改流程／只记提醒 |', '|---|---|---|', '|  |  |  |']
+    if not full:
+        L += ['', '## 四、记进待整理的（自动；完整复盘时定去向）', '']
+        L += [f"- 新写的函数 `{x['name']}`（调用 {x['calls']} 次）" for x in mine if x['type'] == 'func'] or ['- 没有新写的函数']
+        L += [f"- 试用了 {x['name']}" for x in mine if x['type'] == 'trial']
+        L += ['', '模板哪里别扭、哪个默认值又改了一遍：一句话记进待整理，`python3 ../kit/workshop.py todo "哪里别扭" --from 片名`。']
+    else:
+        allp = pend + mine
+        L += ['', f'## 四、新写的函数（这条片和之前轻复盘攒下的，共 {sum(x["type"] == "func" for x in allp)} 个；逐个定去向）', '',
+              '去向只有三种：沉淀（写成通用组件，登记为候选）／留在本片（说明为什么不通用）／并入已有组件（说明并到哪个）。在不同片子里重复写过的，优先沉淀。', '',
+              '| 函数 | 出自 | 调用次数 | 开头 | 去向和理由 |', '|---|---|---|---|---|']
+        L += [f"| {x['name']} | {x['film']} | {x.get('calls', '')} | `{x.get('head', '').replace('|', '¦')}` |  |" for x in allp if x['type'] == 'func'] or ['| （没有） | | | | |']
+        L += ['', '## 五、模板本身哪里别扭（攒下的和这次的）', '']
+        L += [f"- {x['text']}（{x['film']}）" for x in allp if x['type'] == 'note'] + ['- 题材卡哪一段没用上、哪一段是临时加的：', '- 风格和组件的默认值哪些每次都要改：', '- 从参考片或别的 skill 看到、想试的做法（记进收件箱）：']
+        L += ['', '## 六、试用过的候选和收件箱条目（留 promote、改、还是丢）', '']
+        seen = set(); tr = [x for x in allp if x['type'] == 'trial' and not (x['id'] in seen or seen.add(x['id']))]
+        L += [f"- {x['name']}（{CN[by[x['id']]['status']] if x['id'] in by else '已不在台账'}，试于《{x['film']}》）：" for x in tr] or ['- 最近几条片没有试用新东西：下一条片从收件箱里挑一两条试']
+        films = [f['title'] for f in R.get('films', [])] + [title]; recent = set(films[-6:]); I = R['items']
+        L += ['', '## 七、台账体检（自动）', '']
+        up = [x for x in I if x['status'] == 'candidate' and ready(x)]
+        L += [f"- 可以晋级为稳定：{x['name']}（`promote {x['id']}`）" for x in up]
+        L += [f"- 最近六条片都没用到的稳定项，考虑合并或退役：{x['name']}" for x in I if x['status'] == 'stable' and len(films) >= 6 and not (set(x.get('used_in', [])) & recent)]
+        ib = [x for x in I if x['status'] == 'inbox']
+        if ib: L.append(f'- 收件箱 {len(ib)} 条：挑两三条排进接下来的片子，放了很久没人试的删掉')
+        note = [l for l in lessons() if l['state'] == 'note']
+        if note: L.append(f'- 经验库里还有 {len(note)} 条只是提醒：看有没有同类出现过第二次的，升级成检查或模板默认值')
+        if len(L) and L[-1] == '': L.append('- 没有要处理的')
     f = P / '复盘.md'
     if f.exists() and '--overwrite' not in sys.argv: f = P / '复盘_自动统计.md'
-    f.write_text('\n'.join(L) + '\n', encoding='utf-8'); print('已写', f.name, '：二、四、五、六要手写完，再把结论落进台账（add / inbox / lesson / promote）')
+    f.write_text('\n'.join(L) + '\n', encoding='utf-8')
+    print(f'已写 {f.name}（{"完整" if full else "轻"}复盘：{why}）：' + ('三、四、五、六要手写完，再把结论落进台账（add / inbox / lesson / promote）' if full else '写完第三节，有问题当场 lesson；其余已记进待整理'))
     if '--delivered' in sys.argv:
         films = R.setdefault('films', [])
         if not any(x['title'] == title for x in films): films.append({'title': title, 'date': TODAY, 'genre': brief.get('genre'), 'style': brief.get('style'), 'packs': brief.get('packs', []),
@@ -176,9 +219,19 @@ def cmd_retro():
             'voice': (brief.get('voice') or {}).get('voice'), 'platform': brief.get('platform'), 'aspect': brief.get('aspect') or {'douyin': '9:16', 'channels': '9:16', 'xhs': '3:4'}.get(brief.get('platform', ''), '16:9')})
         for u in used:
             if title not in by[u].setdefault('used_in', []): by[u]['used_in'].append(title)
-        save(R); log(f'成片《{title}》记入台账：用到 {len(used)} 项（' + '、'.join(by[u]['name'] for u in used[:10]) + ('…' if len(used) > 10 else '') + '）')
+        rs = R.setdefault('retros', [])
+        if not any(r.get('film') == title for r in rs):
+            rs.append({'date': TODAY, 'film': title, 'kind': kind})
+            if full: R['pending'] = []   # 攒下的都列进了这份复盘，在这里定去向
+            else: R.setdefault('pending', []).extend(x for x in mine if not any(y.get('film') == x['film'] and y.get('name') == x['name'] and y['type'] == x['type'] for y in R['pending']))
+        save(R); log(f'成片《{title}》记入台账（{"完整" if full else "轻"}复盘）：用到 {len(used)} 项（' + '、'.join(by[u]['name'] for u in used[:10]) + ('…' if len(used) > 10 else '') + '）')
         up = [by[u] for u in used if by[u]['status'] == 'candidate' and ready(by[u])]
         if up: print('这条片交付后可以晋级的候选：'); [print(f"  python3 kit/workshop.py promote {x['id']}　（{x['name']}）") for x in up]
+        if not full: print(f"待整理现在 {len(R['pending'])} 项；" + retro_due(R)[1])
+
+def cmd_todo():
+    """轻复盘时把“模板哪里别扭”这类不急的事记进待整理，完整复盘时一起处理。"""
+    R = load(); R.setdefault('pending', []).append({'type': 'note', 'film': arg('--from', '?'), 'text': sys.argv[2]}); save(R); print(f"已记进待整理（共 {len(R['pending'])} 项）；" + retro_due(R)[1])
 
 def cmd_add(status):
     R = load()
@@ -211,4 +264,4 @@ def cmd_lesson():
 
 if __name__ == '__main__':
     c = sys.argv[1] if len(sys.argv) > 1 else 'status'
-    {'status': cmd_status, 'gallery': cmd_gallery, 'retro': cmd_retro, 'inbox': lambda: cmd_add('inbox'), 'add': lambda: cmd_add('candidate'), 'promote': cmd_promote, 'lesson': cmd_lesson}.get(c, lambda: print(__doc__))()
+    {'status': cmd_status, 'gallery': cmd_gallery, 'retro': cmd_retro, 'inbox': lambda: cmd_add('inbox'), 'add': lambda: cmd_add('candidate'), 'promote': cmd_promote, 'lesson': cmd_lesson, 'todo': cmd_todo}.get(c, lambda: print(__doc__))()
