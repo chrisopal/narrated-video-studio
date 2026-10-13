@@ -57,6 +57,7 @@ ok('SKILL.md 是启动器：不超过 12 KB', len(sk.encode()) <= 12 * 1024, f'{
 ok('SKILL.md 的描述不超过 1024 字', len(desc) <= 1024, f'{len(desc)} 字')
 ok('SKILL.md 的描述里没有会过期的数目', not re.search(r'[一二三四五六七八九十百\d]+\s*(套|张|个|种)(风格|题材|组件|转场|包)', desc), desc[:80])
 ok('SKILL.md 让人去读 流程.md', '流程.md' in sk)
+ok('SKILL.md 的描述写清了和相邻 skill 的边界', all(x in desc for x in ('huashu-art-motion', 'science-explainer-video')), '描述里要写明什么时候交给 huashu-art-motion、science-explainer-video（2026-10-13 划的触发边界）')
 for doc in ('SKILL.md', '流程.md', 'templates/速查.md', 'templates/已知限制.md'):
     t = (R / doc).read_text(encoding='utf-8'); refs = set(re.findall(r'`((?:templates|kit|tools)/[^`*<>{}\s]+?\.(?:md|json|js|py|sh))`', t)) | ({'流程.md'} if '`流程.md`' in t else set())
     miss = sorted(x for x in refs if not (R / x).exists()); ok(f'{doc} 提到的仓库文件都在', not miss, str(miss))
