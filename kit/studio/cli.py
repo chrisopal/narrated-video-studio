@@ -14,6 +14,7 @@ from .state import fingerprint, fp_diff, remember, stale, verify_out
 from .footage import cmd_clips, cmd_pick, cmd_probe, cmd_study, cmd_transcribe, credits_file
 from .talk import cmd_talk, talk_check
 from .page import browser, get_motion, get_scan, pipe
+from .checks import voice_rate_check
 from .checks import (
     STILL_MV,
     article_check,
@@ -105,6 +106,7 @@ def main(doc):
         rep['叙事线'] = story_check(tl)
         f, w = asr_check(tl)
         rep['配音回听'] = (f, w)
+        rep['配音语速'] = voice_rate_check(tl)
         if TALK:
             rep['口播校对'] = talk_check(tl)
         sc = get_scan(tl, cache='--fresh' not in sys.argv)

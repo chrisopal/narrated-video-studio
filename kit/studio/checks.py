@@ -20,6 +20,7 @@ from .base import (
     PROMO,
     SAFE,
     SUPERLATIVE,
+    TALK,
     TIERS,
     VERT,
     jload,
@@ -686,3 +687,35 @@ def pace_check(mo, tl, sc=None):
         if n * step < 1.2:
             fails.append(f'口号「{slogan}」没有在片尾三成里清楚停留 1.2 秒以上：最后一个画面要把它和品牌名一起留住')
     return st, fails, warns
+
+
+VO_CPS = (3.6, 5.0)  # 旁白每秒几个字算正常（L-049、L-070：Gemini 带“温和”“偏慢”的语气提示会读到 2.6–3.6 字/秒）
+
+
+def voice_rate_check(tl):
+    """配音语速：全片旁白每秒几个字（按真正出声的那段算，不算句首句尾的静音）。太慢片长会失控，太快观众跟不上。口播线是原声，不查。"""
+    if TALK:
+        return [], []
+    rows = []
+    for s in tl:
+        if silent(s):
+            continue
+        n = len(CJK.findall(s.get('tts') or s['vo'])) + len(re.findall(r'[A-Za-z0-9]+', s.get('tts') or s['vo']))
+        sec = s['voiced'] - s['lead']
+        if n >= 4 and sec > 0.3:
+            rows.append((n / sec, s['id'], n, sec))
+    if not rows:
+        return [], []
+    cps = sum(r[2] for r in rows) / sum(r[3] for r in rows)
+    lo, hi = VO_CPS
+    if cps < lo:
+        slow = '、'.join(f'{i}（{c:.1f}）' for c, i, _, _ in sorted(rows)[:3])
+        return [], [
+            f'全片旁白每秒 {cps:.1f} 字，偏慢（正常 {lo}–{hi}）：片长会比预计长很多。最慢的几句：{slow}。语气提示里写明语速，'
+            '或用 ffmpeg 的 silenceremove 压停顿再 atempo 提速，改完重跑回听（L-049、L-070）'
+        ]
+    if cps > hi:
+        return [], [
+            f'全片旁白每秒 {cps:.1f} 字，偏快（正常 {lo}–{hi}）：观众跟不上，字幕也来不及读。换慢一点的声音或在语气里写“放慢”'
+        ]
+    return [], []

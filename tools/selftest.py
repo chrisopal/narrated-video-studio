@@ -35,6 +35,12 @@ if subprocess.run([sys.executable, '-m', 'black', '--version'], capture_output=T
     r = subprocess.run([sys.executable, '-m', 'black', '--check', '-q', '-l', '120', '--skip-string-normalization', str(R / 'kit/studio')], capture_output=True, text=True)
     ok('kit/studio/ 是 black 格式', r.returncode == 0, '改完运行：python3 -m black -l 120 --skip-string-normalization kit/studio')
 else: print('· 没有 black，跳过 kit/studio/ 的格式检查（pip install black）')
+# 没定义的名字（拆模块后漏了 import 这类错，只有跑到那一行才炸）：装了 pyflakes 才查
+if subprocess.run([sys.executable, '-m', 'pyflakes', '--version'], capture_output=True).returncode == 0:
+    r = subprocess.run([sys.executable, '-m', 'pyflakes', *map(str, sorted((R / 'kit/studio').glob('*.py')) + [R / 'kit/build.py', R / 'kit/workshop.py'])], capture_output=True, text=True)
+    und = [l for l in r.stdout.splitlines() if "undefined name '" in l and "'prev'" not in l]   # prev：footage 里第一轮循环短路，用不到，是误报
+    ok('kit/ 里没有未定义的名字', not und, '\n'.join(und[:6]))
+else: print('· 没有 pyflakes，跳过未定义名字的检查（pip install pyflakes）')
 # 入口文件里列的模块都在（art 这样分成多个文件的包）
 import re
 for f in sorted((R / 'kit/packs').glob('*.js')):

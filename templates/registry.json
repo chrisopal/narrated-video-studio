@@ -535,6 +535,19 @@
  ],
  "films": [
   {
+   "title": "青岛：海拔的零点",
+   "date": "2026-10-11",
+   "genre": "城市介绍",
+   "style": "coast",
+   "packs": [],
+   "structure": "问题链·一物一史（水准原点）",
+   "hook": "反常的问题",
+   "angle": "旁观的讲述者，从一间石屋看一座城",
+   "voice": "Charon",
+   "platform": null,
+   "aspect": "16:9"
+  },
+  {
    "title": "东坡",
    "date": "旧片",
    "genre": "人物行迹",
@@ -2224,7 +2237,9 @@
    "demo": "recut",
    "status": "candidate",
    "since": "2026-10-08",
-   "used_in": []
+   "used_in": [
+    "青岛：海拔的零点"
+   ]
   },
   {
    "id": "comp.clipSound",
@@ -2754,6 +2769,17 @@
    "used_in": []
   },
   {
+   "id": "genre.城市介绍",
+   "kind": "genre",
+   "name": "城市介绍（讲解线：让没来过的人认识一座城）",
+   "from": "题材模板第 24 张卡，出自《青岛：海拔的零点》",
+   "status": "candidate",
+   "since": "2026-10-11",
+   "used_in": [
+    "青岛：海拔的零点"
+   ]
+  },
+  {
    "id": "flow.talk",
    "kind": "flow",
    "name": "口播线 mode:talk 和 build.py talk：转写、稿子草稿、收紧停顿剪口播、逐字时间来自原声",
@@ -2821,6 +2847,51 @@
    "demo": "looks",
    "status": "candidate",
    "since": "2026-10-12",
+   "used_in": []
+  },
+  {
+   "id": "inbox-032",
+   "kind": "component",
+   "name": "镜头表 shots()：实拍镜头按时刻排队、相邻叠化、当前镜头只显示一条署名（scn 逐句淡入淡出会闪黑）",
+   "status": "inbox",
+   "from": "青岛：海拔的零点",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "inbox-033",
+   "kind": "component",
+   "name": "实拍上的字：shade() 压暗 + plate() 软底板 + note() 右上角标注（资料画面/示意/今日）",
+   "status": "inbox",
+   "from": "青岛：海拔的零点",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "inbox-034",
+   "kind": "component",
+   "name": "双语画面字：中文宋体 + 英文窄体的 tag()/yr()；英文字幕轨 en_srt 随成片出",
+   "status": "inbox",
+   "from": "青岛：海拔的零点",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "inbox-035",
+   "kind": "check",
+   "name": "检查：public-domain 素材要填 pd_reason，发表不足 50 年拦下；署名条的阅读时长按署名而不是正文算",
+   "status": "inbox",
+   "from": "青岛：海拔的零点",
+   "since": "2026-10-11",
+   "used_in": []
+  },
+  {
+   "id": "inbox-036",
+   "kind": "genre",
+   "name": "题材卡 24 城市介绍：实战第二条时补占比和常见错",
+   "status": "inbox",
+   "from": "青岛：海拔的零点",
+   "since": "2026-10-11",
    "used_in": []
   }
  ],

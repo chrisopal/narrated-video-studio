@@ -132,6 +132,13 @@ r = short_case(SH, [('注：示意图，未按比例', 0, 20, BOX, 32)]); ok('�
 r = short_case([{**SH[0], 'src': [['a0', 0], ['a3', 1]]}] + SH[1:], []); ok('竖版：一句配了整条正片，画面快进，提醒', has(r.get('竖版画面窗口', {}).get('w', []), '倍快进'), r)
 r = short_case([{**SH[0], 'vo': '滚动摩擦只有滑动的十分之一，省下九成的力。'}] + SH[1:], []); ok('竖版：旁白里的数字没有出处，提醒', has(r.get('竖版断言', {}).get('w', []), 'v0'), r)
 
+# ---------- 配音语速（每句的音频 1.6 秒，按出声段算约 1.4 秒） ----------
+VR = lambda vos, brief=None: check(project(brief=brief, script=[{'id': f'a{i}', 'ch': '一', 'vo': v} for i, v in enumerate(vos)]), 'voice_rate_check')
+r = VR(['轴承省力。', '轮子在转。', '摩擦变小。']); ok('配音语速：每秒三个字，提醒偏慢', has(r.get('w', []), '偏慢'), r)
+r = VR(['轴承省力了吗。', '轮子在慢慢转。', '摩擦变小了呢。']); ok('配音语速：每秒四个多字，不报', r.get('w') == [], r)
+r = VR(['滚动轴承为什么能省力气呢？', '先看一个正在滚动的轮子吧。']); ok('配音语速：每秒十个字，提醒偏快', has(r.get('w', []), '偏快'), r)
+r = VR(['轴承省力。', '轮子在转。'], brief={'mode': 'talk'}); ok('配音语速：口播线是原声，不查', r.get('w') == [], r)
+
 # short render 的门禁（拦下时还没开浏览器）
 def short_render(P): r = subprocess.run([sys.executable, str(KIT / 'build.py'), 'short', 'render', 'x'], cwd=P, capture_output=True, text=True); return r.returncode, r.stdout + r.stderr
 P = project(short=SH); rc, o = short_render(P); ok('竖版出片：没跑 short check 不出', rc == 1 and '还没跑 short check' in o, o[-300:])
