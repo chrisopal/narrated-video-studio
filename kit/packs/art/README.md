@@ -35,7 +35,7 @@
 - 作者的卡通形象、角色帧、总览图：上游声明不随 MIT 授权。
 - 示范片、口播整片参考代码、笔顺数据（后者是 Arphic 许可）。
 - 上游自己的时间轴引擎和参数化片段：工坊有自己的时间轴。
-- 验收脚本 `qa.py`：没有搬代码，照它的量法在 `kit/build.py` 里重写成了动效检查。
+- 验收脚本 `qa.py`：没有搬代码，照它的量法在 `kit/studio/checks.py`（`build.py check` 的动效几项）里重写成了动效检查。
 - 字体：只取了工坊没有的四个（Inter、CMU 正体和斜体、Press Start 2P，SIL OFL 1.1，在 `kit/fonts/art/`）。
 
 想对照上游的新版本：按上表找到对应文件看差异，手工合进来，再跑 `python3 kit/workshop.py gallery art art_vertical art_all`。

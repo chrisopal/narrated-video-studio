@@ -6,7 +6,7 @@ import json, py_compile, shutil, subprocess, sys
 from pathlib import Path
 R = Path(__file__).resolve().parent.parent; bad = []
 def ok(name, cond, why=''): print(('✓' if cond else '✗'), name, '' if cond else why); cond or bad.append(name)
-for f in list((R / 'kit').glob('*.py')) + list((R / 'tools').glob('*.py')):
+for f in list((R / 'kit').glob('*.py')) + list((R / 'kit/studio').glob('*.py')) + list((R / 'tools').glob('*.py')):
     try: py_compile.compile(str(f), doraise=True); e = ''
     except Exception as x: e = str(x)
     ok(f'Python 语法 {f.relative_to(R)}', not e, e)
@@ -30,6 +30,11 @@ if not sparse:   # 每个样张的基线都要记着是在什么环境里渲染�
     envs = json.load(open(R / 'kit/gallery/baseline/_env.json', encoding='utf-8')) if (R / 'kit/gallery/baseline/_env.json').exists() else {}
     names = [e['name'] + (f'_{th}' if th else '') for e in gal['entries'] for th in e.get('themes', [None])]
     ok('每个样张的基线都有环境记录', all(n in envs for n in names), str([n for n in names if n not in envs][:6]))
+# build.py 的代码（kit/studio/）保持 black 的格式：一行一句、长语句断开，agent 按字符串替换改代码不容易出错。装了 black 才查
+if subprocess.run([sys.executable, '-m', 'black', '--version'], capture_output=True).returncode == 0:
+    r = subprocess.run([sys.executable, '-m', 'black', '--check', '-q', '-l', '120', '--skip-string-normalization', str(R / 'kit/studio')], capture_output=True, text=True)
+    ok('kit/studio/ 是 black 格式', r.returncode == 0, '改完运行：python3 -m black -l 120 --skip-string-normalization kit/studio')
+else: print('· 没有 black，跳过 kit/studio/ 的格式检查（pip install black）')
 # 入口文件里列的模块都在（art 这样分成多个文件的包）
 import re
 for f in sorted((R / 'kit/packs').glob('*.js')):

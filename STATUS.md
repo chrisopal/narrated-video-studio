@@ -1,5 +1,11 @@
 # 状态
 
+## 2026-10-13 · 拆分 build.py
+
+- 范围：`kit/build.py` → 命令入口 + `kit/studio/` 十个模块；black 格式化；版本指纹、自检、README、art 包说明里的指向。版本 `2026.10.13-4`。
+- 验证：拆分前后在三个项目上跑同一套 25 条命令（动态文字样片带竖版短片：lines、timeline、facts、check、motion、short check、stills、sheet、cover、render、mix、final、short stills、short render；素材层：probe、clips、pick、study、transcribe、beats、timeline、check；宣传线：look、check），所有产物逐字节相同（时间轴、检查报告、整片扫描、定格、封面、母版视频、混音、字幕、素材索引、切片、拉片表），命令输出只差每帧渲染耗时；拆分前连跑两遍确认这些产物本身是确定的。口播线另用识别模型自带的真人录音拼一条口播，走 talk、timeline、check，前后产物逐字节相同。拆分、格式化后各验一遍。门禁和检查逻辑测试、全图库 296 张、自检全部通过。
+- 边界：`tts_*.py`、`asr.py`、`article.py`、`workshop.py` 没动（它们本来就是独立的小脚本）。剩下 42 行超过 200 字符，都是一整句中文提示或说明，没有断。
+
 ## 2026-10-13 · 和相邻 skill 划清触发边界
 
 - 范围：`SKILL.md` 的描述和新的一节“该交给别的 skill 的时候”；自检一项。另两个 skill（huashu-art-motion、science-explainer-video）的新描述做成了重新上传包交给用户，不在本仓库。版本 `2026.10.13-2`。
