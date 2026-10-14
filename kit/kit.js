@@ -77,9 +77,11 @@ function txt(s,x,y,sz,col,w='H7',al='left',a=1){if(a<=0)return;sz=vsz(sz);g.save
 /* 检查模式：登记每帧出现的文字框和音效事件（build.py check / sfx 用） */
 let REC=null;
 function recText(s,x,y,sz,al){const m=g.getTransform(),wd=g.measureText(s).width,x0=al==='center'?x-wd/2:al==='right'?x-wd:x;const P=[[x0,y-sz*.86],[x0+wd,y-sz*.86],[x0,y+sz*.16],[x0+wd,y+sz*.16]].map(([a,b])=>[m.a*a+m.c*b+m.e,m.b*a+m.d*b+m.f]);
-  const r=[s,Math.round(Math.min(...P.map(p=>p[0]))),Math.round(Math.min(...P.map(p=>p[1]))),Math.round(Math.max(...P.map(p=>p[0]))),Math.round(Math.max(...P.map(p=>p[1]))),+g.globalAlpha.toFixed(2)];if(BRAND>0)r.push(sz,'brand');REC.tx.push(r)}
+  const r=[s,Math.round(Math.min(...P.map(p=>p[0]))),Math.round(Math.min(...P.map(p=>p[1]))),Math.round(Math.max(...P.map(p=>p[0]))),Math.round(Math.max(...P.map(p=>p[1]))),+g.globalAlpha.toFixed(2)];if(BRAND>0||CLIP)r.push(Math.round(sz*Math.hypot(m.a,m.b)),BRAND>0?'brand':'');if(CLIP)r.push(CLIP);REC.tx.push(r)}
 // 账号署名、口号这类“品牌字”：brand(()=>{…}) 里画的字照样登记，但检查不要求读完、允许放在竖版平台遮挡区（它们被盖住也不丢信息）；小字、重叠、出画照查
 let BRAND=0;function brand(fn){BRAND++;try{fn()}finally{BRAND--}}
+// 画框：包会裁切的区域（如 liubai 的画心）用 clipText([x0,y0,x1,y1],()=>{…}) 包住，框里的字登记时带上这个框；检查会拦被画框裁掉一截的字（镜头推近把字推出框，这类问题以前只有审片能看出来）
+let CLIP=null;function clipText(b,fn){const p=CLIP;CLIP=b;try{fn()}finally{CLIP=p}}
 // 音效：在场景里写 sfx('ding', 时间)；pop() 自动带 'pop'。类型：pop tick whoosh ding rise thud
 function sfx(type,t0,gain=1){if(REC&&t0>=0)REC.ev[type+'@'+t0.toFixed(2)]=gain}
 function tw(s,sz,w='H7'){sz=vsz(sz);g.font=`${sz}px ${w}, H7`;return g.measureText(s).width}

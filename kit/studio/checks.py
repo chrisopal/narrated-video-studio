@@ -277,7 +277,8 @@ def asr_check(tl):
 def scan_check(sc):
     """用整片扫描结果查：文字停留、出画、压字幕带、文字互相重叠、画面空档、开场。"""
     W, H, step = sc['W'], sc['H'], sc['frames'][1]['t'] - sc['frames'][0]['t']
-    fails = {k: [] for k in ('read', 'frame')}
+    fails = {k: [] for k in ('read', 'frame', 'clip')}
+    crun = {}
     warns = {k: [] for k in ('subzone', 'overlap', 'dead', 'hook', 'small')}
     small = {}
     fails['unsafe'] = []
@@ -307,6 +308,11 @@ def scan_check(sc):
         boxes = [x for x in allb if re.search(r'[A-Za-z一-鿿]', x[0])]
         # brand() 里画的品牌字（账号名、口号）：不算阅读时长、允许在平台遮挡区和字幕带以外的边角；小字、出画、重叠照查
         brandk = {key(r[0]) for r in fr['tx'] if len(r) > 7 and r[7] == 'brand'}
+        for r in fr['tx']:  # 画在会裁切的画框里的字：逐条比（同一句话框外也可能出现，比如章节题签，不能按文字合并）
+            if len(r) > 8 and r[8] and r[5] >= 0.8 and r[0].strip():
+                c = r[8]
+                if r[1] < c[0] - 3 or r[2] < c[1] - 3 or r[3] > c[2] + 3 or r[4] > c[3] + 3:
+                    crun.setdefault(key(r[0]), []).append(t)
         for k, b, a in boxes:
             if a >= 0.8:
                 seen.setdefault(k, t)
@@ -344,6 +350,9 @@ def scan_check(sc):
     for k, t in seen.items():
         if k not in inside:
             fails['frame'].append(f"{t:6.1f}s 「{k[:18]}」从没完整出现在画面里（被裁边）")
+    for k, ts in crun.items():
+        if len(ts) * step >= 0.3:
+            fails['clip'].append(f"{ts[0]:6.1f}s 「{k[:18]}」被画框裁掉一截 {len(ts) * step:.1f}s（常见原因：镜头推近把贴边的字推出框）")
     for k, ts in zrun.items():
         if len(ts) * step >= 0.3:
             warns['subzone'].append(f"{ts[0]:6.1f}s 「{k[:18]}」进入字幕带 {len(ts) * step:.1f}s")

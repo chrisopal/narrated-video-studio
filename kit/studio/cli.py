@@ -114,7 +114,7 @@ def main(doc):
         if (P / 'assets.json').exists():
             rep['素材授权'] = assets_check(set(sc.get('used', {})))
         rep['阅读时长'] = (F['read'], [])
-        rep['文字出画'] = (F['frame'], [])
+        rep['文字出画'] = (F['frame'] + F.get('clip', []), [])
         rep['平台遮挡区'] = (F['unsafe'], []) if VERT else ([], [])
         rep['字幕带'] = ([], Wn['subzone'])
         rep['文字重叠'] = ([], Wn['overlap'])

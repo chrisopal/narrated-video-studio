@@ -5,7 +5,7 @@
    layout()                                   返回版面各层的位置 {B, head, bar, place, art:{x,y,w,h,cx,cy}, slogan}
    masthead(t, {name:'史书留白', seal:'留白', right:'元延二年 · 前11年', rightKeys:[{at,text}]})  刊头；右侧标签可按时刻换
    timebar(t, keys, {n:12, ends:['正月','十二月'], major:3})  醒目的时间线：keys=[{at, lo, hi, mark, cap, fill, dim, d}]（单位是格，0..n；d 是从上一组变过来用几秒，缺省 0.8）
-                                              lo..hi 红笔刷标出一段，mark 是红色墨点的位置，cap 是墨点上方的题签（≥44 像素），fill 是从头涂到哪，dim 整条变淡（0..1）；相邻两组之间 0.8 秒缓动
+                                              lo..hi 红笔刷标出一段（只用来表示事情发生的时段；统计范围、资料覆盖年份不要用红段），mark 是红色墨点的位置，cap 是墨点上方的题签（≥44 像素），fill 是从头涂到哪，dim 整条变淡（0..1）；相邻两组之间 0.8 秒缓动
    place(t, keys)                             地点/章节题签：keys=[{at, text}]，换题签时左右两道朱线收放
    stage(t, scenes)                           画心：scenes=[{a, b, draw(t, box), tr:'fade|ink|scroll', cam:(t)=>[缩放, 焦点x, 焦点y], at:[x,y], opaque}]
                                               每场先铺一层纸（opaque:false 不铺），新场完整盖住旧场；
@@ -100,7 +100,7 @@ PACK.liubai=(function(){
   function blob(cx,cy,r,seed){g.beginPath();const n=48;for(let i=0;i<=n;i++){const a=i/n*Math.PI*2,rr_=r*(1+.10*Math.sin(a*5+seed)+.06*Math.sin(a*11+seed*2)+(rnd(seed+i%n)-.5)*.08);const x=cx+Math.cos(a)*rr_,y=cy+Math.sin(a)*rr_;i?g.lineTo(x,y):g.moveTo(x,y)}g.closePath()}
   function stage(t,scenes,o={}){const A=layout().art;
     g.save();g.beginPath();g.rect(A.x,A.y,A.w,A.h);g.clip();g.fillStyle='rgba(225,210,172,.35)';g.fillRect(A.x,A.y,A.w,A.h);
-    scenes.forEach((s,si)=>{if(t<s.a-.01||t>=s.b)return;const tr=s.tr||'fade',dIn=s.dIn??.7,out=1-sg(t,s.b-.4,.4);if(out<=0)return;
+    clipText([A.x,A.y,A.x+A.w,A.y+A.h],()=>scenes.forEach((s,si)=>{if(t<s.a-.01||t>=s.b)return;const tr=s.tr||'fade',dIn=s.dIn??.7,out=1-sg(t,s.b-.4,.4);if(out<=0)return;
       g.save();
       if(tr==='ink'){const k=eo(sg(t,s.a,dIn));if(k<1){const [cx,cy]=s.at||[A.cx,A.cy];blob(cx,cy,Math.hypot(A.w,A.h)*k*1.05,si*13+3);g.clip()}}
       else if(tr==='scroll'){const k=eio(sg(t,s.a,dIn));if(k<1){const xe=A.x+A.w*k;g.beginPath();g.rect(A.x,A.y,xe-A.x,A.h);g.clip()}}
@@ -109,13 +109,13 @@ PACK.liubai=(function(){
       if(s.opaque!==false){g.drawImage(paperTex(),A.x,A.y,A.w,A.h,A.x,A.y,A.w,A.h);g.fillStyle='rgba(225,210,172,.35)';g.fillRect(A.x,A.y,A.w,A.h)}  // 每场先铺一层纸：新场盖住旧场，不透出来
       if(s.cam){const [z,fx,fy]=s.cam(t);g.translate(fx,fy);g.scale(z,z);g.translate(-fx,-fy)}
       s.draw(t,A);g.restore();
-      if(tr==='scroll'){const k=eio(sg(t,s.a,dIn));if(k>0&&k<1){const xe=A.x+A.w*k;g.save();g.fillStyle='#6b4f2a';g.fillRect(xe-9,A.y,18,A.h);g.fillStyle='#a8322b';g.fillRect(xe-14,A.y,28,14);g.fillRect(xe-14,A.y+A.h-14,28,14);g.restore()}}});
+      if(tr==='scroll'){const k=eio(sg(t,s.a,dIn));if(k>0&&k<1){const xe=A.x+A.w*k;g.save();g.fillStyle='#6b4f2a';g.fillRect(xe-9,A.y,18,A.h);g.fillStyle='#a8322b';g.fillRect(xe-14,A.y,28,14);g.fillRect(xe-14,A.y+A.h-14,28,14);g.restore()}}}));
     g.restore();g.save();g.strokeStyle='#8d7a58';g.lineWidth=1.5;g.strokeRect(A.x+.5,A.y+.5,A.w-1,A.h-1);g.restore()}
 
   /* ---------- 竖排字、竹简 ---------- */
   function vtxt(s,x,ytop,size,col=INK,font='KT',prog=99,lead=1.12){const cs=[...s],n=cs.length;if(prog<=0)return;
     if(typeof REC!=='undefined'&&REC){const m=g.getTransform(),sx=Math.hypot(m.a,m.b);const P=[[x-size/2,ytop],[x+size/2,ytop+n*size*lead]].map(([a,b])=>[m.a*a+m.c*b+m.e,m.b*a+m.d*b+m.f]);
-      REC.tx.push([s,Math.round(P[0][0]),Math.round(P[0][1]),Math.round(P[1][0]),Math.round(P[1][1]),+(g.globalAlpha*(prog>=n?1:.5)).toFixed(2),Math.round(size*sx)])}
+      REC.tx.push([s,Math.round(P[0][0]),Math.round(P[0][1]),Math.round(P[1][0]),Math.round(P[1][1]),+(g.globalAlpha*(prog>=n?1:.5)).toFixed(2),Math.round(size*sx)].concat(CLIP?['',CLIP]:[]))}
     g.save();g.font=`${size}px ${font}`;g.fillStyle=col;g.textAlign='center';g.textBaseline='middle';
     cs.forEach((c,i)=>{const k=cl(prog-i);if(k<=0)return;const cy=ytop+(i+.5)*size*lead;g.save();g.beginPath();g.rect(x-size,cy-size*.6,size*2,size*1.2*k);g.clip();g.globalAlpha*=.92;g.fillText(c,x,cy);g.restore()});g.restore()}
   function slipBody(x,y,w,h){g.save();g.shadowColor='rgba(60,40,10,.3)';g.shadowBlur=14;g.shadowOffsetX=4;g.shadowOffsetY=6;g.fillStyle=SLIP;g.beginPath();g.roundRect(x-w/2,y,w,h,6);g.fill();g.restore();

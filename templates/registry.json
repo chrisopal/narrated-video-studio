@@ -757,6 +757,22 @@
    "voice": "Algenib",
    "platform": "xhs_full",
    "aspect": "9:16"
+  },
+  {
+   "title": "七十个名字",
+   "date": "2026-10-14",
+   "genre": "人物小传·竖屏",
+   "style": "liubai",
+   "packs": [
+    "liubai",
+    "renwu"
+   ],
+   "structure": "倒叙钩子 + 公文流转（提议—起草—联名—呈送—批令—成书）",
+   "hook": "数字（七十人）",
+   "angle": "今人翻看儿子的日记，旁观者讲述",
+   "voice": "Algenib",
+   "platform": "xhs_full",
+   "aspect": "9:16"
   }
  ],
  "items": [
@@ -2966,38 +2982,44 @@
    "id": "pack.liubai",
    "kind": "pack",
    "name": "史书留白（竖屏人物小传）",
-   "status": "candidate",
+   "status": "stable",
    "from": "师饶的一年",
    "since": "2026-10-13",
    "used_in": [
-    "师饶的一年"
+    "师饶的一年",
+    "七十个名字"
    ],
    "pack": "liubai",
-   "demo": "liubai"
+   "demo": "liubai",
+   "changed": "2026-10-14"
   },
   {
    "id": "style.liubai",
    "kind": "style",
    "name": "史书留白",
-   "status": "candidate",
+   "status": "stable",
    "from": "师饶的一年",
    "since": "2026-10-13",
    "used_in": [
-    "师饶的一年"
+    "师饶的一年",
+    "七十个名字"
    ],
    "pack": "liubai",
-   "demo": "liubai"
+   "demo": "liubai",
+   "changed": "2026-10-14"
   },
   {
    "id": "genre.人物小传竖屏",
    "kind": "genre",
    "name": "人物小传·竖屏（史书留白）",
-   "status": "candidate",
+   "status": "stable",
    "from": "师饶的一年",
    "since": "2026-10-13",
    "used_in": [
-    "师饶的一年"
-   ]
+    "师饶的一年",
+    "七十个名字"
+   ],
+   "changed": "2026-10-14"
   },
   {
    "id": "comp.brand",
@@ -3017,14 +3039,16 @@
    "id": "pack.renwu",
    "kind": "pack",
    "name": "古代人物库（朝代 × 身份 × 动作）",
-   "status": "candidate",
+   "status": "stable",
    "from": "师饶的一年",
    "since": "2026-10-13",
    "used_in": [
-    "师饶的一年"
+    "师饶的一年",
+    "七十个名字"
    ],
    "pack": "renwu",
-   "demo": "renwu"
+   "demo": "renwu",
+   "changed": "2026-10-14"
   }
  ],
  "retros": [
@@ -3043,7 +3067,79 @@
    "date": "2026-10-13",
    "film": "师饶的一年",
    "kind": "full"
+  },
+  {
+   "date": "2026-10-14",
+   "film": "七十个名字",
+   "kind": "light"
   }
  ],
- "pending": []
+ "pending": [
+  {
+   "type": "func",
+   "film": "七十个名字",
+   "name": "sigGrid",
+   "calls": 3,
+   "head": "function sigGrid(t, box, t0, dur, o = {}) {"
+  },
+  {
+   "type": "func",
+   "film": "七十个名字",
+   "name": "threadBook",
+   "calls": 3,
+   "head": "function threadBook(x, y, w, h, title, a = 1, col = BLUE) {"
+  },
+  {
+   "type": "func",
+   "film": "七十个名字",
+   "name": "gate",
+   "calls": 1,
+   "head": "function gate(t, A, t0) {"
+  },
+  {
+   "type": "func",
+   "film": "七十个名字",
+   "name": "caseBars",
+   "calls": 1,
+   "head": "function caseBars(t, box, t0) {"
+  },
+  {
+   "type": "func",
+   "film": "七十个名字",
+   "name": "shigao",
+   "calls": 1,
+   "head": "function shigao(t, box, o) {"
+  },
+  {
+   "type": "func",
+   "film": "七十个名字",
+   "name": "dateCard",
+   "calls": 5,
+   "head": "function dateCard(t, t0, x, y, big, small, col = RED) {"
+  },
+  {
+   "type": "trial",
+   "film": "七十个名字",
+   "id": "pack.liubai",
+   "name": "史书留白（竖屏人物小传）"
+  },
+  {
+   "type": "trial",
+   "film": "七十个名字",
+   "id": "style.liubai",
+   "name": "史书留白"
+  },
+  {
+   "type": "trial",
+   "film": "七十个名字",
+   "id": "genre.人物小传竖屏",
+   "name": "人物小传·竖屏（史书留白）"
+  },
+  {
+   "type": "trial",
+   "film": "七十个名字",
+   "id": "pack.renwu",
+   "name": "古代人物库（朝代 × 身份 × 动作）"
+  }
+ ]
 }
