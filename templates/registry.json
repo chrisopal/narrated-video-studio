@@ -558,7 +558,8 @@
   "gen",
   "talk",
   "promo",
-  "liubai"
+  "liubai",
+  "renwu"
  ],
  "films": [
   {
@@ -3011,6 +3012,19 @@
    "symbols": [
     "brand"
    ]
+  },
+  {
+   "id": "pack.renwu",
+   "kind": "pack",
+   "name": "古代人物库（朝代 × 身份 × 动作）",
+   "status": "candidate",
+   "from": "师饶的一年",
+   "since": "2026-10-13",
+   "used_in": [
+    "师饶的一年"
+   ],
+   "pack": "renwu",
+   "demo": "renwu"
   }
  ],
  "retros": [

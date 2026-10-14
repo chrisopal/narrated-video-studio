@@ -14,7 +14,7 @@
    slip(t, t0, {x, y, w, h, text, size, rate, col})   一枚竹简，字一个个写出来（rate 字/秒）；返回写完的时刻
    calendar(t, {box, lens, days, t0, dur, home, redA, a})  历谱格子：lens 每月天数，days=[[月,日],…] 按顺序盖上朱红，home=[月,日] 描黑框的那一格
    counter(t, t0, {x, y, lines:[['出差',16,'次'],['',161,'天']], dur})  数字滚动卡
-   figure(t, {x, y, s, pose:'stand|sit|walk', t0, robe, write})       汉代文吏（自己设计的简单形象，衣色可换）；会呼吸、袖摆、走路、伏案写字
+   figure(t, {x, y, s, pose:'stand|sit|walk', t0, robe, write, preset})  汉代文吏（简单形象）；写了 preset 并在 brief 的 packs 里加 renwu，就换成古代人物库（朝代 × 身份 × 动作，见 renwu.js）
    route(t, t0, {box, A:{x,y,name,sub}, B:{…}, trips, dur, label})    示意路线：远山、河、驿路、往返的车，trips 趟依次走完
    tomb(t, {box, light})                      墓葬剖面：土层、墓坑、棺、简牍；light 时刻简牍发光升起
    night(t, {box, a})  moon(x, y, r, a)  torches(t, t0, {box, n})       夜色、月亮、举火追赶的人影
@@ -139,7 +139,8 @@ PACK.liubai=(function(){
     lines.forEach(([pre,val,unit],i)=>{const s=`${pre}${pre?' ':''}${Math.round(val*k)} ${unit}`;txt(s,x,y-h/2+92+i*86,i===lines.length-1?78:50,i===lines.length-1?RED:INK,'SongB','center',a)})}
 
   /* ---------- 人物：汉代文吏（自己设计的简单形象） ---------- */
-  function figure(t,o){const {x,y,s=1,pose='stand',t0=0,robe=BLUE,write=false}=o;const br=1+.008*Math.sin(t*2.1),sway=Math.sin(t*1.7)*3,walk=pose==='walk'?Math.sin((t-t0)*6):0;
+  function figure(t,o){if(o.preset&&PACK.renwu)return PACK.renwu.person(t,o);   // 写了 preset 且加载了 renwu 包：用古代人物库
+    const {x,y,s=1,pose='stand',t0=0,robe=BLUE,write=false}=o;const br=1+.008*Math.sin(t*2.1),sway=Math.sin(t*1.7)*3,walk=pose==='walk'?Math.sin((t-t0)*6):0;
     g.save();g.translate(x,y);g.scale(s,s*br);g.lineJoin='round';g.strokeStyle=INK;g.lineWidth=3;
     g.fillStyle='rgba(60,40,10,.18)';g.beginPath();g.ellipse(0,2,90,14,0,0,7);g.fill();
     if(pose==='sit'){g.fillStyle='#6b4f2a';g.fillRect(40,-120,170,14);g.fillRect(52,-106,10,106);g.fillRect(188,-106,10,106);g.strokeRect(40,-120,170,14)}
