@@ -1,7 +1,7 @@
 (() => {
 // 组件包样片：古代人物库 · 图片版（renwu_img.py 生成的示意人物，不是考据复原）
 const { RED, INK, DIM, layout, masthead, timebar, place, slogan, stage, slip, hills, birds, lamp, seal } = PACK.liubai;
-const { portrait, has, PRESETS } = PACK.renwu;
+const { portrait, person, PRESETS } = PACK.renwu;
 const sg = (t, a, d) => cl((t - a) / d);
 const IDS = ['han.clerk', 'wei.nun', 'tang.lady', 'qing.official'];
 const short = id => PRESETS[id].label.replace(/（.*）/, '');
@@ -35,9 +35,9 @@ window.FILM = {
         lamp(t, A.x + A.w * .5, A.y + A.h - 260, 1.1);
         const y = A.y + A.h - 170;
         portrait(t, { id: 'tang.lady', style: '3d', x: A.x + A.w * .24, y, h: Math.min(720, A.h - 230), t0: T('p3') + .2 });
-        portrait(t, { id: 'song.scholar', x: A.x + A.w * .76, y, h: Math.min(720, A.h - 230), t0: T('p3') + .7 });
-        txt('有图', A.x + A.w * .24, y + 60, 40, INK, 'SongB', 'center', eo(sg(t, T('p3') + .5, .4)));
-        txt(has('song.scholar') ? '有图' : '没图 · 用线描', A.x + A.w * .76, y + 60, 40, RED, 'SongB', 'center', eo(sg(t, T('p3') + 1, .4)));
+        g.save(); g.globalAlpha *= eo(sg(t, T('p3') + .7, .6)); person(t, { preset: 'han.clerk', pose: 'write', x: A.x + A.w * .74, y, s: 1.05, t0: T('p3') + .7 }); g.restore();
+        txt('图片 · 站姿', A.x + A.w * .24, y + 60, 40, INK, 'SongB', 'center', eo(sg(t, T('p3') + .5, .4)));
+        txt('线描 · 动作', A.x + A.w * .74, y + 60, 40, RED, 'SongB', 'center', eo(sg(t, T('p3') + 1, .4)));
         seal(t, T('p3') + 1.6, { x: A.cx, y: A.y + 110, size: 120, text: '示意' });
       } },
     ]);

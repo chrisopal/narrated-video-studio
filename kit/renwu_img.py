@@ -162,17 +162,16 @@ def cut(raw_dir, only=None):
 def sheet(out):
     from PIL import Image
     man = json.loads((LIB / 'manifest.json').read_text())
-    ids = sorted({i for v in man.values() for i in v}, key=list(DESC).index)
-    cw, ch = 220, 340; cols = len(man)
-    per = min(8, len(ids)); rows = -(-len(ids) // per)
-    S = Image.new('RGB', (cw * per, ch * rows * cols), (236, 226, 204))
-    for k, pid in enumerate(ids):
-        for j, style in enumerate(sorted(man)):
-            p = LIB / style / f'{pid}.webp'
-            if not p.exists(): continue
-            im = Image.open(p); im.thumbnail((cw - 12, ch - 12))
-            x = (k % per) * cw + (cw - im.width) // 2; y = ((k // per) * cols + j) * ch + (ch - im.height) // 2
-            S.paste(im, (x, y), im)
+    cw, ch, per = 220, 340, 9
+    blocks = [(s, sorted(man[s], key=list(DESC).index)) for s in sorted(man, key=lambda s: list(STYLE).index(s))]
+    rows = [-(-len(ids) // per) for _, ids in blocks]
+    S = Image.new('RGB', (cw * per, ch * sum(rows) + 30 * (len(blocks) - 1)), (236, 226, 204))
+    y0 = 0
+    for (style, ids), nr in zip(blocks, rows):  # 每种画风一块，按预设顺序排
+        for k, pid in enumerate(ids):
+            im = Image.open(LIB / style / f'{pid}.webp'); im.thumbnail((cw - 12, ch - 12))
+            S.paste(im, ((k % per) * cw + (cw - im.width) // 2, y0 + (k // per) * ch + (ch - im.height) // 2), im)
+        y0 += nr * ch + 30
     S.save(out); print('对照表：', out)
 
 
