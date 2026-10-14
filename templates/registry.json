@@ -773,6 +773,22 @@
    "voice": "Algenib",
    "platform": "xhs_full",
    "aspect": "9:16"
+  },
+  {
+   "title": "他教了半辈子书",
+   "date": "2026-10-14",
+   "genre": "人物小传·竖屏",
+   "style": "liubai",
+   "packs": [
+    "liubai",
+    "renwu"
+   ],
+   "structure": "日记串联：日记原句钩子 → 父亲是谁（清史稿）→ 回到日记：联名、署名、批文 → 清史稿一百多字 → 三样东西并列 → 问观众",
+   "hook": "日记原文一句话",
+   "angle": "读儿子的日记：每段从日记的一页翻开",
+   "voice": "Algenib",
+   "platform": "xhs_full",
+   "aspect": "9:16"
   }
  ],
  "items": [
@@ -2987,7 +3003,8 @@
    "since": "2026-10-13",
    "used_in": [
     "师饶的一年",
-    "七十个名字"
+    "七十个名字",
+    "他教了半辈子书"
    ],
    "pack": "liubai",
    "demo": "liubai",
@@ -3002,7 +3019,8 @@
    "since": "2026-10-13",
    "used_in": [
     "师饶的一年",
-    "七十个名字"
+    "七十个名字",
+    "他教了半辈子书"
    ],
    "pack": "liubai",
    "demo": "liubai",
@@ -3017,7 +3035,8 @@
    "since": "2026-10-13",
    "used_in": [
     "师饶的一年",
-    "七十个名字"
+    "七十个名字",
+    "他教了半辈子书"
    ],
    "changed": "2026-10-14"
   },
@@ -3049,6 +3068,15 @@
    "pack": "renwu",
    "demo": "renwu",
    "changed": "2026-10-14"
+  },
+  {
+   "id": "inbox-037",
+   "kind": "component",
+   "name": "liubai 加三个通用画法：pic（插画铺满画心 + 慢推 + 示意标注）、diaryPage（红格竖栏日记页 + 日期签）、card（白底说明卡）；《他教了半辈子书》里写在 scenes.js，下一条史书留白再用就收进包",
+   "status": "inbox",
+   "from": "他教了半辈子书",
+   "since": "2026-10-14",
+   "used_in": []
   }
  ],
  "retros": [
@@ -3072,74 +3100,12 @@
    "date": "2026-10-14",
    "film": "七十个名字",
    "kind": "light"
+  },
+  {
+   "date": "2026-10-14",
+   "film": "他教了半辈子书",
+   "kind": "full"
   }
  ],
- "pending": [
-  {
-   "type": "func",
-   "film": "七十个名字",
-   "name": "sigGrid",
-   "calls": 3,
-   "head": "function sigGrid(t, box, t0, dur, o = {}) {"
-  },
-  {
-   "type": "func",
-   "film": "七十个名字",
-   "name": "threadBook",
-   "calls": 3,
-   "head": "function threadBook(x, y, w, h, title, a = 1, col = BLUE) {"
-  },
-  {
-   "type": "func",
-   "film": "七十个名字",
-   "name": "gate",
-   "calls": 1,
-   "head": "function gate(t, A, t0) {"
-  },
-  {
-   "type": "func",
-   "film": "七十个名字",
-   "name": "caseBars",
-   "calls": 1,
-   "head": "function caseBars(t, box, t0) {"
-  },
-  {
-   "type": "func",
-   "film": "七十个名字",
-   "name": "shigao",
-   "calls": 1,
-   "head": "function shigao(t, box, o) {"
-  },
-  {
-   "type": "func",
-   "film": "七十个名字",
-   "name": "dateCard",
-   "calls": 5,
-   "head": "function dateCard(t, t0, x, y, big, small, col = RED) {"
-  },
-  {
-   "type": "trial",
-   "film": "七十个名字",
-   "id": "pack.liubai",
-   "name": "史书留白（竖屏人物小传）"
-  },
-  {
-   "type": "trial",
-   "film": "七十个名字",
-   "id": "style.liubai",
-   "name": "史书留白"
-  },
-  {
-   "type": "trial",
-   "film": "七十个名字",
-   "id": "genre.人物小传竖屏",
-   "name": "人物小传·竖屏（史书留白）"
-  },
-  {
-   "type": "trial",
-   "film": "七十个名字",
-   "id": "pack.renwu",
-   "name": "古代人物库（朝代 × 身份 × 动作）"
-  }
- ]
+ "pending": []
 }
