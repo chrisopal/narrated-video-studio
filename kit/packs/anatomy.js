@@ -55,6 +55,6 @@
 
    许可：kit/packs/anatomy/LICENSE（原项目 MIT 全文）；取了什么、改了什么、没取什么：kit/packs/anatomy/README.md */
 window.PACK=window.PACK||{};window.PACK_INIT=window.PACK_INIT||[];
-PACK.anatomy={K:{},G:{},TB:{}};
-['isokit','lathe','tube','index']
+PACK.anatomy={K:{},G:{},TB:{},AU:{},GL:{},T3:{},TF:{},TBLD:{},TA:{}};
+['isokit','lathe','tube','audit','gl','turn','turn-canvas','turn-build','turn-audit','index','fx','check']
   .forEach(m=>document.write('<script src="/kit/packs/anatomy/'+m+'.js"><\/script>'));

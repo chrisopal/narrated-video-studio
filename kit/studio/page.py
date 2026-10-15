@@ -125,5 +125,11 @@ def get_scan(tl, cache=True):
     return page_pass(tl, '_scan.json', '()=>window.scan(0.1)', cache)
 
 
+def get_anatomy(tl, cache=True, step=None):
+    """器物解剖包的几何审计和线头检查（只在 brief 的 packs 里有 anatomy 时跑）：每 step 秒量一帧，默认 brief 的 anatomy_step 或 1 秒。"""
+    step = step or BRIEF.get('anatomy_step', 1.0)
+    return page_pass(tl, '_anatomy.json', '()=>window.anatomyScan({step: %s})' % step, cache)
+
+
 def get_motion(tl, cache=True):
     return page_pass(tl, '_motion.json', '()=>window.motionScan(%d)' % FPS, cache)

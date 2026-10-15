@@ -1,7 +1,10 @@
 // 器物解剖 · index.js —— 本项目自己写的接合层（几何来自同目录 isokit.js / lathe.js / tube.js，改自 wheresryan22/anatomy，MIT）
 // 管四件事：主题和色阶、把几何路径画到画布上（Path2D）、视频里的镜头和“按时间算”的动作、招牌零件和画框。
 (() => {
-const A = PACK.anatomy, K = A.K, G = A.G, TB = A.TB;
+const A = PACK.anatomy, K = A.K, G = A.G, TB = A.TB, AU = A.AU;
+/* 审计模式：check.js 在量一帧时把 A.rec 设成一个记录本，下面每个画法顺手登记“画了什么、在第几笔、真实形状是什么”；平时它是 null，什么都不做 */
+A.rec = null;
+const RX = () => A.rec;
 let X = g;   // 当前画笔：平时是主画布 g，on(ctx, fn) 里临时换成封面的画布
 
 /* ---------- 主题：一套灰阶 + 唯一的高亮 ----------
@@ -43,6 +46,7 @@ function solid(paths, o = {}) {
   if (!paths) return;
   const T = tok(), { tone = 'hi', crease = 'faint', lit = false, flat = false, halo = false, inner = null, a = 1 } = o;
   if (a <= 0) return;
+  if (RX()) RX().solid(paths, o, X, a);
   X.save(); X.globalAlpha *= a;
   if (halo) softShadow(paths.fill, o.blur);
   fillD(paths.fill, lit ? T.face : T.paper);
@@ -54,6 +58,7 @@ function solid(paths, o = {}) {
   if (inner) typeof inner === 'function' ? inner() : strokeD(inner, T.faint);
   strokeD(paths.outline, lit ? T.lit : toneCol(tone));
   X.restore();
+  if (RX()) RX().edges(paths, X);
 }
 // 软影：一块模糊的暗色，垫在底座和抬起来的东西下面（d 是填充路径，比如 slabOf(...).fill 或 K.haloOf(...)）
 function softShadow(d, blur) {
@@ -63,6 +68,7 @@ function softShadow(d, blur) {
 /* 线：line(d, {tone, dotted, dashed, flow: t（虚线沿线流动，传当前时间）, w 线宽倍数, a}) —— 刻线、槽、导线都用它 */
 function line(d, o = {}) {
   if (!d) return; const { tone = 'lo', dotted, dashed, flow, w = 1, a = 1 } = o; if (a <= 0) return;
+  if (RX()) RX().line(d, o, X, a);
   const u = U(); X.save(); X.globalAlpha *= a;
   let dsh = null; if (dotted) dsh = [.01, 3.5 * u]; else if (dashed) dsh = [3 * u, 3 * u]; else if (flow !== undefined && flow !== false) dsh = [2 * u, 6 * u];
   if (flow !== undefined && flow !== false) X.lineDashOffset = -(+flow || 0) * 20 * u;
@@ -78,6 +84,7 @@ function dots(points, o = {}) {
     let k = op * (al === undefined ? 1 : Math.max(0, al));
     if (pulse !== undefined) { const ph = ((pulse * 1000 + (i * 137) % 1600) % 1600) / 1600; k = ph < .12 ? 1 : ph < .4 ? lerp(1, .18, (ph - .12) / .28) : .18 }
     X.globalAlpha = k; X.beginPath(); X.arc(x, y, size * U(), 0, 7); X.fill();
+    if (RX() && k > .1) RX().dot(x, y, size * U(), X);
   });
   X.restore();
 }
@@ -85,7 +92,7 @@ function dots(points, o = {}) {
 function wire(from, to, o = {}) {
   const { via = [], tone = 'lo', ends = 'both', size = 1.2 } = o, T = tok();
   line(K.pathOf([from, ...via, to]), o);
-  const end = ([x, y]) => { X.beginPath(); X.arc(x, y, size * U(), 0, 7); X.fillStyle = T.paper; X.fill(); X.strokeStyle = toneCol(tone); X.lineWidth = LOOK.lw; X.stroke() };
+  const end = ([x, y]) => { X.beginPath(); X.arc(x, y, size * U(), 0, 7); X.fillStyle = T.paper; X.fill(); X.strokeStyle = toneCol(tone); X.lineWidth = LOOK.lw; X.stroke(); if (RX()) RX().dot(x, y, size * U(), X) };
   if (ends === 'both' || ends === 'from') end(from); if (ends === 'both' || ends === 'to') end(to);
 }
 // 必须停在面中间的单根线：两头用渐变淡出，不许硬断。fade=[起头淡出长度, 结尾淡出长度]（像素）
@@ -96,6 +103,7 @@ function fadeLine(points, o = {}) {
   const gr = X.createLinearGradient(p0[0], p0[1], p1[0], p1[1]), tr = c => { const m = c.match(/^#(..)(..)(..)$/); return m ? [1, 2, 3].map(i => parseInt(m[i], 16)) : [128, 128, 128] }, [r, gg, b] = tr(col);
   const st = (k, al) => gr.addColorStop(cl(k), `rgba(${r},${gg},${b},${al})`); st(0, s > 0 ? 0 : 1); if (s > 0) st(s / L, 1); if (e > 0) st(1 - e / L, 1); st(1, e > 0 ? 0 : 1);
   X.save(); X.globalAlpha *= a; X.strokeStyle = gr; X.lineWidth = LOOK.lw; X.lineCap = 'round'; X.lineJoin = 'round'; X.stroke(P2(K.pathOf(points))); X.restore();
+  if (RX()) RX().line(K.pathOf(points), { free: true }, X, a);   // 两头淡出的线本来就允许停在面中间
 }
 // 管子和电缆的一段（TB.tubePieces 的每一项）：身体、高光、暗带、编织环、两条边
 function tubePiece(pc, o = {}) {
@@ -105,14 +113,31 @@ function tubePiece(pc, o = {}) {
   if (pc.wide) { fillD(pc.shine, lit ? T.litTop : T.top); fillD(pc.shade, T.shade[0]) }
   for (const { d, alpha } of pc.rings || []) if (alpha > .02) { X.save(); X.globalAlpha *= Math.min(1, alpha); strokeD(d, toneCol(pc.ringTone || 'lo'), LOOK.lw * .75); X.restore() }
   strokeD(pc.edges, lit ? T.lit : toneCol(tone)); X.restore();
+  if (RX()) RX().tubePiece(pc, o, X, a);
 }
 // 整根管子：切段、按深度排好、画出来。route 是三维点列（先用 G.fillet 倒圆角），r 是半径（世界单位）
+// 审计用的选项（只在审计时读）：name 名字、owner 两头的法兰/接头算它自己的、touch 允许贴着的零件名、limp 软线（电缆）、free:[起点, 终点] 本来就不接东西的一头
 function pipe(P, route, r, o = {}) {
   const pcs = TB.tubePieces(route, r, P, o).map(pc => [K.depthOf(pc.mid, P), pc]).sort((x, y) => x[0] - y[0]);
+  if (RX()) RX().route(P, route, r, o, pcs.map(x => x[1]));
   pcs.forEach(([, pc]) => tubePiece(pc, o)); return pcs.map(x => x[1]);
 }
 // 回转体：profile 是半剖面 [[s, r], …]（第三项写 1 表示这一段是光滑曲面），F 是 G.frameAlong(原点, 轴向)
 function turned(P, profile, F, o = {}, style = {}) { const pth = G.solidOf(profile, F, P, o); solid(pth, style); return pth }
+
+/* ---------- 形状登记：审计时，几何函数顺手把“这件东西真实的形状”挂在返回的路径上（paths.shape），solid() 再把它交给记录本 ----------
+   这样只要零件是用这些函数造的，审计就看得见它；自己拼路径画的东西，在 solid(paths, {shape: AU.box(…)}) 里自己给形状 */
+const tag = (paths, P, shape) => { if (paths && RX()) { paths.shape = shape(); paths.P = P } return paths };
+const wrapShape = (ns, name, at, make) => { const f = ns[name]; ns[name] = (...a) => tag(f(...a), a[at], () => make(...a)) };
+wrapShape(K, 'slabOf', 3, (plan, z, h, P, steps = 8) => AU.slab(plan, z, h, {}, steps));
+wrapShape(K, 'cylinder', 5, (cx, cy, r, z, h) => AU.cylinder(cx, cy, r, z, h, {}));
+wrapShape(K, 'extrude', 3, (ring, z, h) => AU.extruded(ring, z, h, {}));
+wrapShape(G, 'solidOf', 2, (profile, F, P, o = {}) => AU.solid(F, profile, { radius: o.smooth && o.smooth.radius ? o.smooth.radius : null }));
+wrapShape(G, 'lathe', 2, (meridian, F) => AU.lathe(F, meridian, {}));
+wrapShape(G, 'disc', 4, (s0, s1, r, F) => AU.disc(F, s0, s1, r, {}));
+wrapShape(G, 'ringBand', 5, (s0, s1, rIn, rOut, F) => AU.ring(F, s0, s1, rIn, rOut, {}));
+wrapShape(G, 'sphereOf', 2, (c, r) => AU.ball(c, r, {}));
+wrapShape(G, 'prismOf', 4, (F, polygon, s0, s1) => AU.prism(F, polygon, s0, s1, {}));
 
 /* ---------- 贴面：在零件的某个面上画东西（屏幕、刻度盘上的字以外的图形） ----------
    onFace(K.topMatrix([x,y], z, P) 或 K.sideMatrix([x,y], z, P, 'left'|'right'), fn)：fn 里用那个面的本地坐标画（单位 = 世界单位） */
@@ -145,12 +170,13 @@ function byDepth(items, P, key = x => x) { return [...items].sort((a, b) => { co
    follow(t, keys, tau)        指数跟随（τ 0.1–0.3 秒）：滑块、旋钮、镜头跟目标
    spring(t, keys, {f, z})     弹簧：f 每秒振几次（缺省 1.6），z 阻尼比（缺省 0.45，回弹一次；≥1 不回弹）。东西本身有弹性时用它，指针和读数也跟着它
    env(t, t0, t1, {a, d})      包络：t0 起用 a 秒升到 1，t1 起用 d 秒落回 0（光、高亮、流动的强弱，绝不突然出现或消失）
-   drop(t, t0, {h, f, z})      零件“装上去”：从 h 高处落到 0 的弹簧偏移，加在 z 上（装配时用它代替淡入） */
+   drop(t, t0, {h, f, z})      零件“装上去”：从 h 高处落下、在 0 处弹一下再停住，加在 z 上（装配时用它代替淡入）。
+                               落地只往上弹，绝不陷进下面的零件（欠阻尼弹簧过冲到 0 以下会穿模，几何审计会拦） */
 function follow(t, keys, tau = .28) { let v = keys[0][1]; for (let i = 1; i < keys.length; i++) { const [ti, vi] = keys[i]; if (t <= ti) break; v += (vi - keys[i - 1][1]) * (1 - Math.exp(-(t - ti) / tau)) } return v }
 function stepResp(x, f, z) { if (x <= 0) return 0; const w = 2 * Math.PI * f; if (z >= 1) return 1 - Math.exp(-w * x) * (1 + w * x); const wd = w * Math.sqrt(1 - z * z); return 1 - Math.exp(-z * w * x) * (Math.cos(wd * x) + z / Math.sqrt(1 - z * z) * Math.sin(wd * x)) }
 function spring(t, keys, { f = 1.6, z = .45 } = {}) { let v = keys[0][1]; for (let i = 1; i < keys.length; i++) { const [ti, vi] = keys[i]; if (t <= ti) break; v += (vi - keys[i - 1][1]) * stepResp(t - ti, f, z) } return v }
 function env(t, t0, t1 = Infinity, { a = .3, d = .4 } = {}) { const s = x => x * x * (3 - 2 * x); return s(cl((t - t0) / a)) * (1 - s(cl((t - t1) / d))) }
-function drop(t, t0, { h = 40, f = 1.8, z = .55 } = {}) { return t < t0 ? Infinity : h * (1 - stepResp(t - t0, f, z)) }
+function drop(t, t0, { h = 40, f = 1.8, z = .55 } = {}) { return t < t0 ? Infinity : h * Math.abs(1 - stepResp(t - t0, f, z)) }
 // 还没装上的零件不画：const dz = drop(t, t0); if (dz === Infinity) return; 画的时候 z 加 dz
 
 /* ---------- 招牌零件（菜谱来自原项目 craft.md 的零件词汇；坐标是世界单位，z 朝上）----------
@@ -160,58 +186,67 @@ const corners4 = (plan, inset) => K.corners(plan, inset);
 function basePlate(P, plan, { z = 0, h = 12, feet = true, groove = true, screws = true, halo = true, tone = 'mid' } = {}) {
   const zb = z - h;
   if (halo) softShadow(K.haloOf(plan, zb - 5, h, P), 12);
-  if (feet) byDepth(corners4(plan, 22), P).forEach(([x, y]) => { solid(K.cylinder(x, y, 7, zb - 5, 1.6, P, 28), { tone: 'lo' }); solid(K.cylinder(x, y, 5.4, zb - 3.4, 3.4, P, 28), { tone: 'mid' }) });
-  solid(K.slabOf(plan, zb, h, P, 8, 1.6), { tone });
+  if (feet) byDepth(corners4(plan, 22), P).forEach(([x, y]) => { solid(K.cylinder(x, y, 7, zb - 5, 1.6, P, 28), { tone: 'lo', name: 'stand.foot.flange', ground: true }); solid(K.cylinder(x, y, 5.4, zb - 3.4, 3.4, P, 28), { tone: 'mid', name: 'stand.foot', ground: true }) });
+  solid(K.slabOf(plan, zb, h, P, 8, 1.6), { tone, name: 'stand.base', ground: true });
   if (groove) line(K.planOutline(K.insetPlan(plan, 5), z, P), { tone: 'faint' });
   if (screws) corners4(plan, 10).forEach(([x, y]) => { line(K.ring(x, y, 2.2, z, P, 16), { tone: 'lo' }); dots([K.iso([x, y, z], P)], { size: .55, tone: 'mid' }) });
 }
 // 刻度尺：一条薄尺，刻度从尺的边上长出来（不许悬空在板上）。axis 'x' 沿 x 方向；zero 在哪个读数画零点
 function ruler(P, { x, y, w, d = 7, z = 0, step = 4, every = 5, axis = 'x', zero } = {}) {
   const plan = axis === 'x' ? { x, y, w, d, r: 1 } : { x, y, w: d, d: w, r: 1 };
-  solid(K.slabOf(plan, z, .6, P, 3), { tone: 'lo', crease: 'none' });
-  const tk = axis === 'x' ? K.topTicks(x + 4, x + w - 4, step, every, y + .8, z + .6, [2, 3.6], P, 'x') : K.topTicks(y + 4, y + w - 4, step, every, x + .8, z + .6, [2, 3.6], P, 'y');
-  line(tk.minor, { tone: 'lo' }); line(tk.major, { tone: 'mid' });
-  if (zero !== undefined) line(axis === 'x' ? K.lineOnTop([zero, y + .8], [zero, y + d - .8], z + .6, P) : K.lineOnTop([x + .8, zero], [x + d - .8, zero], z + .6, P), { tone: 'hi', w: 1.3 });
+  solid(K.slabOf(plan, z, .6, P, 3), { tone: 'lo', crease: 'none', name: 'ruler' });
+  // 刻度从尺的后边沿长出来（edge 就在尺边上；内缩了刻度两头都悬空，线头检查会拦）
+  const tk = axis === 'x' ? K.topTicks(x + 4, x + w - 4, step, every, y, z + .6, [2, 3.6], P, 'x') : K.topTicks(y + 4, y + w - 4, step, every, x, z + .6, [2, 3.6], P, 'y');
+  line(tk.minor, { tone: 'lo', mark: true }); line(tk.major, { tone: 'mid', mark: true });
+  if (zero !== undefined) line(axis === 'x' ? K.lineOnTop([zero, y], [zero, y + d], z + .6, P) : K.lineOnTop([x, zero], [x + d, zero], z + .6, P), { tone: 'hi', w: 1.3, mark: true });
 }
 // 铭牌：薄板 + 内框 + 三条长短不一的“字行”（代表印刷字，不写真字）+ 两颗螺丝
 function labelPlate(P, plan, z = 0) {
-  solid(K.slabOf(plan, z, .8, P, 4), { tone: 'lo' }); line(K.planOutline(K.insetPlan(plan, 1.6), z + .8, P), { tone: 'faint' });
+  solid(K.slabOf(plan, z, .8, P, 4), { tone: 'lo', name: 'label' }); line(K.planOutline(K.insetPlan(plan, 1.6), z + .8, P), { tone: 'faint' });
   const x0 = plan.x + 4.5, y0 = plan.y + 3.6, gap = (plan.d - 7.2) / 2;
-  [.72, .5, .62].forEach((k, i) => line(K.lineOnTop([x0, y0 + i * gap], [x0 + (plan.w - 12) * k, y0 + i * gap], z + .8, P), { tone: 'lo' }));
+  [.72, .5, .62].forEach((k, i) => line(K.lineOnTop([x0, y0 + i * gap], [x0 + (plan.w - 12) * k, y0 + i * gap], z + .8, P), { tone: 'lo', free: true }));   // 代表印刷字的行：唯一允许停在面上的线
   dots([[plan.x + plan.w - 3, plan.y + 3], [plan.x + plan.w - 3, plan.y + plan.d - 3]].map(([a, b]) => K.iso([a, b, z + .8], P)), { size: .45 });
 }
 // 导轨：一条带倒角的长条，两头螺丝
 function rail(P, plan, { z = 0, h = 3, tone = 'mid' } = {}) {
-  solid(K.slabOf(plan, z, h, P, 3, .4), { tone });
+  solid(K.slabOf(plan, z, h, P, 3, .4), { tone, name: 'rail' });
   const long = plan.w >= plan.d, pts = long ? [[plan.x + 3, plan.y + plan.d / 2], [plan.x + plan.w - 3, plan.y + plan.d / 2]] : [[plan.x + plan.w / 2, plan.y + 3], [plan.x + plan.w / 2, plan.y + plan.d - 3]];
   dots(pts.map(([a, b]) => K.iso([a, b, z + h], P)), { size: .45 });
 }
 // 立柱：底下一圈套环，柱身上两道淡缝
 function post(P, x, y, z0, h, { r = 3.2, tone = 'mid' } = {}) {
-  solid(K.cylinder(x, y, r + 1.8, z0, 4, P, 28), { tone: 'lo' });
-  solid(K.cylinder(x, y, r, z0 + 4, h - 4, P, 28), { tone, crease: 'none', inner: () => [.35, .7].forEach(k => line(K.sideArc(x, y, r, z0 + 4 + (h - 4) * k, P, 16), { tone: 'faint' })) });
+  solid(K.cylinder(x, y, r + 1.8, z0, 4, P, 28), { tone: 'lo', name: 'post.collar' });
+  solid(K.cylinder(x, y, r, z0 + 4, h - 4, P, 28), { tone, crease: 'none', name: 'post', inner: () => [.35, .7].forEach(k => line(K.sideArc(x, y, r, z0 + 4 + (h - 4) * k, P, 16), { tone: 'faint' })) });
 }
 // 滚花旋钮：圆柱 + 滚花 + 顶上的指针（angle 弧度，0 指向 +x）
 function knob(P, cx, cy, z, { r = 6, h = 4, angle = 0, tone = 'mid', lit = false } = {}) {
-  solid(K.cylinder(cx, cy, r, z, h, P, 32, .4), { tone, lit, inner: () => line(K.knurl(cx, cy, r, z, z + h, 36, P), { tone: 'lo' }) });
+  solid(K.cylinder(cx, cy, r, z, h, P, 32, .4), { tone, lit, name: 'knob', inner: () => line(K.knurl(cx, cy, r, z, z + h, 36, P, 0), { tone: 'lo' }) });   // 滚花从顶边一直到底边
   const c = Math.cos(angle), s = Math.sin(angle);
-  line(K.lineOnTop([cx - c * r * .45, cy - s * r * .45], [cx + c * r * .78, cy + s * r * .78], z + h, P), { tone: lit ? 'lit' : 'hi', w: 1.2 });
+  line(K.lineOnTop([cx - c * r * .45, cy - s * r * .45], [cx + c * r * .78, cy + s * r * .78], z + h, P), { tone: lit ? 'lit' : 'hi', w: 1.2, free: true });   // 指针两头都停在顶面上
 }
 // 弹簧绕在杆上：先画背面那半圈圈，再画 inner()（杆或别的被它绕住的东西），最后画正面那半。压缩就改 from/to，每帧重算
 function coil(P, { from, to, center, r = 4.2, turns = 6, axis = 'x', tone = 'mid' }, inner) {
   const c = K.coil(from, to, center, r, turns, axis, P);
   line(c.back, { tone: 'lo' }); if (inner) inner(); line(c.front, { tone, w: 1.15 });
 }
+// 弹簧座：套在杆上的一片垫圈（带孔，hole 是孔的半径，等于杆的半径），压住弹簧的端头（弹簧的头不能停在光面上）。
+// at 是垫圈中心，axis 杆的方向 'x'|'y'。杆从垫圈的孔里穿过：杆要在垫圈两边分成两段画（垫圈前那段在垫圈之后画），不然遮挡顺序审计会说它俩互相穿插
+function washer(P, at, { r = 5.6, hole = 2, t = 1.2, axis = 'x', tone = 'mid', name = 'washer' } = {}) {
+  const F = G.frameAlong(at, axis === 'x' ? [1, 0, 0] : [0, 1, 0]);
+  solid(G.ringBand(-t / 2, t / 2, hole, r, F, P), { tone, name });
+}
 // 表盘（朝上放）：表壳、滚花表圈、刻度（小 lo 大 mid）、零点、指针（lit）、表心。value 是 0..1 转一整圈的比例；mark 在哪个比例画一道提示刻度
 function dial(P, x, y, z, { R = 18, h = 9, value = 0, ticks = 50, every = 5, mark, lit = true, tone = 'hi' } = {}) {
   const top = z + h;
-  solid(K.cylinder(x, y, R, z, h, P, 64, .8), { tone, crease: 'lo', inner: () => { line(K.knurl(x, y, R, top - 3.4, top, 84, P, .3), { tone: 'lo' }); line(K.sideArc(x, y, R, top - 3.4, P, 40), { tone: 'faint' }) } });
-  line(K.ring(x, y, R - 2.2, top, P, 64), { tone: 'lo' });
-  const tk = K.radialTicks(x, y, R - 3, ticks, every, top, [1.3, 2.8], P); line(tk.minor, { tone: 'lo' }); line(tk.major, { tone: 'mid' });
-  line(K.lineOnTop([x, y - (R - 3)], [x, y - (R - 7)], top, P), { tone: 'hi', w: 1.3 });
-  if (mark !== undefined) { const m = mark * Math.PI * 2; line(K.lineOnTop([x + Math.sin(m) * (R - 7), y - Math.cos(m) * (R - 7)], [x + Math.sin(m) * (R - 3), y - Math.cos(m) * (R - 3)], top, P), { tone: 'red', w: 1.3 }) }
+  // 滚花带从表圈的缝一直到顶边；刻度从表圈内沿（R-2.2 那道圈）长进去，所以每根刻度都有根
+  solid(K.cylinder(x, y, R, z, h, P, 64, .8), { tone, crease: 'lo', name: 'dial', inner: () => { line(K.knurl(x, y, R, top - 3.4, top, 84, P, 0), { tone: 'lo' }); line(K.sideArc(x, y, R, top - 3.4, P, 40), { tone: 'faint' }) } });
+  const Ri = R - 2.2;
+  line(K.ring(x, y, Ri, top, P, 64), { tone: 'lo' });
+  const tk = K.radialTicks(x, y, Ri, ticks, every, top, [1.3, 2.8], P); line(tk.minor, { tone: 'lo', mark: true }); line(tk.major, { tone: 'mid', mark: true });
+  line(K.lineOnTop([x, y - Ri], [x, y - (Ri - 4)], top, P), { tone: 'hi', w: 1.3, mark: true });
+  if (mark !== undefined) { const m = mark * Math.PI * 2; line(K.lineOnTop([x + Math.sin(m) * (Ri - 4), y - Math.cos(m) * (Ri - 4)], [x + Math.sin(m) * Ri, y - Math.cos(m) * Ri], top, P), { tone: 'red', w: 1.3, mark: true }) }
   const an = value * Math.PI * 2, sx = Math.sin(an), sy = -Math.cos(an);
-  line(K.lineOnTop([x - sx * 3.5, y - sy * 3.5], [x + sx * (R - 4.5), y + sy * (R - 4.5)], top + .2, P), { tone: lit ? 'lit' : 'hi', w: 1.6 });
+  line(K.lineOnTop([x - sx * 3.5, y - sy * 3.5], [x + sx * (R - 4.5), y + sy * (R - 4.5)], top + .2, P), { tone: lit ? 'lit' : 'hi', w: 1.6, free: true });   // 指针：尾和尖都停在表面上
   line(K.ring(x, y, 1.6, top + .2, P, 16), { tone: 'hi' });
 }
 
@@ -225,7 +260,7 @@ function plate(t, t0, o = {}) {
   const k = env(t, t0, t1, { a: .5, d: .5 }); if (k <= 0) return box;
   const T = tok(); X.save(); X.globalAlpha *= k;
   X.fillStyle = TH.card; X.fillRect(x, y, w, h);
-  if (draw) { X.save(); X.beginPath(); X.rect(box.x, box.y, box.w, box.h); X.clip(); draw(box); X.restore() }
+  if (draw) { X.save(); X.beginPath(); X.rect(box.x, box.y, box.w, box.h); X.clip(); if (RX()) RX().clipTo(box, X); A.box = [box.x, box.y, box.w, box.h]; try { draw(box) } finally { A.box = null } if (RX()) RX().clipTo(null); X.restore() }
   X.strokeStyle = T.mid; X.lineWidth = 1.2; X.strokeRect(x + .5, y + .5, w - 1, h - 1);
   const fs = TH.f;
   if (fig) txt(fig, x + pad, y + pad + sz * .8, sz, TH.ink, fs.s, 'left');
@@ -240,6 +275,7 @@ function on(ctx, fn) { const old = X; X = ctx; try { fn() } finally { X = old } 
 /* 平面 plan 写错时不会报错，只会画出 NaN 或什么都不画：在这里拦一下。plan = {x, y, w, d, r}，x、y 是起始角（不是中心），w 沿 x、d 沿 y、r 圆角 */
 const okPlan = (pl, who) => { const bad = !pl || ['x', 'y', 'w', 'd'].some(k => typeof pl[k] !== 'number' || !isFinite(pl[k])); if (bad) console.error(`anatomy.${who}：平面要写成 {x, y, w, d, r}（x、y 是起始角），收到`, JSON.stringify(pl)); return !bad };
 for (const name of ['slabOf', 'planOutline', 'insetPlan', 'haloOf', 'sideSeam', 'ringOf']) { const f = K[name]; K[name] = (pl, ...a) => (okPlan(pl, 'K.' + name), f(pl, ...a)) }
-Object.assign(A, { DARK, LIGHT, look, P2, solid, softShadow, line, faded, dots, wire, fadeLine, tubePiece, pipe, turned, onFace,
-  view, fit, camLerp, at, byDepth, follow, spring, env, drop, basePlate, ruler, labelPlate, rail, post, knob, coil, dial, plate, on });
+A.brush = () => X;   // 当前画笔（fx 光效要贴回同一支笔上）
+Object.assign(A, { lookScale: U, DARK, LIGHT, look, P2, solid, softShadow, line, faded, dots, wire, fadeLine, tubePiece, pipe, turned, onFace,
+  view, fit, camLerp, at, byDepth, follow, spring, env, drop, basePlate, ruler, labelPlate, rail, post, knob, coil, washer, dial, plate, on });
 })();

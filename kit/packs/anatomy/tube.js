@@ -1,8 +1,9 @@
-// 器物解剖 · tube.js —— 改自 wheresryan22/anatomy 的 kit/tube.mjs（MIT，提交 bc943e40c599；许可见同目录 LICENSE，取了什么、改了什么见 README.md）
+// 器物解剖 · tube.js —— 改自 wheresryan22/anatomy 的 kit/tube.mjs（MIT，提交 e9488296a442；许可见同目录 LICENSE，改了什么见 README.md）
 // 管线：把一条三维管子或电缆切成可按深度排序的段，带高光、暗带、端盖、编织环
-// 只保留几何：输入世界坐标和投影 P，输出 SVG 路径字符串；画在画布上由 index.js 用 Path2D 完成。
 (() => {
-const { iso, pathOf } = PACK.anatomy.K, G = PACK.anatomy.G;
+const { iso, pathOf } = PACK.anatomy.K;
+const G = PACK.anatomy.G;
+
 const LIGHT = (() => {
   const length = Math.hypot(-0.55, -0.835);
   return [-0.55 / length, -0.835 / length];
@@ -291,5 +292,20 @@ function tubePieces(points3, radius, P, { maxLength = 30, spacing = 2.2, closed 
   }
   return out;
 }
-Object.assign(PACK.anatomy.TB, { runsOf, crossingsOf, tubePieces });
+
+function ringsSvg(rings, tone = "lo") {
+  const groups = new Map();
+  for (const { d, alpha } of rings ?? []) {
+    const level = Math.min(1, Math.round(alpha * 20) / 20);
+    if (level <= 0) continue;
+    groups.set(level, (groups.get(level) ?? "") + d);
+  }
+  return [...groups].map(([alpha, d]) => `<path class="tb-ring" data-tone="${tone}" d="${d}"${alpha < 1 ? ` opacity="${alpha.toFixed(2)}"` : ""}/>`).join("");
+}
+
+function tubeSvg(piece, { tone = "hi" } = {}) {
+  const shine = piece.wide ? `<path class="tb-shine" d="${piece.shine}"/><path class="tb-shade" d="${piece.shade}"/>` : "";
+  return `<g class="tb"><path class="tb-body" d="${piece.body}"/>${shine}${ringsSvg(piece.rings, piece.ringTone)}<path class="iso-line tb-edge" data-tone="${tone}" d="${piece.edges}"/></g>`;
+}
+Object.assign(PACK.anatomy.TB, { runsOf, crossingsOf, tubePieces, ringsSvg, tubeSvg });
 })();

@@ -13,8 +13,8 @@ from .voice import short_at, short_plan, srt, timeline
 from .state import fingerprint, fp_diff, remember, stale, verify_out
 from .footage import cmd_clips, cmd_pick, cmd_probe, cmd_study, cmd_transcribe, credits_file
 from .talk import cmd_talk, talk_check
-from .page import browser, get_motion, get_scan, pipe
-from .checks import voice_rate_check
+from .page import browser, get_anatomy, get_motion, get_scan, pipe
+from .checks import voice_rate_check, anatomy_check
 from .checks import (
     STILL_MV,
     article_check,
@@ -140,6 +140,14 @@ def main(doc):
         )
         if BRIEF.get('source_article'):
             rep['原文依据'] = article_check(tl)
+        if (
+            'anatomy' in BRIEF.get('packs', []) and '--no-anatomy' not in sys.argv
+        ):  # 器物解剖包：线头和几何审计（逐帧量，用 build.py anatomy 看细节和圈出来的图）
+            ra = get_anatomy(tl, cache='--fresh' not in sys.argv)
+            rep['器物线头'], rep['器物几何'] = anatomy_check(ra)
+            print(
+                f"   器物：量了 {ra['frames']} 帧，{ra['parts']} 件次零件、{ra['lines']} 根纹理线（{ra['ms'] / 1000:.0f} 秒）"
+            )
         rep['字体缺字'] = (
             [],
             [
@@ -459,6 +467,35 @@ def main(doc):
                 sys.exit(1)
             for t in sys.argv[2].split(','):
                 (od / f't{float(t):06.2f}.jpg').write_bytes(grab(float(t)))
+        elif cmd == 'anatomy':  # 器物解剖包：几何审计和线头检查，列出每一条，圈在画面上
+            if 'anatomy' not in BRIEF.get('packs', []):
+                print('这条片没有用 anatomy 包（brief.json 的 packs）')
+                sys.exit(1)
+            arg = next((a for a in sys.argv[2:] if not a.startswith('--') and re.fullmatch(r'[\d.,]+', a)), None)
+            step = float(sys.argv[sys.argv.index('--step') + 1]) if '--step' in sys.argv else 0.5
+            r = pg.evaluate(
+                'o=>window.anatomyScan(o)', {'times': [float(x) for x in arg.split(',')]} if arg else {'step': step}
+            )
+            print(
+                f"量了 {r['frames']} 帧：{r['parts']} 件次零件、{r['lines']} 根纹理线、{r['ends']} 个线头（{r['ms'] / 1000:.0f} 秒）"
+            )
+            (lf, _), (gf, gw) = anatomy_check(r)
+            show('器物线头', lf, [])
+            show('器物几何', gf, gw)
+            od = P / (sys.argv[sys.argv.index('--out') + 1] if '--out' in sys.argv else 'anatomy')
+            ts = sorted({i['t'] for i in r['list'] if i.get('at')})
+            if ts:
+                od.mkdir(exist_ok=True)
+                for t in ts[:12]:
+                    png = pg.evaluate(
+                        "async ([t,m])=>{await window.renderFrameA(t);window.anatomyMarks(m);return document.getElementById('c').toDataURL('image/jpeg',.92)}",
+                        [t, [i for i in r['list'] if i['t'] == t]],
+                    )
+                    (od / f'a{t:06.2f}.jpg').write_bytes(base64.b64decode(png.split(',')[1]))
+                print(
+                    f'圈出来的图在 {od.name}/（红圈是线头，橙圈是几何），共 {min(len(ts), 12)} 张；推近看用 build.py zoom'
+                )
+            sys.exit(1 if lf or gf else 0)
         elif cmd == 'zoom':  # 推近审看：把画面的一块按矢量重新画大（不是把像素放大），看线头、穿模、遮挡、没收尾的纹理
             if len(sys.argv) < 4 or len(sys.argv[3].split(',')) != 3:
                 print(

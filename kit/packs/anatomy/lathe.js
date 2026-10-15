@@ -1,8 +1,8 @@
-// 器物解剖 · lathe.js —— 改自 wheresryan22/anatomy 的 kit/lathe.mjs（MIT，提交 bc943e40c599；许可见同目录 LICENSE，取了什么、改了什么见 README.md）
+// 器物解剖 · lathe.js —— 改自 wheresryan22/anatomy 的 kit/lathe.mjs（MIT，提交 e9488296a442；许可见同目录 LICENSE，改了什么见 README.md）
 // 回转体：沿任意轴车出来的零件（法兰、阀体、钟形喷口、球、鞍座）、曲面平滑明暗、表面上的弧线/肋/螺栓圈、管路圆角
-// 只保留几何：输入世界坐标和投影 P，输出 SVG 路径字符串；画在画布上由 index.js 用 Path2D 完成。
 (() => {
 const { cameraOf, iso, pathOf } = PACK.anatomy.K;
+
 const TAU = Math.PI * 2;
 const LIGHT_UP = 1.2;
 const BANDS = [0, 0.2, 0.42, 0.62];
