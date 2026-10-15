@@ -133,7 +133,7 @@ function fit(points, box = { x: 0, y: 0, w: W, h: H }, o = {}) {
   P.v = { at: c, sx: q[0], sy: q[1], s: P.scale * Math.sqrt(1.6), az: P.azimuth, el: P.elevation }; return P;
 }
 function camLerp(a, b, k) {
-  const A1 = a.v || a, B1 = b.v || b, L = (x, y) => x + (y - x) * k;
+  const A1 = (a.v || view(a).v), B1 = (b.v || view(b).v), L = (x, y) => x + (y - x) * k;   // 两个 view() 的结果，或者两组 view 的参数，都行
   return view({ at: [0, 1, 2].map(i => L(A1.at[i], B1.at[i])), sx: L(A1.sx, B1.sx), sy: L(A1.sy, B1.sy), s: Math.exp(L(Math.log(A1.s), Math.log(B1.s))), az: L(A1.az, B1.az), el: L(A1.el, B1.el) });
 }
 const at = (p, P) => K.iso(p, P);
@@ -237,6 +237,9 @@ function plate(t, t0, o = {}) {
 // 封面里用：on(ctx, fn) 把画笔临时换成封面的画布（只适合不写字的零件）
 function on(ctx, fn) { const old = X; X = ctx; try { fn() } finally { X = old } }
 
+/* 平面 plan 写错时不会报错，只会画出 NaN 或什么都不画：在这里拦一下。plan = {x, y, w, d, r}，x、y 是起始角（不是中心），w 沿 x、d 沿 y、r 圆角 */
+const okPlan = (pl, who) => { const bad = !pl || ['x', 'y', 'w', 'd'].some(k => typeof pl[k] !== 'number' || !isFinite(pl[k])); if (bad) console.error(`anatomy.${who}：平面要写成 {x, y, w, d, r}（x、y 是起始角），收到`, JSON.stringify(pl)); return !bad };
+for (const name of ['slabOf', 'planOutline', 'insetPlan', 'haloOf', 'sideSeam', 'ringOf']) { const f = K[name]; K[name] = (pl, ...a) => (okPlan(pl, 'K.' + name), f(pl, ...a)) }
 Object.assign(A, { DARK, LIGHT, look, P2, solid, softShadow, line, faded, dots, wire, fadeLine, tubePiece, pipe, turned, onFace,
   view, fit, camLerp, at, byDepth, follow, spring, env, drop, basePlate, ruler, labelPlate, rail, post, knob, coil, dial, plate, on });
 })();

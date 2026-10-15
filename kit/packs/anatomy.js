@@ -7,6 +7,21 @@
 
    先读 templates/风格包.md「anatomy」一节：先写“这台机器是什么、什么在动、动代表什么”和零件清单（≥40 件），再写几何。
 
+   坐标和尺度：世界坐标 x、y 在板面上，z 朝上；一个单位约等于真东西的 1 毫米，一台桌面器械的底座 250–300 × 120 左右，镜头每单位约 3 像素（view 的 s≈3，或直接用 fit 装进框里）。
+   平面 plan 一律写成 {x, y, w, d, r}：x、y 是起始角（不是中心），w 沿 x、d 沿 y、r 圆角。写错会在 stills 的“页面报错”里提示。
+   画框 plate 是不透明的：机器要画在它的 draw 回调里（见下面的最小例子），不要画在 plate 之前或之后。
+   最小例子（一块带脚的底座、一根导轨、一个会转的旋钮，读数写在框角）：
+     (() => { const { K, fit, plate, basePlate, rail, knob, follow } = PACK.anatomy;
+       const BASE = { x: -120, y: -50, w: 240, d: 100, r: 8 };
+       window.FILM = { theme: 'anatomy_light', chrome: 'none', cover: { title: '例子', art() {} },
+         scenes(t) {
+           const P = fit(K.boxCorners(BASE, -20, 40), { x: 160, y: 170, w: W - 320, h: H - 420 }, { az: 50 });
+           const a = follow(t, [[0, 0], [1, 3]], .6);                     // 模型：旋钮转了多少圈（示意）
+           plate(t, 0, { fig: '图 1', title: '例子', hint: '拧旋钮', readout: `${a.toFixed(1)} 圈（示意）`,
+             draw: () => { basePlate(P, BASE); rail(P, { x: -90, y: -4, w: 150, d: 8, r: 1 }, { z: 0 }); knob(P, 80, 0, 0, { r: 10, h: 8, angle: a * 2 * Math.PI, lit: true }) } });
+         } };
+     })();
+
    一、几何（原项目原样搬来，返回 SVG 路径字符串，交给下面的 solid/line 画）
      K   核心（kit/packs/anatomy/isokit.js）：K.iso([x,y,z], P) 投影；K.depthOf 深度；K.slabOf(plan,z,h,P,steps,bevel) 圆角板；K.cylinder(cx,cy,r,z,h,P)；
          K.extrude(环,z,h,P)；K.planOutline / insetPlan / lineOnTop / segment / ring / sideArc / sideSeam；K.knurl 滚花；K.coil 弹簧（分 back/front）；
@@ -25,7 +40,8 @@
      look({lw})  线宽（缺省 1.5 像素；原项目网页是 0.6，视频要在手机上看得见）
 
    三、镜头和动作
-     view({at,sx,sy,s,az,el}) 世界点 at 落在屏幕 (sx,sy)、每单位 s 像素 · fit(点列, 框, {pad,az,el}) 装进框里 · camLerp(A,B,k) 推拉平移
+     view({at,sx,sy,s,az,el}) 世界点 at 落在屏幕 (sx,sy)、每单位 s 像素，返回投影 P · fit(点列, 框, {pad,az,el}) 装进框里，返回 P
+     camLerp(甲, 乙, k) 推拉平移：甲、乙是 view()/fit() 返回的 P，也可以直接给 view 的参数；例 camLerp(WIDE, view({at:[50,20,20], s:8}), eio(k))
      byDepth(东西, P, 取点) 远的先画 · at(点, P) 投影
      follow(t, [[时刻,目标],…], τ) 指数跟随 · spring(t, keys, {f,z}) 弹簧（回弹一次）· env(t,t0,t1,{a,d}) 起落包络 · drop(t,t0,{h}) 装上去的落差
      都是 t 的确定函数：模型（比如胡克定律的位移）算出目标，零件、指针、读数都读同一个值。
