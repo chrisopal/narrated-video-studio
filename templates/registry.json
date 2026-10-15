@@ -789,6 +789,21 @@
    "voice": "Algenib",
    "platform": "xhs_full",
    "aspect": "9:16"
+  },
+  {
+   "title": "四本账，合成一本",
+   "date": "2026-10-15",
+   "genre": "产品宣传",
+   "style": "promo",
+   "packs": [
+    "promo"
+   ],
+   "structure": "痛点（一拍一屏）—四本账—两本账的缝（停一下）—亮相—三个卖点—证明—口号",
+   "hook": "订单越碎 / 账越难算 两屏连切",
+   "angle": "替被四本账折腾的厂长说话，公司名第 12 秒才出场",
+   "voice": null,
+   "platform": "channels",
+   "aspect": "9:16"
   }
  ],
  "items": [
@@ -1639,7 +1654,8 @@
    "from": "河海昆仑录",
    "since": "2026-10-08",
    "used_in": [
-    "河海昆仑录"
+    "河海昆仑录",
+    "四本账，合成一本"
    ],
    "symbols": [
     "say",
@@ -2658,7 +2674,8 @@
    "since": "2026-10-10",
    "used_in": [
     "视频工坊（给这个 skill 自己做的发布短片）",
-    "点成一座城"
+    "点成一座城",
+    "四本账，合成一本"
    ],
    "changed": "2026-10-13"
   },
@@ -2760,13 +2777,15 @@
    "id": "genre.产品宣传",
    "kind": "genre",
    "name": "产品宣传与发布（宣传线）",
-   "status": "candidate",
+   "status": "stable",
    "from": "题材模板第 17–22 张卡，宣传片.md；样片《青梧》",
    "since": "2026-10-11",
    "used_in": [
-    "视频工坊（给这个 skill 自己做的发布短片）"
+    "视频工坊（给这个 skill 自己做的发布短片）",
+    "四本账，合成一本"
    ],
-   "demo": "promo"
+   "demo": "promo",
+   "changed": "2026-10-15"
   },
   {
    "id": "genre.发布会用片",
@@ -2916,7 +2935,9 @@
    "demo": "looks",
    "status": "candidate",
    "since": "2026-10-12",
-   "used_in": []
+   "used_in": [
+    "四本账，合成一本"
+   ]
   },
   {
    "id": "style.promo",
@@ -2927,7 +2948,9 @@
    "demo": "looks",
    "status": "candidate",
    "since": "2026-10-12",
-   "used_in": []
+   "used_in": [
+    "四本账，合成一本"
+   ]
   },
   {
    "id": "flow.promo_look",
@@ -3105,7 +3128,93 @@
    "date": "2026-10-14",
    "film": "他教了半辈子书",
    "kind": "full"
+  },
+  {
+   "date": "2026-10-15",
+   "film": "四本账，合成一本",
+   "kind": "light"
   }
  ],
- "pending": []
+ "pending": [
+  {
+   "type": "func",
+   "film": "四本账，合成一本",
+   "name": "box",
+   "calls": 6,
+   "head": "const box = (x, y, w, h, col, r = 10) => { g.fillStyle = col; rr(x, y, w, h, r); g.fill(); };"
+  },
+  {
+   "type": "func",
+   "film": "四本账，合成一本",
+   "name": "ledger",
+   "calls": 1,
+   "head": "function ledger(t, cur, y = 560) {"
+  },
+  {
+   "type": "func",
+   "film": "四本账，合成一本",
+   "name": "account",
+   "calls": 4,
+   "head": "function account(t, t0, i, name, pain) {"
+  },
+  {
+   "type": "func",
+   "film": "四本账，合成一本",
+   "name": "split",
+   "calls": 1,
+   "head": "function split(t, t0) {"
+  },
+  {
+   "type": "func",
+   "film": "四本账，合成一本",
+   "name": "capAbove",
+   "calls": 2,
+   "head": "const capAbove = (t, t0, s) => say(t, t0 + .3, s, SCX, 610, 54, { al: 'center', maxW: SX1 - SX0 });"
+  },
+  {
+   "type": "func",
+   "film": "四本账，合成一本",
+   "name": "dMing",
+   "calls": 0,
+   "head": "function dMing(x, y, w, h, u) {"
+  },
+  {
+   "type": "func",
+   "film": "四本账，合成一本",
+   "name": "dAn",
+   "calls": 0,
+   "head": "function dAn(x, y, w, h, u) {"
+  },
+  {
+   "type": "func",
+   "film": "四本账，合成一本",
+   "name": "dTong",
+   "calls": 0,
+   "head": "function dTong(x, y, w, h, u) {"
+  },
+  {
+   "type": "trial",
+   "film": "四本账，合成一本",
+   "id": "comp.slip",
+   "name": "题签纸条"
+  },
+  {
+   "type": "trial",
+   "film": "四本账，合成一本",
+   "id": "genre.产品宣传",
+   "name": "产品宣传与发布（宣传线）"
+  },
+  {
+   "type": "trial",
+   "film": "四本账，合成一本",
+   "id": "pack.promo",
+   "name": "宣传片的五种样子（bold、glass、studio、grid、pop）：字的进场、换屏、画框跟着样子换"
+  },
+  {
+   "type": "trial",
+   "film": "四本账，合成一本",
+   "id": "style.promo",
+   "name": "宣传片主题 promo（五种样子的配色）"
+  }
+ ]
 }
