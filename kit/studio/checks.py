@@ -352,7 +352,9 @@ def scan_check(sc):
             fails['frame'].append(f"{t:6.1f}s 「{k[:18]}」从没完整出现在画面里（被裁边）")
     for k, ts in crun.items():
         if len(ts) * step >= 0.3:
-            fails['clip'].append(f"{ts[0]:6.1f}s 「{k[:18]}」被画框裁掉一截 {len(ts) * step:.1f}s（常见原因：镜头推近把贴边的字推出框）")
+            fails['clip'].append(
+                f"{ts[0]:6.1f}s 「{k[:18]}」被画框裁掉一截 {len(ts) * step:.1f}s（常见原因：镜头推近把贴边的字推出框）"
+            )
     for k, ts in zrun.items():
         if len(ts) * step >= 0.3:
             warns['subzone'].append(f"{ts[0]:6.1f}s 「{k[:18]}」进入字幕带 {len(ts) * step:.1f}s")

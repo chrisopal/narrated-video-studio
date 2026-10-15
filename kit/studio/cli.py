@@ -459,6 +459,27 @@ def main(doc):
                 sys.exit(1)
             for t in sys.argv[2].split(','):
                 (od / f't{float(t):06.2f}.jpg').write_bytes(grab(float(t)))
+        elif cmd == 'zoom':  # 推近审看：把画面的一块按矢量重新画大（不是把像素放大），看线头、穿模、遮挡、没收尾的纹理
+            if len(sys.argv) < 4 or len(sys.argv[3].split(',')) != 3:
+                print(
+                    '用法：zoom 时刻[,时刻…] x,y,宽 [目录]　—— 以 1 倍画面的坐标框一块（高按画幅比例），放大到整幅；宽 480 就是 4 倍'
+                )
+                sys.exit(1)
+            x, y, w = map(float, sys.argv[3].split(','))
+            k = CW / w
+            od = P / (sys.argv[4] if len(sys.argv) > 4 else 'zoom')
+            od.mkdir(exist_ok=True)
+            # 让画布的每一次 setTransform/resetTransform 都先乘上放大矩阵，getTransform 再除掉它：分场、风格包、通用组件都不用改
+            pg.evaluate(
+                """([k,tx,ty])=>{if(window.ZOOM_)return;window.ZOOM_=1;const Z=new DOMMatrix([k,0,0,k,tx,ty]),Zi=Z.inverse(),st=g.setTransform.bind(g),gt=g.getTransform.bind(g);
+                g.setTransform=function(...a){const m=a.length===1?DOMMatrix.fromMatrix(a[0]):new DOMMatrix(a.length?a:[1,0,0,1,0,0]);st(Z.multiply(m))};
+                g.resetTransform=function(){st(Z)};g.getTransform=function(){return Zi.multiply(gt())}}""",
+                [k, -x * k, -y * k],
+            )
+            for t in sys.argv[2].split(','):
+                f = od / f'z{float(t):06.2f}_{int(x)}_{int(y)}_{k:.1f}x.jpg'
+                f.write_bytes(grab(float(t)))
+                print('已出', f.relative_to(P))
         elif cmd == 'sheet':  # 总览图：每 N 秒一帧，9 帧一张，存到 sheets/
             from PIL import Image
             import io

@@ -9,7 +9,8 @@
     "lab",
     "glow",
     "morph",
-    "whiteboard"
+    "whiteboard",
+    "anatomy_light"
    ],
    "chrome": "question",
    "components": [
@@ -21,7 +22,8 @@
    "packs_optional": [
     "glow",
     "morph",
-    "whiteboard"
+    "whiteboard",
+    "anatomy"
    ]
   },
   "历史事件": {
@@ -112,7 +114,8 @@
    "styles": [
     "blueprint",
     "iso",
-    "holo"
+    "holo",
+    "anatomy_light"
    ],
    "chrome": "question",
    "components": [
@@ -125,7 +128,8 @@
    ],
    "packs_optional": [
     "iso",
-    "holo"
+    "holo",
+    "anatomy"
    ]
   },
   "企业介绍": {
@@ -158,7 +162,8 @@
    "styles": [
     "blueprint",
     "swiss",
-    "iso"
+    "iso",
+    "anatomy_light"
    ],
    "chrome": "step",
    "components": [
@@ -170,7 +175,8 @@
     "specTable"
    ],
    "packs_optional": [
-    "iso"
+    "iso",
+    "anatomy"
    ]
   },
   "数据解读": {
@@ -282,7 +288,8 @@
     "holo",
     "iso",
     "blueprint",
-    "host"
+    "host",
+    "anatomy_light"
    ],
    "chrome": "label",
    "components": [
@@ -302,7 +309,8 @@
     "industry",
     "holo",
     "iso",
-    "host"
+    "host",
+    "anatomy"
    ]
   },
   "诗意影像": {
@@ -532,7 +540,9 @@
   "void",
   "talk",
   "promo",
-  "liubai"
+  "liubai",
+  "anatomy",
+  "anatomy_light"
  ],
  "packs": [
   "ink",
@@ -559,7 +569,8 @@
   "talk",
   "promo",
   "liubai",
-  "renwu"
+  "renwu",
+  "anatomy"
  ],
  "films": [
   {
@@ -3099,6 +3110,93 @@
    "status": "inbox",
    "from": "他教了半辈子书",
    "since": "2026-10-14",
+   "used_in": []
+  },
+  {
+   "id": "inbox-038",
+   "kind": "check",
+   "name": "器物解剖：几何审计——证明管线不穿模、前后遮挡顺序对、每个线头都落在零件上（上游 kit/audit.mjs）；工坊逐帧画，要先让包里的零件登记真实形状才接得上",
+   "status": "inbox",
+   "from": "wheresryan22/anatomy（MIT）",
+   "since": "2026-10-15",
+   "used_in": []
+  },
+  {
+   "id": "inbox-039",
+   "kind": "check",
+   "name": "器物解剖：线头检查——画里每根纹理线（缝、刻度、肋）必须落在描边、圆点或轮廓上，悬空的圈出来（照上游 scripts/lines.mjs 的量法在 canvas 上重写）",
+   "status": "inbox",
+   "from": "wheresryan22/anatomy（MIT）",
+   "since": "2026-10-15",
+   "used_in": []
+  },
+  {
+   "id": "inbox-040",
+   "kind": "component",
+   "name": "器物解剖：WebGL 着色器层（火焰、喷流、水面焦散、灯光），画在同一个等距相机里，前后各一层 SVG 夹住（上游 kit/gl.mjs）",
+   "status": "inbox",
+   "from": "wheresryan22/anatomy（MIT）",
+   "since": "2026-10-15",
+   "used_in": []
+  },
+  {
+   "id": "inbox-041",
+   "kind": "component",
+   "name": "器物解剖：3D 转动模式（零件真的转起来，按分离平面排前后；上游 kit/turn*.mjs，测试版）",
+   "status": "inbox",
+   "from": "wheresryan22/anatomy（MIT）",
+   "since": "2026-10-15",
+   "used_in": []
+  },
+  {
+   "id": "pack.anatomy",
+   "kind": "pack",
+   "name": "器物解剖（等距精密器械：实体零件、四档明暗、一处高亮、回转体、管线、画框读数）",
+   "pack": "anatomy",
+   "from": "改自 wheresryan22/anatomy（MIT），几何在 kit/packs/anatomy/，接合层、镜头、动作、招牌零件自己写",
+   "demo": "anatomy",
+   "status": "candidate",
+   "since": "2026-10-15",
+   "used_in": []
+  },
+  {
+   "id": "style.anatomy",
+   "kind": "style",
+   "name": "器物解剖·深灰",
+   "pack": "anatomy",
+   "from": "改自 wheresryan22/anatomy（MIT），几何在 kit/packs/anatomy/，接合层、镜头、动作、招牌零件自己写",
+   "demo": "anatomy",
+   "status": "candidate",
+   "since": "2026-10-15",
+   "used_in": []
+  },
+  {
+   "id": "style.anatomy_light",
+   "kind": "style",
+   "name": "器物解剖·纸白",
+   "pack": "anatomy",
+   "from": "改自 wheresryan22/anatomy（MIT），几何在 kit/packs/anatomy/，接合层、镜头、动作、招牌零件自己写",
+   "demo": "anatomy",
+   "status": "candidate",
+   "since": "2026-10-15",
+   "used_in": []
+  },
+  {
+   "id": "flow.器物即解释",
+   "kind": "flow",
+   "name": "招牌镜头先想一台机器：它是什么、什么在动、动代表什么，零件清单写够再画；读数和零件从同一个模型算",
+   "from": "wheresryan22/anatomy 的做图方法（MIT）",
+   "status": "candidate",
+   "since": "2026-10-15",
+   "used_in": []
+  },
+  {
+   "id": "flow.推近审看",
+   "kind": "flow",
+   "name": "审片推近看：招牌镜头放大到三四倍逐处看线头、穿模、遮挡、没收尾的纹理（build.py zoom）",
+   "from": "wheresryan22/anatomy 的审图方法（MIT）",
+   "status": "candidate",
+   "since": "2026-10-15",
    "used_in": []
   }
  ],

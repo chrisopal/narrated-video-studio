@@ -14,6 +14,7 @@
   lines                    写出 lines.txt（id|朗读文本[|语气提示]），交给配音脚本；语气来自句子的 tone 或 brief.voice.style
   timeline                 配音时长（有 audio/words.json 就用逐字时间）→ timeline.json + vo.wav
   stills 3,10,20 [目录]    抽帧检查
+  zoom 时刻 x,y,宽 [目录]  推近审看：以 1 倍画面的坐标框一块（高按画幅比例），按矢量重画放大到整幅 → zoom/（宽 480 就是四倍）
   sheet [间隔秒]           整片总览图（每 5 秒一帧，9 帧一张）→ sheets/
   （文章转视频：先用 python3 ../kit/article.py fetch 网址，见 templates/文章转视频.md）
   check [--no-motion]      交付前总检查：断言、素材授权、回听、口播校对（口播线）、阅读时长、出画、字幕带、重叠、小字、空档、动效、镜头节奏（宣传线） → check_report.json

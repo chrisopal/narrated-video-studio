@@ -183,6 +183,10 @@
 
 ![艺术引擎](docs/images/art_engine.jpg)
 
+**器物解剖**：把一个原理讲成一台看得见的小器械——许多小而准的实体零件、四档明暗、只有此刻要看的那一件高亮，读数、指针和零件都由同一个模型驱动，推近看每处都有真零件。上排纸白、下排深灰；样片是一台虚构的弹簧测力台（数据示意）。几何库改自 [wheresryan22/anatomy](https://github.com/wheresryan22/anatomy)（MIT）
+
+![器物解剖](docs/images/pack_anatomy.jpg)
+
 **制造业隐形冠军 + 重新剪辑素材**：上排是产业图谱包——人形机器人的关节里藏着哪些零件、零件爆炸图、份额和“进口 / 国产”对比（样片用的是虚构企业，数据为示意）；下排是剪辑能力——竖拍素材放进横框的三种铺法、片段之间的擦切、原声先进的 J-cut
 
 ![产业图谱与剪辑](docs/images/industry_recut.jpg)
@@ -331,10 +335,11 @@ python3 ../kit/build.py final 样片            # 出 样片.mp4
 | `SKILL.md` | skill 的启动器：做什么、怎么拿到工坊、不能破的规矩；尽量不改，上传版就不会过期 |
 | `流程.md` | 操作手册：从立项到沉淀的十四步，跟仓库一起更新 |
 | `kit/` | 引擎：`build.py`（构建和检查的命令入口，代码按用途分在 `kit/studio/` 下：配置、声音、时间轴、版本指纹、素材、口播、浏览器、检查、竖版检查、命令）、`workshop.py`（台账、回归样张、复盘）、`kit.js` `components.js`（画面）、`asr.py`（回听）、`article.py`（文章转视频的取文和内容分析）、配音脚本、字体 |
-| `kit/packs/` | 风格包：水墨引擎、固定人物、行迹地图、石印画报、漆屏风（从旧片收进来），扁平发光、概念形变、白板手写、桌面拼贴、动态文字、等距沙盘、全息界面、活体录屏、简笔角色、讲解员、铜版画、木刻版画、案卷、产业图谱、口播版式（自己实现） |
+| `kit/packs/` | 风格包：水墨引擎、固定人物、行迹地图、石印画报、漆屏风（从旧片收进来），扁平发光、概念形变、白板手写、桌面拼贴、动态文字、等距沙盘、全息界面、活体录屏、简笔角色、讲解员、铜版画、木刻版画、案卷、产业图谱、口播版式（自己实现），器物解剖（几何改自 anatomy） |
 | `kit/gallery/` | 回归样张和基线图；也是最好的入门例子 |
 | `templates/` | 口播片（口播线的做法）、宣传片（宣传线的做法）、文章转视频、叙事与创意（拆提示词、三个方向、叙事手法库、逻辑线、声音）、竖版与平台、题材模板（二十三张卡）、风格模板、风格包用法、素材与剪辑、素材授权请求函、制造业隐形冠军选题库、拉片、台账、经验库、更新记录；`速查.md`（题材、brief 字段、组件三张速查表）、`已知限制.md` |
 | `kit/packs/art/` | 艺术引擎的各个库（改自 huashu-art-motion）和接合层；来历、改动和许可在这个目录的 `README.md`、`LICENSE` |
+| `kit/packs/anatomy/` | 器物解剖的几何库（改自 wheresryan22/anatomy）和接合层；来历、改动和许可在这个目录的 `README.md`、`LICENSE` |
 | `tools/` | `selftest.py` 不开浏览器的自检（含 `test_gates.py` 出片门禁回归测试）；`make_skill_zip.sh` 生成上传用的 zip |
 | `docs/images/` | 本页用的效果图 |
 
@@ -345,6 +350,7 @@ python3 ../kit/build.py final 样片            # 出 样片.mp4
 **直接收进了代码的**
 
 - [alchaincyf/huashu-art-motion](https://github.com/alchaincyf/huashu-art-motion)（花叔，MIT）：它的绘画库、动效库和转场库共 16 个文件，改成本仓库的模块方式后放在 `kit/packs/art/`，是艺术引擎（重绘、后期、45 个转场）的主体；逐帧动效检查照它验收脚本的量法重写；九种解说动画语法、经验回流的做法也受它启发。许可全文、取用的提交、改了什么、没取什么，见 [`kit/packs/art/README.md`](kit/packs/art/README.md)。
+- [wheresryan22/anatomy](https://github.com/wheresryan22/anatomy)（Ryan，MIT）：它的等距几何核心、回转体和管线三个模块，去掉 SVG 输出后放在 `kit/packs/anatomy/`，是风格包“器物解剖”的主体；“原理就是一台机器”的做图方法（先想机器、零件清单、一处高亮、线都有着落、推近看细节、读数和零件同一个模型）写进了风格包文档、叙事手法“原理即机器”和流程第 9–11 步，`build.py zoom` 推近审看照它的审图方法做。许可全文、取用的提交、改了什么、没取什么（几何审计、WebGL 光效、3D 转动），见 [`kit/packs/anatomy/README.md`](kit/packs/anatomy/README.md)。
 
 **借鉴了思路、规则是重新写的**
 
@@ -399,6 +405,6 @@ python3 ../kit/build.py final 样片            # 出 样片.mp4
 
 ## 许可
 
-本仓库自己写的代码、模板和文档按 [MIT 许可](LICENSE)。艺术引擎的上游源码（huashu-art-motion，MIT）、字体和海岸线数据来自第三方，各按自己的许可，见 [THIRD_PARTY.md](THIRD_PARTY.md)。
+本仓库自己写的代码、模板和文档按 [MIT 许可](LICENSE)。艺术引擎的上游源码（huashu-art-motion，MIT）、器物解剖的几何库（anatomy，MIT）、字体和海岸线数据来自第三方，各按自己的许可，见 [THIRD_PARTY.md](THIRD_PARTY.md)。
 
 你用它做出来的视频归你；片子里引用的事实、原文、照片和视频素材的来源与授权由做片子的人负责，工具只负责帮你把台账记清楚。
