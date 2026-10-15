@@ -145,6 +145,24 @@ def main(doc):
         ):  # 器物解剖包：线头和几何审计（逐帧量，用 build.py anatomy 看细节和圈出来的图）
             ra = get_anatomy(tl, cache='--fresh' not in sys.argv)
             rep['器物线头'], rep['器物几何'] = anatomy_check(ra)
+            if ra.get(
+                'turns'
+            ):  # 有 3D 转动：轨道审计太慢，不在 check 里跑；读 build.py anatomy --turn 留下的结果，画面改过就要重跑
+                tr = jload('_anatomy_turn.json')
+                if not tr or tr.get('_fp') != fingerprint('pic')[0]:
+                    rep['3D 轨道'] = (
+                        [],
+                        [
+                            '3D 转动的部分还没跑轨道审计，或者画面改过了：python3 ../kit/build.py anatomy --turn（先 --quick 看，出片前跑完整的一遍）'
+                        ],
+                    )
+                elif tr['failures']:
+                    rep['3D 轨道'] = (
+                        [f"3D 轨道审计有 {tr['failures']} 项不通过：python3 ../kit/build.py anatomy --turn 看细节"],
+                        [],
+                    )
+                else:
+                    rep['3D 轨道'] = ([], ['3D 轨道审计只跑了 quick，出片前跑完整的一遍'] if tr.get('quick') else [])
             print(
                 f"   器物：量了 {ra['frames']} 帧，{ra['parts']} 件次零件、{ra['lines']} 根纹理线（{ra['ms'] / 1000:.0f} 秒）"
             )
@@ -471,6 +489,42 @@ def main(doc):
             if 'anatomy' not in BRIEF.get('packs', []):
                 print('这条片没有用 anatomy 包（brief.json 的 packs）')
                 sys.exit(1)
+            if (
+                '--turn' in sys.argv
+            ):  # 3D 转动的轨道审计：用这条片子自己的每一帧（quick 每秒 10 帧），慢，几十秒到几分钟
+                pg.set_default_timeout(3600 * 1000)
+                res = pg.evaluate('o=>window.anatomyTurnAudit(o)', {'quick': '--quick' in sys.argv})
+                if not res:
+                    print('这条片没有 3D 转动的部分（turn3d）')
+                    sys.exit(0)
+                from .state import fingerprint as _fp
+
+                bad = 0
+                for x in res:
+                    print(
+                        f"── 3D {x['name']}：{x['parts']} 个零件，{x['ms'] / 1000:.0f} 秒{'（quick：采样稀，只有完整的一遍算数）' if '--quick' in sys.argv else ''}"
+                    )
+                    print(x['report'])
+                    bad += x['failures']
+                json.dump(
+                    {
+                        '_fp': _fp('pic')[0],
+                        'quick': '--quick' in sys.argv,
+                        'failures': bad,
+                        'groups': [{k: x[k] for k in ('name', 'parts', 'failures')} for x in res],
+                    },
+                    open(P / '_anatomy_turn.json', 'w'),
+                    ensure_ascii=False,
+                )
+                print(
+                    (
+                        '✗ 3D 轨道审计：%d 项不通过（每一行的意思和改法见 templates/风格包.md「anatomy」的 3D 一节）'
+                        % bad
+                    )
+                    if bad
+                    else '✓ 3D 轨道审计通过' + ('（quick）' if '--quick' in sys.argv else '')
+                )
+                sys.exit(1 if bad else 0)
             arg = next((a for a in sys.argv[2:] if not a.startswith('--') and re.fullmatch(r'[\d.,]+', a)), None)
             step = float(sys.argv[sys.argv.index('--step') + 1]) if '--step' in sys.argv else 0.5
             r = pg.evaluate(

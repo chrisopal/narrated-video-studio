@@ -576,6 +576,20 @@
     21,
     27
    ]
+  },
+  {
+   "name": "anatomy3d",
+   "themes": [
+    "anatomy",
+    "anatomy_light"
+   ],
+   "shots": [
+    3,
+    8,
+    13,
+    16,
+    22
+   ]
   }
  ]
 }

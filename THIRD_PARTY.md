@@ -12,7 +12,7 @@
 | 全图粗海岸线（`LAND_W`） | `kit/packs/map.js` | 旧片带来的数据，**原始来源这次没有核对到**；介意的话换成自己确认过来源的数据 |
 | 江河、湖、山、地名的经纬度 | `kit/packs/map.js` | 本项目手工录入的示意数据，不是测绘成果，不可作为地理依据 |
 | 艺术引擎的各个库 | `kit/packs/art/`（`index.js` 除外，那是本项目写的接合层） | 改自 alchaincyf/huashu-art-motion，MIT License，Copyright (c) 2026 alchaincyf。许可全文在 `kit/packs/art/LICENSE`，取用的提交、改动和没取的部分在 `kit/packs/art/README.md`。上游作者的卡通形象不在 MIT 范围内，没有收进来 |
-| 器物解剖的几何库 | `kit/packs/anatomy/isokit.js` `lathe.js` `tube.js`（`index.js` 除外，那是本项目写的接合层） | 改自 wheresryan22/anatomy，MIT License，Copyright (c) 2026 Ryan。许可全文在 `kit/packs/anatomy/LICENSE`，取用的提交、改动和没取的部分在 `kit/packs/anatomy/README.md` |
+| 器物解剖的引擎 | `kit/packs/anatomy/` 下的 `isokit.js` `lathe.js` `tube.js` `audit.js` `gl.js` `turn.js` `turn-canvas.js` `turn-build.js` `turn-audit.js`（`index.js` `check.js` `fx.js` `turn3d.js` 除外，那是本项目写的） | 改自 wheresryan22/anatomy，MIT License，Copyright (c) 2026 Ryan。许可全文在 `kit/packs/anatomy/LICENSE`，取用的提交、改动和没取的部分在 `kit/packs/anatomy/README.md` |
 | Inter、Computer Modern Unicode、Press Start 2P | `kit/fonts/art/` | 各自作者，SIL Open Font License 1.1（`kit/fonts/art/OFL.txt`） |
 | JetBrains Mono | `kit/fonts/gen/` | JetBrains，SIL Open Font License 1.1（`kit/fonts/gen/OFL.txt`） |
 

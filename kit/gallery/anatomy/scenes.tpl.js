@@ -1,5 +1,5 @@
 (() => {
-const { K, G, view, fit, camLerp, at, solid, line, dots, wire, pipe, turned, softShadow, follow, spring, env, drop,
+const { K, G, washer, view, fit, camLerp, at, solid, line, dots, wire, pipe, turned, softShadow, follow, spring, env, drop,
   basePlate, ruler, labelPlate, rail, post, knob, coil, dial, plate, on, look } = PACK.anatomy;
 // 题目（虚构的小器械，数字都是示意）：一台弹簧测力台。拧旋钮，丝杠推着滑台压弹簧；表盘和读数都读同一个模型。
 // 世界坐标：x 朝右下、y 朝左下、z 朝上；单位约等于真东西的 1 毫米。
@@ -24,49 +24,54 @@ function machine(t, P, d) {
   const dz = t0 => drop(t, a0 + t0, { h: 36 });
   // 底座、铭牌、刻度尺
   const zB = dz(0); if (zB === Infinity) return;
-  { const P0 = zB ? view({ ...P.v, sy: P.v.sy - zB * P.v.s * .3 }) : P; basePlate(P0, PLATE, { z: 0 }); }
+  basePlate(P, PLATE, { z: zB });                       // 底座从上面落下来（整块抬高 zB）
   if (zB > 2) return;
   if (t > a0 + .5) { labelPlate(P, { x: 76, y: -52, w: 42, d: 16, r: 2 }, 0); ruler(P, { x: -116, y: 44, w: 136, z: 0, zero: -90 }) }
   // 左固定座（拉力传感器座）
   const zA = dz(.6); if (zA !== Infinity) {
-    solid(K.slabOf({ x: -104, y: -30, w: 14, d: 60, r: 2 }, zA, 24, P, 4, .8), { tone: 'mid', halo: zA > 0 });
+    solid(K.slabOf({ x: -104, y: -30, w: 14, d: 60, r: 2 }, zA, 24, P, 4, .8), { tone: 'mid', halo: zA > 0, name: 'anchor' });
     dots([[-100, -24], [-100, 24], [-94, -24], [-94, 24]].map(([x, y]) => at([x, y, zA + 24], P)), { size: .5 });
   }
   const zR = dz(1.1), rodsIn = zR !== Infinity;
-  const rodSlab = (x0, x1, y) => K.slabOf({ x: x0, y: y - 2, w: x1 - x0, d: 4, r: 1.8 }, ROD_Z - 2 + (rodsIn ? zR : 0), 4, P, 3);
+  const rodSlab = (x0, x1, y) => G.disc(x0, x1, 2, G.frameAlong([0, y, ROD_Z + (rodsIn ? zR : 0)], [1, 0, 0]), P);   // 圆杆：沿 x 的圆柱，半径 2
   const carIn = drop(t, a0 + 1.6) !== Infinity, springsIn = t > a0 + 2.1, sk = eo(seg(t, a0 + 2.1, a0 + 2.9));
   // 远的那根导杆：左段 + 弹簧（背面半圈 → 杆 → 正面半圈）
   for (const y of ROD_Y) {
     if (!rodsIn) break;
-    const left = () => solid(rodSlab(ANCHOR, carIn ? cx - 14 : STOP, y), { tone: 'mid', crease: 'none' });   // 滑台还没装上时是一整根
-    if (springsIn) coil(P, { from: ANCHOR, to: ANCHOR + (cx - 14 - ANCHOR) * sk, center: [y, ROD_Z], r: 4.4, turns: 7, axis: 'x', tone: 'hi' }, left); else left();
+    const left = () => solid(rodSlab(ANCHOR, carIn ? cx - 14 : STOP, y), { tone: 'mid', crease: 'none', name: 'rod' });   // 滑台还没装上时是一整根
+    if (springsIn) {   // 弹簧座贴在左座上，杆从座的外面开始（座孔里那一截被杆头盖住，看不见）；再画弹簧（背面半圈 → 杆 → 正面半圈）
+      washer(P, [ANCHOR + .6, y, ROD_Z], { r: 4.4, hole: 2, t: 1.2, name: 'spring.seat' });   // 座和弹簧一样大，弹簧的头正好落在座的边上
+      coil(P, { from: ANCHOR + 1.2, to: ANCHOR + 1.2 + (cx - 15.2 - ANCHOR) * sk, center: [y, ROD_Z], r: 4.4, turns: 7, axis: 'x', tone: 'hi' }, () => solid(rodSlab(ANCHOR + 1.2, carIn ? cx - 14 : STOP, y), { tone: 'mid', crease: 'none', name: 'rod' }));
+    } else left();
   }
   // 滑台：底板、四个衬套、前沿铆钉、一块接触块
   const zC = dz(1.6); if (zC !== Infinity) {
     const z0 = 4 + zC, body = { x: cx - 14, y: -26, w: 28, d: 52, r: 3 };
-    solid(K.slabOf(body, z0, 16, P, 5, .6), { tone: 'hi', lit: lit === 'carriage' && t > A('a2') + .2, halo: zC > 0 });
+    solid(K.slabOf(body, z0, 16, P, 5, .6), { tone: 'hi', lit: lit === 'carriage' && t > A('a2') + .2, halo: zC > 0, name: 'carriage' });
     for (const [bx, by] of K.corners(body, 5)) { line(K.ring(bx, by, 2.4, z0 + 16, P, 18), { tone: 'lo' }); dots([at([bx, by, z0 + 16], P)], { size: .5 }) }
     dots([-9, -3, 3, 9].map(k => at([cx + 14, k * 2, z0 + 3], P)), { size: .4, tone: 'lo' });
     line(K.planOutline(K.insetPlan(body, 7), z0 + 16, P), { tone: 'faint' });
   }
   // 右边：远的导杆右段 → 远的挡柱 → 推杆（车削出来的球头，从两根挡柱中间穿过）→ 近的导杆右段 → 近的挡柱 → 丝杠座和旋钮
-  const zS = dz(.9), zK = dz(2.4), pillar = y => { if (zS !== Infinity) solid(K.slabOf({ x: STOP, y: y - 7, w: 10, d: 14, r: 2 }, zS, 22, P, 4, .8), { tone: 'mid' }) };
-  if (rodsIn && carIn) solid(rodSlab(cx + 14, STOP, ROD_Y[0]), { tone: 'mid', crease: 'none' });
+  const zS = dz(.9), zK = dz(2.4), pillar = y => { if (zS !== Infinity) solid(K.slabOf({ x: STOP, y: y - 7, w: 10, d: 14, r: 2 }, zS, 22, P, 4, .8), { tone: 'mid', name: 'stop' }) };
+  if (rodsIn && carIn) solid(rodSlab(cx + 14, STOP, ROD_Y[0]), { tone: 'mid', crease: 'none', name: 'rod' });
   pillar(ROD_Y[0]);
   if (zK !== Infinity) { const tip = cx + 14;
-    turned(P, [[0, 0], [0, 1.4], [.6, 2.4, 1], [1.6, 3, 1], [3, 3.1], [3, 2.2], [BLOCK - tip, 2.2]], G.frameAlong([tip, 0, ROD_Z + zK], [1, 0, 0]), {}, { tone: 'hi' }) }
-  if (rodsIn && carIn) solid(rodSlab(cx + 14, STOP, ROD_Y[1]), { tone: 'mid', crease: 'none' });
+    turned(P, [[0, 0], [0, 1.4], [.6, 2.4, 1], [1.6, 3, 1], [3, 3.1], [3, 2.2], [BLOCK - tip, 2.2]], G.frameAlong([tip, 0, ROD_Z + zK], [1, 0, 0]), {}, { tone: 'hi', name: 'pushrod' }) }
+  if (rodsIn && carIn) solid(rodSlab(cx + 14, STOP, ROD_Y[1]), { tone: 'mid', crease: 'none', name: 'rod' });
   pillar(ROD_Y[1]);
   if (zK !== Infinity) {
     const B = { x: BLOCK, y: -14, w: 18, d: 28, r: 2.5 };
-    solid(K.slabOf(B, zK, 24, P, 4, .8), { tone: 'mid', halo: zK > 0, inner: () => line(K.sideSeam(B, zK + 8, P, 4), { tone: 'faint' }) });
+    solid(K.slabOf(B, zK, 24, P, 4, .8), { tone: 'mid', halo: zK > 0, name: 'screw.block', inner: () => line(K.sideSeam(B, zK + 8, P, 4), { tone: 'faint' }) });
     knob(P, BLOCK + 9, 0, zK + 24, { r: 8, h: 6, angle: -d / PITCH * Math.PI * 2, lit: lit === 'knob' && t > A('a1') - .2 && t < A('a2') + .2 });
   }
   // 信号线：从左座前面的接口沿板面走到表的立柱脚（画在立柱和表之前：它在表的后下方）
-  if (t > a0 + 3.2) {
-    const k = eo(seg(t, a0 + 3.2, a0 + 4.4)), end = [DIAL[0] - 4.6, DIAL[1] - 2, 2.5], route = G.fillet([[-97, 30, 6], [-97, 35, 1.4], [DIAL[0] - 12, 35, 1.4], end], 3.2);
+  if (t > a0 + 3.8) {
+    // 从左座前面的接口垂直出来、落到板面上、沿板面走、最后沿半径方向落到立柱的套环上；电缆躺在底座上，审计时说明它可以贴着底座
+    const C = [DIAL[0], DIAL[1]], dir = [C[0] - 30, C[1] - 37], dl = Math.hypot(...dir), end = [C[0] - dir[0] / dl * 4.8, C[1] - dir[1] / dl * 4.8, 1.1];
+    const k = eo(seg(t, a0 + 3.8, a0 + 5.0)), route = G.fillet([[-97, 30, 6], [-97, 37, 6], [-97, 37, 1.1], [30, 37, 1.1], end], 3.2);
     const L = G.pathLength(route), part = G.cut(route, 0, Math.max(.5, L * k));
-    pipe(P, part, 1.1, { tone: 'mid', caps: true });
+    pipe(P, part, 1.1, { tone: 'mid', caps: true, name: 'signal', limp: true, touch: ['stand.base'], free: [false, k < 1] });
     if (k >= 1) dots([at([-97, 30, 6], P)], { size: 1, tone: 'hi' });
   }
   // 表：立柱上的表盘

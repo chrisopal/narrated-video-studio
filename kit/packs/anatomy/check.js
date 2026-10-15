@@ -174,7 +174,7 @@ window.anatomyScan = async (o = {}) => {
   const dt = o.step || .5;
   for (const [k, e] of seen) if (e.kind === 'support' && (o.times ? false : e.n * dt <= 1)) seen.delete(k);
   const list = [...seen.values()].map(e => ({ kind: e.kind, msg: e.msg + (e.n > 1 ? `（${e.t.toFixed(1)}–${e.last.toFixed(1)}s 共 ${e.n} 帧）` : ''), t: e.t, at: e.at }));
-  return { frames, ends, lines: nlines, parts, ms: Math.round(performance.now() - t0), list };
+  return { frames, ends, lines: nlines, parts, turns: (A.TURNS || []).length, ms: Math.round(performance.now() - t0), list };
 };
 // 在画面上圈出问题（build.py anatomy --out 用）：画完这一帧以后调
 window.anatomyMarks = (marks) => {

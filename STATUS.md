@@ -1,5 +1,11 @@
 # 状态
 
+## 2026-10-16 · 器物解剖收全：几何审计、线头检查、WebGL 光效、3D 转动
+
+- 范围：`kit/packs/anatomy/` 新增 `audit.js` `gl.js` `turn.js` `turn-canvas.js` `turn-build.js` `turn-audit.js`（改自上游 e948829）和 `check.js` `fx.js` `turn3d.js`（自己写）；`index.js` 加审计登记、`washer`、`drop` 只往上弹、刻度和滚花生根；`kit/studio/` 的 check 三项和 `build.py anatomy`；样片 `anatomy` 重画、`anatomy3d` 新增；`tools/selftest.py`（模块名带连字符、许可文件）、`tools/test_checks.py`；README 致谢、风格包.md、流程.md、已知限制.md、台账。版本 `2026.10.16-1`。
+- 验证：两条样片 `build.py anatomy` 全过（2D 64 帧、3D 51 帧），3D 样片完整轨道审计通过（478 秒）；埋了三个错的对照片，三个都被拦下并圈对位置；`check` 0 项不通过（确定性通过：WebGL 和 3D 同一时刻画两遍一样）；回归样张 anatomy、anatomy3d 20 张新基线，重跑逐张相同；自检、检查逻辑测试全部通过。
+- 边界：都还没进过成片。光效在软件渲染（SwiftShader）和真显卡上有细微差别；3D 引擎和画布画家是上游的测试版和实验件；完整轨道审计几分钟到十几分钟，check 不跑只读结果；3D 部分镜头只能推拉平移；二维零件和活动层的前后关系只认 `h.fixed` 登记的。
+
 ## 2026-10-15 · 收进 wheresryan22/anatomy：风格包“器物解剖”和推近审看
 
 - 范围：`kit/packs/anatomy.js` 和 `kit/packs/anatomy/`（上游三个几何模块 + 自己写的接合层、LICENSE、README）；样片 `kit/gallery/anatomy`（两套主题）和基线；`build.py zoom`（`kit/studio/cli.py`）；风格包.md、风格模板.md、叙事与创意.md、题材模板.md、速查.md、流程.md、README、THIRD_PARTY、来源与许可、台账。版本 `2026.10.15-3`。

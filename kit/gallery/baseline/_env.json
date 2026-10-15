@@ -1,4 +1,14 @@
 {
+ "anatomy3d_anatomy": {
+  "browser": "141.0.7390.37",
+  "os": "Linux x86_64",
+  "song": "NotoSerifCJK-Regular.ttc:93069d8e9e45"
+ },
+ "anatomy3d_anatomy_light": {
+  "browser": "141.0.7390.37",
+  "os": "Linux x86_64",
+  "song": "NotoSerifCJK-Regular.ttc:93069d8e9e45"
+ },
  "anatomy_anatomy": {
   "browser": "141.0.7390.37",
   "os": "Linux x86_64",

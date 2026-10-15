@@ -276,6 +276,7 @@ function on(ctx, fn) { const old = X; X = ctx; try { fn() } finally { X = old } 
 const okPlan = (pl, who) => { const bad = !pl || ['x', 'y', 'w', 'd'].some(k => typeof pl[k] !== 'number' || !isFinite(pl[k])); if (bad) console.error(`anatomy.${who}：平面要写成 {x, y, w, d, r}（x、y 是起始角），收到`, JSON.stringify(pl)); return !bad };
 for (const name of ['slabOf', 'planOutline', 'insetPlan', 'haloOf', 'sideSeam', 'ringOf']) { const f = K[name]; K[name] = (pl, ...a) => (okPlan(pl, 'K.' + name), f(pl, ...a)) }
 A.brush = () => X;   // 当前画笔（fx 光效要贴回同一支笔上）
+A.tokens = tok; A.lineWidth = () => LOOK.lw;   // 3D 舞台照着这一套颜色和线宽画
 Object.assign(A, { lookScale: U, DARK, LIGHT, look, P2, solid, softShadow, line, faded, dots, wire, fadeLine, tubePiece, pipe, turned, onFace,
   view, fit, camLerp, at, byDepth, follow, spring, env, drop, basePlate, ruler, labelPlate, rail, post, knob, coil, washer, dial, plate, on });
 })();

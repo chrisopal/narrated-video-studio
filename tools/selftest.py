@@ -46,13 +46,15 @@ import re
 for f in sorted((R / 'kit/packs').glob('*.js')):
     src = f.read_text(encoding='utf-8'); m = re.search(r"\[([^\]]*)\]\s*\.forEach\(m=>document\.write\('<script src=\"/kit/packs/(\w+)/'", src)
     if m:
-        mods = re.findall(r"'(\w+)'", m.group(1)); d = R / 'kit/packs' / m.group(2); miss = [x for x in mods if not (d / f'{x}.js').exists()]; extra = [x.stem for x in d.glob('*.js') if x.stem not in mods]
+        mods = re.findall(r"'([\w-]+)'", m.group(1));   # 模块名可以带连字符（turn-build）
+        d = R / 'kit/packs' / m.group(2); miss = [x for x in mods if not (d / f'{x}.js').exists()]; extra = [x.stem for x in d.glob('*.js') if x.stem not in mods]
         ok(f'{f.name} 的模块齐全', not miss and not extra, f'缺 {miss}，目录里多出 {extra}')
         if shutil.which('node'):
             for x in mods:
                 r = subprocess.run(['node', '--check', str(d / f'{x}.js')], capture_output=True, text=True); ok(f'JS 语法 kit/packs/{m.group(2)}/{x}.js', r.returncode == 0, r.stderr.strip().split('\n')[0] if r.stderr else '')
 # 改自别人项目的代码，许可全文要跟着走
 ok('艺术引擎的许可和来历说明在', (R / 'kit/packs/art/LICENSE').exists() and (R / 'kit/packs/art/README.md').exists())
+ok('器物解剖的许可和来历说明在', (R / 'kit/packs/anatomy/LICENSE').exists() and (R / 'kit/packs/anatomy/README.md').exists())
 gone = [str(p.relative_to(R)) for p in list(R.glob('*.md')) + list((R / 'templates').glob('*.md')) + list((R / 'kit').rglob('*.js')) + list((R / 'kit').glob('*.py')) + list((R / 'kit').glob('*.html')) if p.name not in ('更新记录.md', 'STATUS.md') and re.search(r'legacy/|mkpacks|mkart', p.read_text(encoding='utf-8'))]
 ok('没有指向已删除的 legacy 目录的说明', not gone, str(gone))
 # 文章转视频：用一份仿公众号页面的样例跑取文和分析
