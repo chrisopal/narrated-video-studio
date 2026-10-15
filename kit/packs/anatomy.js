@@ -68,18 +68,44 @@
      glow   {at, r, heat, plan}            发热的面（加热片、烙铁头、焊点的热斑）；plan 把光晕限制在台面上
      flame  {base, dir, r, len, power}      火焰或喷流（dir 1 向上、-1 向下）
      steam  {base, r, rise, density, drift} 蒸汽、烟
-     lamp   {at, z, r, power, warm, plan}   灯光落在台面上（先画光，再画立在台面上的东西）
+     lamp   {at, z, r, power, warm, plan}   灯光落在台面上：at 是灯头的三维点，z 是被照的台面高度，r 是光斑半径（先画光，再画立在台面上的东西）
      water  {plan, z, src:[[x,y,相位]…], wave, freq, amp, power}  一池水的波纹（最多 4 个振源）
      sparks {at, t0, t1, rate, life, speed, dir, spread, gravity, floor, seed}  按抛物线飞的火花，落地就灭
+     at、base 都是世界坐标的三维点 [x, y, z]，也可以直接给 S.anchor(…) 的结果。
      顺序：画完被光效盖住的零件之后、画盖住光效的零件之前调用。强度参数一律骑在包络上：env、settle(t, keys, 秒)、burst(年龄, 升, 落)。
      深色主题发光用 screen 叠加（只加亮）；浅色主题按“纸上要看到的颜色”反解墨：饱和的主体、淡的芯、空中不放光晕。
 
    七、3D 转动（turn3d.js；引擎是上游的 turn-build / turn-canvas / turn-audit）
-     const S = turn3d(P, (T, h) => {…}, {pose: t => ({组名: 角度…})})   构建在第一次画的时候做，按 pose(t) 采样整片会出现的姿态
+     最小例子（一个转台，上面一块棱柱；底座登记成地；热斑跟着转台上的一个点走）：
+     (() => { const { K, AU, fit, plate, basePlate, turn3d, fx } = PACK.anatomy;
+       const BASE = { x: -80, y: -80, w: 160, d: 160, r: 8 };
+       const P = fit(K.boxCorners(BASE, -20, 40), { x: 240, y: 160, w: W - 480, h: H - 400 }, { az: 40 });
+       const S = turn3d(P, (T, h) => {                                   // 写在 scenes() 外面
+         h.fixed('stand.base', AU.slab(BASE, -12, 12), 'back', { ground: true });   // AU.slab(平面, 底面高度, 厚度)
+         const tbl = T.group('table', { turn: { pivot: [0, 0] } });         // pivot 是 [x, y]，绕竖直轴转，值的单位是度
+         T.round({ name: 'table.disc', group: tbl, layer: h.layer.live, F: h.VERT(0, 0), s0: 0, s1: 6, r: 50, material: 'steel' });   // 圆柱：沿 F 的轴从 s0 到 s1，半径 r
+         T.prism({ name: 'table.block', group: tbl, layer: h.layer.live, plan: { x: 16, y: -6, w: 20, d: 12, r: 2 }, z: 6, h: 9, material: 'brass' });   // 竖直棱柱：平面、底面高度、高
+       }, { pose: t => ({ table: 40 * t }) });
+       window.FILM = { theme: 'anatomy', chrome: 'none', cover: { title: '例子', art() {} },
+         scenes(t) { plate(t, 0, { fig: '图 1', title: '转台（示意）', draw: () => {
+           basePlate(P, BASE); S.draw(t, P, 'live');
+           fx('glow', t, P, { at: S.anchor(t, 'table', [26, 0, 15]), r: 4, heat: .8 });   // anchor：组里静止时的一个点现在在哪
+         } }) } };
+     })();
+     const S = turn3d(P, (T, h) => {…}, {pose: t => ({组名: 值…}), layers: ['live'], name})   构建在第一次画的时候做，按 pose(t) 采样整片会出现的姿态
        T.group(名, {turn:{pivot}} | {slide:{direction,travel}} | {hinge:{point,axis,range}} | {free:{origin}})  组
-       T.round / T.prism / T.ball / T.tube / T.lathe / T.plane / T.split  凸零件（参数见上游 references/3d.md），material: steel gold chrome brass copper gunmetal rubber
+       零件（每个都要 name、group: T.group 的返回值、layer: h.layer.名字；可选 tone crease lit material details）：
+         T.round({F, s0, s1, r 或 [r0, r1], ends: ['flat'|'dome'|'open', …]})  圆柱、圆台、胶囊：沿框架 F 的轴（h.VERT(x,y) 是竖直轴）
+         T.prism({plan, z, h, bevel}) 竖直棱柱 · T.prism({F, polygon, s0, s1}) 任意方向的凸多边形柱 · T.ball({c, r, flats:[{n, d}]}) 球
+         T.tube({route, r, gaps, material, hue}) 管线 · T.lathe({F, profile}) 凸回转体（贵）· T.plane / T.billboard 面上的线和字 · T.split 切开
+         material: steel gold chrome brass copper gunmetal rubber；details: {seams:[s…], ribs:{s0,s1,count}, bolts:[{s,r,count}], dots:[{at,normal}]}
+       组：{turn:{pivot:[x,y]}} 绕竖直轴、值是度 · {slide:{direction,travel}} 滑、值是距离 · {hinge:{point,axis,range:[lo,hi]}} 铰、值是度 · {free:{origin}} 自由
+       AU 形状（给 h.fixed 和 solid 的 shape 用）：AU.slab(平面, 底面高度, 厚度) · AU.cylinder(cx, cy, r, 底面高度, 高) · AU.box(最小角, 最大角) · AU.solid(F, 半剖面)
        h.layer.live 活动层 · h.VERT(x,y) 竖直轴的框架 · h.fixed(名, AU.slab(…), 'back'|'front', {ground}) 登记二维画的静止零件（底座、立柱）
-     S.draw(t, P现在, 'live')  在这一笔画活动层（镜头只能推拉平移）· S.anchor(t, 组, 静止时的点) 光效跟着零件走
+     S.draw(t, P现在, 'live')  在这一笔画活动层（镜头只能推拉平移）· S.anchor(t, 组, 静止时的点) → {world, screen, direction}，整个交给 fx 的 at 就行
+     光效要夹在活动零件中间（转台面上的热斑被台上的零件挡住）：分两层 layers: ['table', 'parts']，零件放进各自的层，
+       S.draw(t, P, 'table'); fx(…); S.draw(t, P, 'parts')。同一层里的零件之间插不进光效。
+     二维零件：活动层之前画的登记成 'back'，之后画的登记成 'front'（h.fixed 的第三个参数）；登记错了构建会说“static … is in front of live layer”
      审计：build.py anatomy --turn [--quick] 用这条片子自己的每一帧跑上游的轨道审计（穿模、遮挡环、跳变、连续性）；check 读它留下的结果
 
    许可：kit/packs/anatomy/LICENSE（原项目 MIT 全文）；取了什么、改了什么、没取什么：kit/packs/anatomy/README.md */

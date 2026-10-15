@@ -11,6 +11,10 @@ const A = PACK.anatomy, K = A.K, G = A.G;
 const UNIT = Math.sqrt(1.6);
 A.TURNS = [];
 function turn3d(P, build, { pose, follow = (v) => v, layers = ['live'], name = '3d', step = .1 } = {}) {
+  // 要写在 scenes() 外面（脚本顶层），只建一次；写进了 scenes() 会每帧都调到：这里认出同名的就直接用原来那个
+  const old = A.TURNS.find(x => x.name === name);
+  if (old) { if (!old.warnedTwice) console.error(`anatomy.turn3d：“${name}”建了不止一次。turn3d 要写在 scenes() 外面；两台不同的 3D 机器要起不同的 name`); old.warnedTwice = true; return old }
+  if (typeof pose !== 'function') console.error('anatomy.turn3d：要给 pose: t => ({组名: 值…})，构建和审计都靠它');
   const S = { name, P, pose, follow, layers, built: null };
   // 构建在第一次画的时候做（那时时间轴已经有了，才知道整片有多长、要采样哪些姿态）
   S.build = () => {
@@ -56,6 +60,7 @@ function turn3d(P, build, { pose, follow = (v) => v, layers = ['live'], name = '
     X.save(); X.setTransform(1, 0, 0, 1, 0, 0); X.drawImage(c, 0, 0, c.width / dpr, c.height / dpr); X.restore();
   };
   // 光效跟着零件走：组里一个静止时的点（和方向）现在在哪 —— {world, screen, direction}；screen 是构建镜头下的，要换成现在的镜头用 at(world, Pnow)
+  // 返回 {world, screen, direction}；交给 fx 时直接给整个结果或它的 .world 都行
   S.anchor = (t, group, restPoint, restDir) => { S.at(t); return S.ctl.anchor(group, restPoint, restDir) };
   // 轨道审计：拿这条片子自己的每一帧（pose(t)）当动作片段，查穿模、遮挡环、跳变、连续性……（慢：按零件数和帧数，几十秒到几分钟）
   S.audit = ({ quick = false, from = 0, to = null, fps = 30, only = null, log = null } = {}) => {
@@ -68,6 +73,7 @@ function turn3d(P, build, { pose, follow = (v) => v, layers = ['live'], name = '
 }
 // 整片的 3D 轨道审计（build.py anatomy --turn 调它；check 只读它留下的结果）
 window.anatomyTurnAudit = async (o = {}) => {
+  await window.renderFrameA(0);   // 先画一帧：turn3d 写在 scenes() 里的也能登记上
   const out = [];
   for (const S of A.TURNS) { const t0 = performance.now(), r = S.audit(o); out.push({ name: S.name, report: r.report, failures: r.failures, parts: S.built.out.report.parts, ms: Math.round(performance.now() - t0) }) }
   return out;

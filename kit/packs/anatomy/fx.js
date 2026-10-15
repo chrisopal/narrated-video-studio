@@ -153,6 +153,13 @@ function screenBox(P, b, pad, X) {
 /* fx(名字, t, P, 参数, {blend, ctx})：画一个光效。blend 不给时：发光的在深色主题用 screen（只加亮），其余正常叠加；浅色主题一律正常叠加 */
 function fx(name, t, P, o = {}, { blend } = {}) {
   const def = EFFECTS[name]; if (!def) { console.error('anatomy.fx：没有这个光效', name, Object.keys(EFFECTS)); return }
+  // 三维点参数：S.anchor(…) 的结果直接给也行（取它的 world）；不是三个数就说清楚，不让它画出一张 0 宽的画布
+  o = { ...o };
+  for (const k of ['at', 'base']) if (o[k] !== undefined) {
+    if (o[k] && o[k].world) o[k] = o[k].world;
+    if (!Array.isArray(o[k]) || o[k].length !== 3 || o[k].some(v => typeof v !== 'number' || !isFinite(v))) { console.error(`anatomy.fx('${name}')：${k} 要是世界坐标的三维点 [x, y, z]（或 S.anchor(…) 的结果），收到`, JSON.stringify(o[k])); return }
+  }
+  if (name === 'water' && !(o.plan && ['x', 'y', 'w', 'd'].every(k => typeof o.plan[k] === 'number'))) { console.error("anatomy.fx('water')：plan 要写成 {x, y, w, d, r}"); return }
   const X = A.brush(), m = X.getTransform(), ratio = Math.min(4, Math.max(1, Math.sqrt(Math.abs(m.a * m.d - m.b * m.c))));
   const box = screenBox(P, def.bounds(o), 24, X); if (!box) return;
   const light = TH && TH.light ? 1 : 0, mode = blend || (def.emissive && !light ? 'screen' : 'source-over');
