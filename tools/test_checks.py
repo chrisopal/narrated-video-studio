@@ -155,6 +155,12 @@ r = VR(['轴承省力了吗。', '轮子在慢慢转。', '摩擦变小了呢。
 r = VR(['滚动轴承为什么能省力气呢？', '先看一个正在滚动的轮子吧。']); ok('配音语速：每秒十个字，提醒偏快', has(r.get('w', []), '偏快'), r)
 r = VR(['轴承省力。', '轮子在转。'], brief={'mode': 'talk'}); ok('配音语速：口播线是原声，不查', r.get('w') == [], r)
 
+# ---------- 器物解剖：几何审计和线头检查的分类（扫描在浏览器里跑，这里喂手写的结果） ----------
+AN = lambda lst: run(project(), "out([list(map(list, x)) for x in B.anatomy_check({'list': %s})])" % json.dumps(lst, ensure_ascii=False))
+r = AN([{'kind': 'line', 'msg': '线头悬空'}, {'kind': 'order', 'msg': '遮挡顺序画反'}, {'kind': 'through', 'msg': '穿模'}, {'kind': 'terminal', 'msg': '端头'}, {'kind': 'support', 'msg': '悬空'}, {'kind': 'crowd', 'msg': '压线'}])
+ok('器物：线头、遮挡顺序、穿模、端头不通过，悬空和压线只提醒', r == [[['线头悬空'], []], [['遮挡顺序画反', '穿模', '端头'], ['悬空', '压线']]], r)
+r = AN([]); ok('器物：干净的结果两项都过', r == [[[], []], [[], []]], r)
+
 # short render 的门禁（拦下时还没开浏览器）
 def short_render(P): r = subprocess.run([sys.executable, str(KIT / 'build.py'), 'short', 'render', 'x'], cwd=P, capture_output=True, text=True); return r.returncode, r.stdout + r.stderr
 P = project(short=SH); rc, o = short_render(P); ok('竖版出片：没跑 short check 不出', rc == 1 and '还没跑 short check' in o, o[-300:])

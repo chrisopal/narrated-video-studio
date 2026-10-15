@@ -3115,38 +3115,63 @@
   {
    "id": "inbox-038",
    "kind": "check",
-   "name": "器物解剖：几何审计——证明管线不穿模、前后遮挡顺序对、每个线头都落在零件上（上游 kit/audit.mjs）；工坊逐帧画，要先让包里的零件登记真实形状才接得上",
-   "status": "inbox",
+   "name": "器物几何审计：遮挡顺序和真实前后一致、不穿模、管线端头落在接口上、零件有支撑（check 的“器物几何”，build.py anatomy）",
+   "status": "candidate",
    "from": "wheresryan22/anatomy（MIT）",
    "since": "2026-10-15",
-   "used_in": []
+   "used_in": [],
+   "pack": "anatomy",
+   "symbols": [
+    "AU",
+    "anatomyScan"
+   ],
+   "demo": "anatomy",
+   "changed": "2026-10-16"
   },
   {
    "id": "inbox-039",
    "kind": "check",
-   "name": "器物解剖：线头检查——画里每根纹理线（缝、刻度、肋）必须落在描边、圆点或轮廓上，悬空的圈出来（照上游 scripts/lines.mjs 的量法在 canvas 上重写）",
-   "status": "inbox",
+   "name": "器物线头检查：纹理线两头落在线、轮廓、圆点上（check 的“器物线头”）",
+   "status": "candidate",
    "from": "wheresryan22/anatomy（MIT）",
    "since": "2026-10-15",
-   "used_in": []
+   "used_in": [],
+   "pack": "anatomy",
+   "symbols": [
+    "lineEnds"
+   ],
+   "demo": "anatomy",
+   "changed": "2026-10-16"
   },
   {
    "id": "inbox-040",
    "kind": "component",
-   "name": "器物解剖：WebGL 着色器层（火焰、喷流、水面焦散、灯光），画在同一个等距相机里，前后各一层 SVG 夹住（上游 kit/gl.mjs）",
-   "status": "inbox",
+   "name": "器物光效：发热、火焰、蒸汽、灯光、水面、火花（WebGL，和零件同一个相机）",
+   "status": "candidate",
    "from": "wheresryan22/anatomy（MIT）",
    "since": "2026-10-15",
-   "used_in": []
+   "used_in": [],
+   "pack": "anatomy",
+   "symbols": [
+    "fx"
+   ],
+   "demo": "anatomy3d",
+   "changed": "2026-10-16"
   },
   {
    "id": "inbox-041",
    "kind": "component",
-   "name": "器物解剖：3D 转动模式（零件真的转起来，按分离平面排前后；上游 kit/turn*.mjs，测试版）",
-   "status": "inbox",
+   "name": "器物 3D 转动：凸零件按组转、滑、铰、自由运动，画布画家逐帧画；轨道审计用片子自己的每一帧",
+   "status": "candidate",
    "from": "wheresryan22/anatomy（MIT）",
    "since": "2026-10-15",
-   "used_in": []
+   "used_in": [],
+   "pack": "anatomy",
+   "symbols": [
+    "turn3d"
+   ],
+   "demo": "anatomy3d",
+   "changed": "2026-10-16"
   },
   {
    "id": "pack.anatomy",
@@ -3198,6 +3223,17 @@
    "status": "candidate",
    "since": "2026-10-15",
    "used_in": []
+  },
+  {
+   "id": "check.3D轨道",
+   "kind": "check",
+   "name": "3D 轨道：读 build.py anatomy --turn 留下的结果（没跑或过期提醒，有问题不通过）",
+   "pack": "anatomy",
+   "from": "wheresryan22/anatomy（MIT）的引擎，接到逐帧画法上的那一层自己写",
+   "status": "candidate",
+   "since": "2026-10-16",
+   "used_in": [],
+   "demo": "anatomy3d"
   }
  ],
  "retros": [

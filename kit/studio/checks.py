@@ -477,6 +477,18 @@ JUMP_X = 6
 SLOW_MS = 250  # 相邻两帧变了的像素不到万分之五算“没动”；超过 3%（宣传线 10%：大字砸下来本来就是一下）且是这一句平常的 6 倍算“跳变”；一帧画超过 250 毫秒算慢
 
 
+ANATOMY_FAIL = {'line', 'order', 'through', 'terminal'}
+
+
+def anatomy_check(r):
+    """器物解剖包的两项：线头（每根纹理线落在别的线、轮廓、圆点上）和几何（遮挡顺序和真实前后一致、不穿模、管线的头落在接口上）。
+    不通过：线头悬空、遮挡顺序画反、穿模、管线端头悬空。提醒：零件悬空超过 1 秒、管线折成尖角、弯头压在别的线上、形状登记不全。"""
+    lf = [i['msg'] for i in r['list'] if i['kind'] == 'line']
+    gf = [i['msg'] for i in r['list'] if i['kind'] in ANATOMY_FAIL - {'line'}]
+    gw = [i['msg'] for i in r['list'] if i['kind'] not in ANATOMY_FAIL]
+    return (lf, []), (gf, gw)
+
+
 def motion_stats(mo, tl):
     """按句子汇总：运动面积中位数、静止帧对占比、跳变。量法照 huashu-art-motion 的 qa.py：整片每一对相邻帧都量，不抽样。"""
     rows = []

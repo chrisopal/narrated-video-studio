@@ -14,6 +14,7 @@
   lines                    写出 lines.txt（id|朗读文本[|语气提示]），交给配音脚本；语气来自句子的 tone 或 brief.voice.style
   timeline                 配音时长（有 audio/words.json 就用逐字时间）→ timeline.json + vo.wav
   stills 3,10,20 [目录]    抽帧检查
+  anatomy [时刻,…] [--step 秒] [--out 目录]  器物解剖包：几何审计（遮挡顺序、穿模、管线端头、悬空）和线头检查，逐条列出并圈在画面上（check 里每秒量一帧）
   zoom 时刻 x,y,宽 [目录]  推近审看：以 1 倍画面的坐标框一块（高按画幅比例），按矢量重画放大到整幅 → zoom/（宽 480 就是四倍）
   sheet [间隔秒]           整片总览图（每 5 秒一帧，9 帧一张）→ sheets/
   （文章转视频：先用 python3 ../kit/article.py fetch 网址，见 templates/文章转视频.md）

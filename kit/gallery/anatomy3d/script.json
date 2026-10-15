@@ -1,0 +1,4 @@
+[{"id":"a0","ch":"转台","silent":true,"dur":5},
+ {"id":"a1","ch":"点火","silent":true,"dur":6},
+ {"id":"a2","ch":"凑近","silent":true,"dur":6},
+ {"id":"a3","ch":"熄火","silent":true,"dur":5.5}]
