@@ -3,6 +3,7 @@
    刊头（账号名 + 朱印 + 右侧年份）→ 时间线（醒目，红笔刷标出“此刻在一年/一生的哪一段”）→ 地点题签 → 画心（场景、镜头、转场）→ 字幕 →（遮挡区里）口号。
    用法（t 全片时间，t0 开始时刻；竖版坐标全部从 safeBox() 推出，换 9:16 / 3:4 不用改）：
    layout()                                   返回版面各层的位置 {B, head, bar, place, art:{x,y,w,h,cx,cy}, slogan}
+   config({timebar:false})                    不用时间线的片子（时间只在刊头右侧按转折点换）：在 scenes.js 顶层调用一次，题签和画心上移、画心变高
    masthead(t, {name:'史书留白', seal:'留白', right:'元延二年 · 前11年', rightKeys:[{at,text}]})  刊头；右侧标签可按时刻换
    timebar(t, keys, {n:12, ends:['正月','十二月'], major:3})  醒目的时间线：keys=[{at, lo, hi, mark, cap, fill, dim, d}]（单位是格，0..n；d 是从上一组变过来用几秒，缺省 0.8）
                                               lo..hi 红笔刷标出一段（只用来表示事情发生的时段；统计范围、资料覆盖年份不要用红段），mark 是红色墨点的位置，cap 是墨点上方的题签（≥44 像素），fill 是从头涂到哪，dim 整条变淡（0..1）；相邻两组之间 0.8 秒缓动
@@ -56,7 +57,9 @@ PACK.liubai=(function(){
     g.globalCompositeOperation='destination-out';for(let i=0;i<14;i++){g.fillStyle=`rgba(0,0,0,${.25+rnd(i+s)*.5})`;g.beginPath();g.arc(x-s/2+rnd(i*3+1)*s,y-s/2+rnd(i*5+2)*s,1+rnd(i*7)*s*.03,0,7);g.fill()}g.restore()}
 
   /* ---------- 版面 ---------- */
-  function layout(){const B=safeBox(),head=B.y,bar=B.y+92,place=B.y+262,ay=B.y+306,ah=B.y+B.h-ay;
+  const CFG={timebar:true};
+  function config(o={}){Object.assign(CFG,o)}   // config({timebar:false})：整片不画时间线，题签和画心上移约 110 像素，画心更大
+  function layout(){const B=safeBox(),head=B.y,bar=B.y+92,tb=CFG.timebar!==false,place=B.y+(tb?262:150),ay=B.y+(tb?306:194),ah=B.y+B.h-ay;
     return {B,head,bar,place,art:{x:B.x,y:ay,w:B.w,h:ah,cx:B.x+B.w/2,cy:ay+ah/2},slogan:H-SAFE.b+Math.min(96,SAFE.b*.2)}}
   function keyAt(keys,t){let i=0;for(let j=0;j<keys.length;j++)if(t>=keys[j].at)i=j;return i}
   function masthead(t,o={}){const L=layout(),y=L.head+56,x0=L.B.x+4;
@@ -243,5 +246,5 @@ PACK.liubai=(function(){
     const cs=[...text],sz=Math.min(w*.72,h*.72/cs.length);c.font=`${sz}px KT`;c.fillStyle=INK;c.textAlign='center';c.textBaseline='middle';cs.forEach((ch,i)=>c.fillText(ch,x,y+h*.14+(i+.5)*sz*1.1));
     c.fillStyle=RED;c.fillRect(x+w*.75,y+h*.62,R*.34,R*.34);c.font=`${R*.12}px SongB`;c.fillStyle='#f3e9d0';c.fillText('留',x+w*.75+R*.17,y+h*.62+R*.11);c.fillText('白',x+w*.75+R*.17,y+h*.62+R*.24);c.restore()}
 
-  return {INK,RED,DIM,BLUE,SLIP,layout,masthead,timebar,place,slogan,stage,vtxt,slip,calendar,counter,figure,hills,birds,motes,lamp,route,tomb,night,moon,torches,seal,doc,tablet,book,coverArt,paperCard,brushLine,sealBox,glyph};
+  return {INK,RED,DIM,BLUE,SLIP,config,layout,masthead,timebar,place,slogan,stage,vtxt,slip,calendar,counter,figure,hills,birds,motes,lamp,route,tomb,night,moon,torches,seal,doc,tablet,book,coverArt,paperCard,brushLine,sealBox,glyph};
 })();
