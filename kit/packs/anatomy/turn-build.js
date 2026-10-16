@@ -1129,6 +1129,30 @@ function build(T, { statics = [], verify = false, poses = null, strict = true, f
     const count = Math.min(all.length, 24);
     return Array.from({ length: count }, (_, i) => all[Math.floor((i * all.length) / count)]);
   };
+  // 本项目加的：固定平面是按 24 个取样姿态、每个零件 32 个点求的。片子长、几个组各自动的时候，24 个姿态会漏掉组合（比如竖杆降到底、同时还没往前拆出来），
+  // 平面在漏掉的那些姿态里其实不分开。这里拿全部姿态逐个验一遍，验不过就退回每帧现算（dyn），不留一个错的固定平面。
+  // 两个组之间的整体平面（groupPairs）也一样验：A、B 可以是一组零件
+  const holdsEverywhere = (a, b, frame, n) => {
+    const As = Array.isArray(a) ? a : [a], Bs = Array.isArray(b) ? b : [b];   // 用全部取样点验：只用 32 个点，大零件贴合面的角会漏掉，平面其实切进零件里半个单位
+    const side = (part, local, cams) => {
+      const c = part.group ? cams[part.group.index] : cams.world, f = frame ? cams[frame.index] : cams.world;
+      let lo = Infinity, hi = -Infinity;
+      for (const q of local) {
+        const p = [c.R[0] * q[0] + c.R[1] * q[1] + c.R[2] * q[2] + c.t[0] - f.t[0], c.R[3] * q[0] + c.R[4] * q[1] + c.R[5] * q[2] + c.t[1] - f.t[1], c.R[6] * q[0] + c.R[7] * q[1] + c.R[8] * q[2] + c.t[2] - f.t[2]];
+        const r = [f.R[0] * p[0] + f.R[3] * p[1] + f.R[6] * p[2], f.R[1] * p[0] + f.R[4] * p[1] + f.R[7] * p[2], f.R[2] * p[0] + f.R[5] * p[1] + f.R[8] * p[2]];
+        const d = n[0] * r[0] + n[1] * r[1] + n[2] * r[2];
+        if (d < lo) lo = d; if (d > hi) hi = d;
+      }
+      return [lo, hi];
+    };
+    for (const cams of stateCams()) {
+      let hiA = -Infinity, loB = Infinity;
+      for (const part of As) hiA = Math.max(hiA, side(part, part.samples, cams)[1]);
+      for (const part of Bs) loB = Math.min(loB, side(part, part.samples, cams)[0]);
+      if (loB - hiA < 0.05) return false;
+    }
+    return true;
+  };
   const toFrame = (dir, from, frame) => {
     if (from === frame) return dir;
     const cams = sampleStates()[0] ?? TURN.cams(scene, {});
@@ -1186,7 +1210,7 @@ function build(T, { statics = [], verify = false, poses = null, strict = true, f
           const ca = A.flatMap((part) => framedCloud(part, common).filter((_, i) => fullClouds || i % 2 === 0));
           const cb = B.flatMap((part) => framedCloud(part, common).filter((_, i) => fullClouds || i % 2 === 0));
           const hit = quickSeparate(ca, cb, [[0, 0, 1], ...A.flatMap((part) => part.hints).slice(0, 6).map((h) => toFrame(h, ga, common)), ...B.flatMap((part) => part.hints).slice(0, 6).map((h) => toFrame(h, gb, common))]);
-          if (hit.margin < 0.1) continue;
+          if (hit.margin < 0.1 || !holdsEverywhere(A, B, common, hit.n)) continue;
           pairsOfGroups.push(keys[x], keys[y], common ? common.index : -1, hit.n[0], hit.n[1], hit.n[2]);
           settled.add(`${keys[x]}|${keys[y]}`);
           settled.add(`${keys[y]}|${keys[x]}`);
@@ -1230,7 +1254,7 @@ function build(T, { statics = [], verify = false, poses = null, strict = true, f
           const ca = framedCloud(a, common);
           const cb = framedCloud(b, common);
           const hit = quickSeparate(ca, cb, [[0, 0, 1], ...a.hints, ...b.hints].map((h) => toFrame(h, a.group, common)).concat([[0, 0, 1], ...b.hints.map((h) => toFrame(h, b.group, common))]));
-          if (hit.margin >= 0.1) {
+          if (hit.margin >= 0.1 && holdsEverywhere(a, b, common, hit.n)) {
             framed.push(a.id, b.id, common ? common.index : -1, hit.n[0], hit.n[1], hit.n[2]);
             framedCount++;
           } else dyn.push(a.id, b.id);
