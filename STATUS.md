@@ -1,5 +1,13 @@
 # 状态
 
+## 2026-10-16 · Codex 本机在线配音到导出实测
+
+- 环境：macOS arm64、Homebrew Python 3.11、Chromium 156；运行依赖与 black/pyflakes 已安装，完整自检 205 项通过、无跳过，pip check 通过。
+- 范围：原创技术测试片《一句话，变成一段视频》，OpenRouter `google/gemini-3.8-flash-tts` / `Charon`，4 句 76 字；在线合成、WAV 转换、逐字时间、画面检查、混音、封面、渲染、final 导出均成功。
+- 验证：原始配音 ASR 4/4 满分；check 0 失败、0 提醒；独立审稿及抽帧审片通过。成品 30.28 秒、1920×1080、30fps、H.264/AAC；完整解码通过，音视频时长差约 0.013 秒。
+- 边界：混音后重新识别将末尾“视频”识别为“视面”，原始句识别正确；语气和主观混音仍需人耳确认。未覆盖其他模型、长片或平台发布；测试片不计入模板生产使用次数。
+- 产物：保存在本机 Movies 下 `narrated-video-online-smoke-20261016/`，未提交媒体、密钥、日志或项目文件；本次仅更新验证记录，按仓库流程提交推送。
+
 ## 2026-10-16 · 器物解剖收全：几何审计、线头检查、WebGL 光效、3D 转动
 
 - 范围：`kit/packs/anatomy/` 新增 `audit.js` `gl.js` `turn.js` `turn-canvas.js` `turn-build.js` `turn-audit.js`（改自上游 e948829）和 `check.js` `fx.js` `turn3d.js`（自己写）；`index.js` 加审计登记、`washer`、`drop` 只往上弹、刻度和滚花生根；`kit/studio/` 的 check 三项和 `build.py anatomy`；样片 `anatomy` 重画、`anatomy3d` 新增；`tools/selftest.py`（模块名带连字符、许可文件）、`tools/test_checks.py`；README 致谢、风格包.md、流程.md、已知限制.md、台账。版本 `2026.10.16-1`。
