@@ -35,7 +35,7 @@ def music_guqin(total, tl, name):
     out = np.zeros(int(SR * total) + SR * 6)
     r = np.random.default_rng(11)
     penta = [0, 2, 4, 7, 9]
-    roots = [146.83, 130.81, 164.81, 110.0, 196.0, 123.47]  # D C E A G B
+    roots = [293.66, 261.63, 329.63, 220.0, 392.0, 246.94]  # D4 C4 E4 A3 G4 B3：拨弦放在中音区，手机外放听得见（L-046、L-095）
     chs = []
     [chs.append((s['ch'], s['t0'])) for s in (tl or []) if not chs or chs[-1][0] != s['ch']]
     chs = chs or [('', 0)]
@@ -691,7 +691,7 @@ def loudness(path):
 
 # 配乐压到旁白下面多少：键盘铺底的平均音量是定好的（-20 dB），再压 17 dB，大约比旁白低 14 dB；别的配乐沿用 -21。brief.json 的 music_gain 可以整体加减几分贝
 MU_DB = lambda: (
-    -17 if BRIEF.get('music', 'keys') in ('keys', 'cosmos', 'drive', 'pulse', 'warm', 'bright') else -21
+    -17 if BRIEF.get('music', 'keys') in ('keys', 'cosmos', 'drive', 'pulse', 'warm', 'bright', 'guqin') else -21
 ) + float(BRIEF.get('music_gain', 0))
 
 
