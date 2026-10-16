@@ -328,7 +328,9 @@ const ORBIT_CHECKS = ["order", "rigid", "swept", "posed", "routes", "coverage", 
 
 function orbit(T, R, P, options = {}) {
   const started = Date.now();
-  const { sweep = null, clips = [], poses = null, random = 2000, step = 0.05, crowd = [], cover = [], fittings = [], depthAngles = 36, depthEvents = 36, quick = false, log = null, routeStates = 240, posedStep = null, only = null } = options;
+  const { sweep = null, clips = [], poses = null, random = 2000, step = 0.05, crowd = [], cover = [], fittings = [], depthAngles = 36, depthEvents = 36, quick = false, log = null, routeStates = 240, posedStep = null, only = null, ranges = null, groupSweeps = true } = options;
+  // ranges（本项目加的）：{组名: [lo, hi]} 只在这段范围里扫连续性和转台扫掠。给片子用：片子里只出现 pose(t) 走到的那一段，不用证明整圈、整个行程
+  // groupSweeps:false（本项目加的）：连续性不再单独把每个组扫一遍，只查片段里的每一帧（片子的帧就是观众看到的全部动作）
   const say = (text) => log && log(text);
   const unknown = (only ?? []).filter((name) => !ORBIT_CHECKS.includes(name));
   if (unknown.length) throw new Error(`orbit: unknown check ${unknown.join(", ")} in only (the checks are ${ORBIT_CHECKS.join(", ")})`);
@@ -625,9 +627,10 @@ function orbit(T, R, P, options = {}) {
     for (const { shape, item } of flagged) {
       let deepest = 0;
       let where = 0;
-      const count = quick ? 90 : 720;
+      const [lo, hi] = (ranges && ranges[g.name]) || [0, 360];
+      const count = Math.max(2, Math.round((quick ? 90 : 720) * (hi - lo) / 360));
       for (let i = 0; i < count; i++) {
-        const angle = (i * 360) / count;
+        const angle = lo + ((hi - lo) * i) / count;
         const cams = TURN.cams(scene, { [g.name]: angle });
         const pose = poseFor(cams, g);
         const b = A.boundsOf(shape);
@@ -809,7 +812,7 @@ function orbit(T, R, P, options = {}) {
   if (wants("continuity")) {
     TURN.exact(true);
     try {
-      continuity(T, scene, runs, groups, { step, quick, result, say, families, frameOf });
+      continuity(T, scene, runs, groups, { step, quick, result, say, families, frameOf, ranges, groupSweeps });
     } finally {
       TURN.exact(false);
     }
@@ -871,7 +874,7 @@ function orbit(T, R, P, options = {}) {
   return result;
 }
 
-function continuity(T, scene, runs, groups, { step, quick, result, say, families = [], frameOf = (f) => f.frame }) {
+function continuity(T, scene, runs, groups, { step, quick, result, say, families = [], frameOf = (f) => f.frame, ranges = null, groupSweeps = true }) {
   const stepSize = quick ? step * 10 : step;
   const measures = [];
   const worst = { q: 0, birth: 0, dot: 0, fade: 0, motion: 0, merge: 0 };
@@ -879,7 +882,9 @@ function continuity(T, scene, runs, groups, { step, quick, result, say, families
   const k = scene.P.scale * Math.sqrt(1.6);
   const sweeps = [];
   for (const g of groups) {
-    if (g.loose) continue;
+    if (g.loose || !groupSweeps) continue;
+    const rg = ranges && ranges[g.name];
+    if (rg) { if (rg[1] > rg[0]) sweeps.push({ group: g, from: rg[0], to: rg[1], unit: g.kind === "slide" ? "" : "°" }); continue }
     if (g.kind === "turn") sweeps.push({ group: g, from: 0, to: 360, unit: "°" });
     else if (g.kind === "hinge") sweeps.push({ group: g, from: g.range[0], to: g.range[1], unit: "°" });
     else sweeps.push({ group: g, from: 0, to: g.travel, unit: "" });
