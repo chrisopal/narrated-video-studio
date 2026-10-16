@@ -815,6 +815,22 @@
    "voice": null,
    "platform": "channels",
    "aspect": "9:16"
+  },
+  {
+   "title": "1300多年前，一个12岁的孩子在作业里催老师放学",
+   "date": "2026-10-16",
+   "genre": "人物小传·竖屏",
+   "style": "liubai",
+   "packs": [
+    "liubai",
+    "renwu"
+   ],
+   "structure": "作业本串联·先人后物：卷尾的诗（钩子）→ 写诗的是谁 → 作业有多长 → 卷尾的诗和错字 → 另一首抬杠诗 → 埋进古墓又出土 → 揭示：郑玄注失传，这卷最长最完整 → 回扣“早放学生归”，问观众",
+   "hook": "一句原文：孩子气的请求",
+   "angle": "今人翻开这卷作业，从卷尾那几句诗读起；旁观者讲述，语气带笑",
+   "voice": "Algenib",
+   "platform": "xhs_full",
+   "aspect": "9:16"
   }
  ],
  "items": [
@@ -3038,7 +3054,8 @@
    "used_in": [
     "师饶的一年",
     "七十个名字",
-    "他教了半辈子书"
+    "他教了半辈子书",
+    "1300多年前，一个12岁的孩子在作业里催老师放学"
    ],
    "pack": "liubai",
    "demo": "liubai",
@@ -3054,7 +3071,8 @@
    "used_in": [
     "师饶的一年",
     "七十个名字",
-    "他教了半辈子书"
+    "他教了半辈子书",
+    "1300多年前，一个12岁的孩子在作业里催老师放学"
    ],
    "pack": "liubai",
    "demo": "liubai",
@@ -3070,7 +3088,8 @@
    "used_in": [
     "师饶的一年",
     "七十个名字",
-    "他教了半辈子书"
+    "他教了半辈子书",
+    "1300多年前，一个12岁的孩子在作业里催老师放学"
    ],
    "changed": "2026-10-14"
   },
@@ -3234,6 +3253,24 @@
    "since": "2026-10-16",
    "used_in": [],
    "demo": "anatomy3d"
+  },
+  {
+   "id": "inbox-042",
+   "kind": "component",
+   "name": "liubai 收进 chip（题签式说明卡）、note（画心底注）、ring（朱笔圈字，带呼吸）、竖排缺字回落（KT 没有的字换宋体）、poemPage（乌丝栏诗页逐字写出）",
+   "status": "inbox",
+   "from": "1300多年前，一个12岁的孩子在作业里催老师放学",
+   "since": "2026-10-16",
+   "used_in": []
+  },
+  {
+   "id": "inbox-043",
+   "kind": "component",
+   "name": "liubai 横向长卷展开：墨行竖排、卷轴杆、篇名红线经过时依次点亮下方题签",
+   "status": "inbox",
+   "from": "1300多年前，一个12岁的孩子在作业里催老师放学",
+   "since": "2026-10-16",
+   "used_in": []
   }
  ],
  "retros": [
@@ -3267,88 +3304,12 @@
    "date": "2026-10-15",
    "film": "四本账，合成一本",
    "kind": "light"
+  },
+  {
+   "date": "2026-10-16",
+   "film": "1300多年前，一个12岁的孩子在作业里催老师放学",
+   "kind": "full"
   }
  ],
- "pending": [
-  {
-   "type": "func",
-   "film": "四本账，合成一本",
-   "name": "box",
-   "calls": 6,
-   "head": "const box = (x, y, w, h, col, r = 10) => { g.fillStyle = col; rr(x, y, w, h, r); g.fill(); };"
-  },
-  {
-   "type": "func",
-   "film": "四本账，合成一本",
-   "name": "ledger",
-   "calls": 1,
-   "head": "function ledger(t, cur, y = 560) {"
-  },
-  {
-   "type": "func",
-   "film": "四本账，合成一本",
-   "name": "account",
-   "calls": 4,
-   "head": "function account(t, t0, i, name, pain) {"
-  },
-  {
-   "type": "func",
-   "film": "四本账，合成一本",
-   "name": "split",
-   "calls": 1,
-   "head": "function split(t, t0) {"
-  },
-  {
-   "type": "func",
-   "film": "四本账，合成一本",
-   "name": "capAbove",
-   "calls": 2,
-   "head": "const capAbove = (t, t0, s) => say(t, t0 + .3, s, SCX, 610, 54, { al: 'center', maxW: SX1 - SX0 });"
-  },
-  {
-   "type": "func",
-   "film": "四本账，合成一本",
-   "name": "dMing",
-   "calls": 0,
-   "head": "function dMing(x, y, w, h, u) {"
-  },
-  {
-   "type": "func",
-   "film": "四本账，合成一本",
-   "name": "dAn",
-   "calls": 0,
-   "head": "function dAn(x, y, w, h, u) {"
-  },
-  {
-   "type": "func",
-   "film": "四本账，合成一本",
-   "name": "dTong",
-   "calls": 0,
-   "head": "function dTong(x, y, w, h, u) {"
-  },
-  {
-   "type": "trial",
-   "film": "四本账，合成一本",
-   "id": "comp.slip",
-   "name": "题签纸条"
-  },
-  {
-   "type": "trial",
-   "film": "四本账，合成一本",
-   "id": "genre.产品宣传",
-   "name": "产品宣传与发布（宣传线）"
-  },
-  {
-   "type": "trial",
-   "film": "四本账，合成一本",
-   "id": "pack.promo",
-   "name": "宣传片的五种样子（bold、glass、studio、grid、pop）：字的进场、换屏、画框跟着样子换"
-  },
-  {
-   "type": "trial",
-   "film": "四本账，合成一本",
-   "id": "style.promo",
-   "name": "宣传片主题 promo（五种样子的配色）"
-  }
- ]
+ "pending": []
 }
