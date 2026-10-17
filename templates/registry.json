@@ -831,6 +831,21 @@
    "voice": "Algenib",
    "platform": "xhs_full",
    "aspect": "9:16"
+  },
+  {
+   "title": "他把妻子写成千古知己，却让她过得如此艰难？",
+   "date": "2026-10-17",
+   "genre": "小说与文学解读",
+   "style": "liubai",
+   "packs": [
+    "liubai"
+   ],
+   "structure": "问题链与生活细节对照",
+   "hook": "知己与现实代价的反差",
+   "angle": "当代读者对回忆录的证据阅读",
+   "voice": "Charon",
+   "platform": "xhs_full",
+   "aspect": "9:16"
   }
  ],
  "items": [
@@ -3072,7 +3087,8 @@
     "师饶的一年",
     "七十个名字",
     "他教了半辈子书",
-    "1300多年前，一个12岁的孩子在作业里催老师放学"
+    "1300多年前，一个12岁的孩子在作业里催老师放学",
+    "他把妻子写成千古知己，却让她过得如此艰难？"
    ],
    "pack": "liubai",
    "demo": "liubai",
@@ -3101,7 +3117,8 @@
    "from": "师饶的一年",
    "since": "2026-10-13",
    "used_in": [
-    "师饶的一年"
+    "师饶的一年",
+    "他把妻子写成千古知己，却让她过得如此艰难？"
    ],
    "symbols": [
     "brand"
@@ -3318,7 +3335,40 @@
    "date": "2026-10-16",
    "film": "1300多年前，一个12岁的孩子在作业里催老师放学",
    "kind": "full"
+  },
+  {
+   "date": "2026-10-17",
+   "film": "他把妻子写成千古知己，却让她过得如此艰难？",
+   "kind": "light"
   }
  ],
- "pending": []
+ "pending": [
+  {
+   "type": "func",
+   "film": "他把妻子写成千古知己，却让她过得如此艰难？",
+   "name": "frame",
+   "calls": 1,
+   "head": "function frame(){brand(()=>{txt('史书留白',88,150,36,INK,'SongB');});}"
+  },
+  {
+   "type": "func",
+   "film": "他把妻子写成千古知己，却让她过得如此艰难？",
+   "name": "imagePan",
+   "calls": 1,
+   "head": "function imagePan(id,t,st){const im=IM[id];if(!im)return;const x=52,y=385,w=976,h=935;const q=(t-st);const z=1"
+  },
+  {
+   "type": "func",
+   "film": "他把妻子写成千古知己，却让她过得如此艰难？",
+   "name": "opening",
+   "calls": 1,
+   "head": "function opening(t){g.save();g.translate(540,800);g.rotate(-.025+Math.sin(t*.12)*.013);g.fillStyle='#dfc995';g"
+  },
+  {
+   "type": "trial",
+   "film": "他把妻子写成千古知己，却让她过得如此艰难？",
+   "id": "comp.brand",
+   "name": "brand() 品牌字"
+  }
+ ]
 }
