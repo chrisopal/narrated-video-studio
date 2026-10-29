@@ -16,7 +16,7 @@
    calendar(t, {box, lens, days, t0, dur, home, redA, a})  历谱格子：lens 每月天数，days=[[月,日],…] 按顺序盖上朱红，home=[月,日] 描黑框的那一格
    counter(t, t0, {x, y, lines:[['出差',16,'次'],['',161,'天']], dur})  数字滚动卡
    figure(t, {x, y, s, pose:'stand|sit|walk', t0, robe, write, preset})  汉代文吏（简单形象）；写了 preset 并在 brief 的 packs 里加 renwu，就换成古代人物库（朝代 × 身份 × 动作，见 renwu.js）
-   route(t, t0, {box, A:{x,y,name,sub}, B:{…}, trips, dur, label})    示意路线：远山、河、驿路、往返的车，trips 趟依次走完
+   route(t, t0, {box, A:{x,y,name,sub}, B:{…}, trips, dur, label, traveler, oneway})  示意路线：远山、河、驿路；朱笔沿路画过去（笔锋+足迹+到站盖印），traveler:'cart' 换成贴路面倾斜的车，'none' 不画；trips=1 缺省单程
    tomb(t, {box, light})                      墓葬剖面：土层、墓坑、棺、简牍；light 时刻简牍发光升起
    night(t, {box, a})  moon(x, y, r, a)  torches(t, t0, {box, n})       夜色、月亮、举火追赶的人影
    seal(t, t0, {x, y, size, text, big})       盖印：落下、压纸、晕墨
@@ -182,21 +182,38 @@ PACK.liubai=(function(){
     g.fillStyle='#f6c35b';g.beginPath();g.moveTo(0,-90*f);g.quadraticCurveTo(14,-60,0,-48);g.quadraticCurveTo(-14,-60,0,-90*f);g.fill();g.restore()}
 
   /* ---------- 路线（示意） ---------- */
-  function cart(x,y,dir,t,s=1){g.save();g.translate(x,y);g.scale(dir*s,s);g.strokeStyle=INK;g.lineWidth=3;g.fillStyle='#8a6c3a';
-    g.beginPath();g.ellipse(-10,-30,34,22,0,Math.PI,0);g.fill();g.stroke();g.fillRect(-46,-30,72,10);g.strokeRect(-46,-30,72,10);
-    const r=16,a=t*6;g.beginPath();g.arc(-10,-8,r,0,7);g.stroke();for(let i=0;i<4;i++){g.beginPath();g.moveTo(-10,-8);g.lineTo(-10+Math.cos(a+i*.8)*r,-8+Math.sin(a+i*.8)*r);g.stroke()}
-    g.fillStyle=INK;const leg=Math.sin(t*9)*6;g.beginPath();g.ellipse(52,-34,22,12,0,0,7);g.fill();g.beginPath();g.moveTo(66,-40);g.lineTo(80,-58);g.lineTo(86,-50);g.closePath();g.fill();
-    g.lineWidth=4;g.beginPath();g.moveTo(40,-26);g.lineTo(38+leg,0);g.moveTo(62,-26);g.lineTo(64-leg,0);g.moveTo(26,-26);g.lineTo(40,-30);g.stroke();g.restore()}
-  function route(t,t0,o){const {box,A,B,trips=4,dur=5,label}=o;hills(t,{x:box.x,y:box.y,w:box.w,h:box.h},{seed:4,y:box.y+box.h*.42,amp:90,a:.55,layers:2});
+  // 车：底边贴在 (x,y) 的路面上，随坡度 ang 倾斜；车轮转、牛腿交替，整体轻微颠簸
+  function cart(x,y,dir,t,s=1,ang=0){g.save();g.translate(x,y);g.rotate(ang);g.translate(0,-2*Math.abs(Math.sin(t*9)));g.scale(dir*s,s);g.strokeStyle=INK;g.lineWidth=3;g.fillStyle='#8a6c3a';
+    g.beginPath();g.ellipse(-30,-40,30,20,0,Math.PI,0);g.fill();g.stroke();g.fillRect(-62,-40,64,9);g.strokeRect(-62,-40,64,9);
+    const r=15,a=t*6;g.fillStyle='#e7d9b6';g.beginPath();g.arc(-30,-15,r,0,7);g.fill();g.stroke();for(let i=0;i<4;i++){g.beginPath();g.moveTo(-30,-15);g.lineTo(-30+Math.cos(a+i*.8)*r,-15+Math.sin(a+i*.8)*r);g.stroke()}
+    g.beginPath();g.moveTo(2,-36);g.lineTo(26,-36);g.stroke();
+    g.fillStyle=INK;const leg=Math.sin(t*9)*5;g.beginPath();g.ellipse(42,-30,18,10,0,0,7);g.fill();g.beginPath();g.ellipse(60,-35,7,6,0,0,7);g.fill();g.beginPath();g.moveTo(63,-40);g.lineTo(70,-48);g.stroke();
+    g.lineWidth=3.5;g.beginPath();g.moveTo(32,-22);g.lineTo(31+leg,0);g.moveTo(52,-22);g.lineTo(53-leg,0);g.stroke();g.restore()}
+  // 示意路线：远山、河、虚线驿路；行进默认是“朱笔沿路画过去”（笔锋 + 墨点足迹 + 到站盖印），不再用牛车。
+  // o.traveler：'brush'（缺省）/ 'cart'（旧的车，已改为贴着路面、随坡度倾斜、不中途掉头）/ 'none'；o.oneway：只去不回（trips=1 时缺省就是单程）
+  function route(t,t0,o){const {box,A,B,trips=4,dur=5,label}=o,traveler=o.traveler||'brush',oneway=o.oneway??(trips===1);
+    hills(t,{x:box.x,y:box.y,w:box.w,h:box.h},{seed:4,y:box.y+box.h*.42,amp:90,a:.55,layers:2});
     g.save();g.strokeStyle='rgba(47,61,92,.55)';g.lineWidth=5;g.beginPath();for(let i=0;i<=30;i++){const u=i/30,x=box.x+u*box.w,y=box.y+box.h*.83+Math.sin(u*9+1)*14;i?g.lineTo(x,y):g.moveTo(x,y)}g.stroke();g.restore();
-    const C=[(A.x+B.x)/2+40,(A.y+B.y)/2+130],q=k=>[(1-k)**2*A.x+2*k*(1-k)*C[0]+k*k*B.x,(1-k)**2*A.y+2*k*(1-k)*C[1]+k*k*B.y];
-    g.save();g.setLineDash([12,12]);g.strokeStyle='#8d7a58';g.lineWidth=5;g.beginPath();g.moveTo(A.x,A.y);g.quadraticCurveTo(C[0],C[1],B.x,B.y);g.stroke();g.restore();
-    const K=cl((t-t0)/dur)*trips,tr=Math.min(trips-1,Math.floor(K)),f=K-tr;
-    for(let i=0;i<=tr;i++){const e=i<tr?1:f,off=(i-(trips-1)/2)*9;if(e<=0)continue;g.save();g.strokeStyle='rgba(168,50,43,.8)';g.lineWidth=5;g.lineCap='round';g.beginPath();
-      const go=Math.min(1,e*2);for(let s=0;s<=40;s++){const [x,y]=q(s/40*go);s?g.lineTo(x+off,y+off*.4):g.moveTo(x+off,y+off*.4)}if(e>.5){const bk=(e-.5)*2;for(let s=0;s<=40;s++){const [x,y]=q(1-s/40*bk);g.lineTo(x+off+6,y+off*.4+8)}}g.stroke();g.restore()}
-    const back=f>.5,u=back?2-f*2:f*2,[cx,cy]=q(u),[nx]=q(cl(u+(back?-.02:.02)));cart(cx,cy+6,nx>=cx?1:-1,t,o.cart??1.3);
-    for(let i=0;i<5;i++){const d=((t*1.4+i*.2)%1);g.save();g.globalAlpha*=.35*(1-d);g.fillStyle='#a08a62';g.beginPath();g.arc(cx-(back?-1:1)*(40+d*60),cy+2-d*20,6+d*14,0,7);g.fill();g.restore()}
-    for(const P of [A,B]){sealBox(P.x,P.y,30);txt(P.name,P.x,P.y-142,48,INK,'SongB','center');if(P.sub)txt(P.sub,P.x,P.y-90,40,DIM,'Song','center')}
+    const C=[(A.x+B.x)/2+40,(A.y+B.y)/2+130],q=k=>[(1-k)**2*A.x+2*k*(1-k)*C[0]+k*k*B.x,(1-k)**2*A.y+2*k*(1-k)*C[1]+k*k*B.y],
+      tan=k=>{const [x0,y0]=q(Math.max(0,k-.01)),[x1,y1]=q(Math.min(1,k+.01));return Math.atan2(y1-y0,x1-x0)};
+    g.save();g.setLineDash([10,14]);g.strokeStyle='rgba(141,122,88,.75)';g.lineWidth=4;g.beginPath();g.moveTo(A.x,A.y);g.quadraticCurveTo(C[0],C[1],B.x,B.y);g.stroke();g.restore();
+    const K=cl((t-t0)/dur)*trips,tr=Math.min(trips-1,Math.floor(K)),f=K-tr,ease=x=>x<.5?2*x*x:1-(-2*x+2)**2/2;
+    // 每一趟一条朱笔线（往返的话回程贴在旁边），笔锋粗细随笔画变化
+    const stroke=(u0,u1,off,w)=>{const n=Math.max(2,Math.round(Math.abs(u1-u0)*60));g.save();g.strokeStyle='rgba(168,50,43,.85)';g.lineCap='round';
+      for(let s=0;s<n;s++){const a=u0+(u1-u0)*s/n,b=u0+(u1-u0)*(s+1)/n,[x0,y0]=q(a),[x1,y1]=q(b),r=s/n;g.lineWidth=w*(.55+.45*Math.sin(Math.PI*Math.min(1,r*1.2)));g.beginPath();g.moveTo(x0+off,y0+off*.4);g.lineTo(x1+off,y1+off*.4);g.stroke()}g.restore()};
+    let head=null;
+    for(let i=0;i<=tr;i++){const e=i<tr?1:f;if(e<=0)continue;const off=(i-(trips-1)/2)*9;
+      if(oneway){const u=ease(e);stroke(0,u,off,6);if(i===tr)head=[u,1]}
+      else{const go=ease(Math.min(1,e*2));stroke(0,go,off,6);if(e>.5){const bk=ease((e-.5)*2);stroke(1,1-bk,off+7,4);if(i===tr)head=[1-bk,-1]}else if(i===tr)head=[go,1]}}
+    if(head&&cl((t-t0)/dur)<1){const [u,d]=head,[hx,hy]=q(u),an=tan(u)+(d<0?Math.PI:0);
+      if(traveler==='cart')cart(hx,hy,1,t,o.cart??.9,an);
+      else if(traveler==='brush'){ // 笔锋：一滴朱墨 + 身后三五个渐淡的足迹点
+        for(let j=1;j<=5;j++){const uj=u-d*j*.035;if(uj<0||uj>1)continue;const [fx,fy]=q(uj),side=(j%2?1:-1)*7,nx=-Math.sin(an),ny=Math.cos(an);g.save();g.globalAlpha*=.6*(1-j/6);g.fillStyle=INK;g.beginPath();g.ellipse(fx+nx*side,fy+ny*side,5,3,an,0,7);g.fill();g.restore()}
+        g.save();g.translate(hx,hy);g.rotate(an);const pulse=1+.12*Math.sin(t*8);g.fillStyle=RED;g.beginPath();g.moveTo(16*pulse,0);g.quadraticCurveTo(0,-11*pulse,-12,0);g.quadraticCurveTo(0,11*pulse,16*pulse,0);g.fill();
+        g.globalAlpha*=.35;g.beginPath();g.arc(0,0,22*pulse,0,7);g.fill();g.restore()}}
+    // 到站：终点印章落下时轻轻一顿
+    const arr=sg(t,t0+dur*(oneway?1:.5)/trips,.4);
+    for(const [P,i] of [[A,0],[B,1]]){const k=i&&arr>0&&arr<1?1+.35*Math.sin(arr*Math.PI):1;sealBox(P.x,P.y,30*k);txt(P.name,P.x,P.y-142,48,INK,'SongB','center');if(P.sub)txt(P.sub,P.x,P.y-90,40,DIM,'Song','center')}
     if(label)txt(label(Math.min(trips,tr+1)),box.x+box.w/2,box.y+76,46,RED,'SongB','center')}
 
   /* ---------- 墓葬剖面 ---------- */
